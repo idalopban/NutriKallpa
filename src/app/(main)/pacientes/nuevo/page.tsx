@@ -1,0 +1,597 @@
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  Save,
+  User,
+  Activity,
+  Scale,
+  Utensils,
+  Calculator,
+  CheckCircle2
+} from "lucide-react";
+
+// Components
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormDescription,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+
+// Logic
+import { savePaciente, saveMedidas } from "@/lib/storage";
+import { createPatient } from "@/actions/patient-actions";
+import { useAuthStore } from "@/store/useAuthStore";
+import type { Paciente, MedidasAntropometricas } from "@/types";
+
+// --- VALIDATION SCHEMA ---
+const formSchema = z.object({
+  nombreCompleto: z.string().min(2, "Nombre requerido"),
+  fechaNacimiento: z.string().min(1, "Fecha de nacimiento requerida"),
+  sexo: z.enum(["masculino", "femenino", "otro"]),
+  email: z.string().email("Email inválido").optional().or(z.literal("")),
+  telefono: z.string().optional(),
+
+  // Antropometría
+  peso: z.coerce.number().min(1, "Peso requerido"),
+  talla: z.coerce.number().min(1, "Talla requerida"),
+  actividadFisica: z.string(),
+
+  // Nutrición
+  formulaGet: z.string(),
+  objetivoPeso: z.string(),
+  kcalAjuste: z.coerce.number().default(0),
+  proteinaRatio: z.coerce.number().min(0.5).default(1.6),
+
+  // Extra
+  notas: z.string().optional(),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+export default function NuevoPacientePage() {
+  const router = useRouter();
+  const { user } = useAuthStore();
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      nombreCompleto: "",
+      fechaNacimiento: "",
+      sexo: "masculino",
+      email: "",
+      telefono: "",
+      peso: 70.0,
+      talla: 170.0,
+      actividadFisica: "moderada",
+      formulaGet: "mifflin",
+      objetivoPeso: "mantenimiento",
+      kcalAjuste: 0,
+      proteinaRatio: 1.6,
+      notas: "",
+    },
+  });
+
+  // --- Real-time Calculations ---
+  const peso = form.watch("peso");
+  const talla = form.watch("talla");
+  const ratio = form.watch("proteinaRatio");
+  const objetivo = form.watch("objetivoPeso");
+  const fechaNacimiento = form.watch("fechaNacimiento");
+
+  // Calcular edad a partir de fecha de nacimiento
+  const calcularEdad = (fecha: string): number => {
+    if (!fecha) return 0;
+    const hoy = new Date();
+    const nacimiento = new Date(fecha);
+    let edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const mes = hoy.getMonth() - nacimiento.getMonth();
+    if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+      edad--;
+    }
+    return edad;
+  };
+  const edadCalculada = calcularEdad(fechaNacimiento);
+
+  // Cálculos derivados visuales
+  const imc = (peso && talla) ? (peso / Math.pow(talla / 100, 2)).toFixed(1) : "0.0";
+  const totalProteina = (peso && ratio) ? (peso * ratio).toFixed(0) : "0";
+
+  // Color dinámico según objetivo
+  const getObjectiveColor = () => {
+    if (objetivo === 'perder') return 'text-orange-500 bg-orange-500/10';
+    if (objetivo === 'ganar') return 'text-green-500 bg-green-500/10';
+    return 'text-blue-500 bg-blue-500/10';
+  };
+
+  async function onSubmit(data: FormValues) {
+    console.log("🟢 INTENTANDO GUARDAR...", data); // Mira la consola del navegador
+
+    if (!user) {
+      alert("⚠️ Error: No hay usuario autenticado. Inicia sesión nuevamente.");
+      return;
+    }
+
+    try {
+      const pacienteId = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      // 1. Preparar Datos Personales
+      const names = data.nombreCompleto.trim().split(" ");
+      const nombre = names[0];
+      const apellido = names.slice(1).join(" ") || "";
+      const edadFinal = calcularEdad(data.fechaNacimiento);
+
+      // 2. Objeto Paciente (Asegurando tipos)
+      const nuevoPaciente: Paciente = {
+        id: pacienteId,
+        usuarioId: user.id,
+        datosPersonales: {
+          nombre,
+          apellido,
+          email: data.email || "",
+          telefono: data.telefono || "",
+          fechaNacimiento: new Date(data.fechaNacimiento).toISOString(),
+          sexo: data.sexo as "masculino" | "femenino" | "otro",
+        },
+        historiaClinica: {
+          objetivos: data.objetivoPeso,
+          antecedentesPersonales: data.notas || ""
+        },
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // 3. Objeto Medidas
+      const nuevasMedidas: MedidasAntropometricas = {
+        id: crypto.randomUUID(),
+        pacienteId: pacienteId,
+        fecha: now,
+        peso: data.peso,
+        talla: data.talla,
+        imc: parseFloat(imc),
+        edad: edadFinal,
+        sexo: data.sexo as "masculino" | "femenino" | "otro",
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Intentar sincronizar con Supabase (no bloqueante)
+      try {
+        console.log("💾 Sincronizando con Supabase...", nuevoPaciente);
+        const result = await createPatient(nuevoPaciente);
+        if (!result.success) {
+          console.warn("⚠️ No se pudo sincronizar con Supabase:", result.error);
+        }
+      } catch (syncError) {
+        console.warn("⚠️ Error de conexión con Supabase (se guardará localmente):", syncError);
+      }
+
+      // Siempre guardar en Storage Local
+      console.log("💾 Guardando en Storage Local...", nuevoPaciente);
+      savePaciente(nuevoPaciente);
+      saveMedidas(nuevasMedidas);
+
+      // Redirigir al expediente del paciente recién creado
+      const redirectUrl = `/pacientes/${pacienteId}`;
+      console.log("🚀 Redirigiendo a:", redirectUrl);
+      window.location.href = redirectUrl;
+
+    } catch (e) {
+      console.error("🔴 ERROR CRÍTICO AL GUARDAR:", e);
+      alert("Hubo un error técnico. Revisa la consola (F12).");
+    }
+  }
+
+  return (
+    <div className="container max-w-7xl mx-auto py-8 px-4 space-y-8 animate-in fade-in duration-500 pb-20">
+
+      {/* --- HEADER --- */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-[#334155] pb-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1 font-medium">
+            <span onClick={() => router.back()} className="cursor-pointer hover:text-green-600 transition-colors flex items-center gap-1">
+              <ArrowLeft className="w-3 h-3" /> Pacientes
+            </span>
+            <span className="text-slate-300">/</span>
+            <span className="text-slate-900 dark:text-white">Nuevo Registro</span>
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Crear Expediente</h1>
+          <p className="text-slate-500 dark:text-slate-400">Ingresa los datos iniciales para comenzar el seguimiento clínico.</p>
+        </div>
+        <div className="flex gap-3 w-full md:w-auto">
+          <Button variant="outline" onClick={() => router.back()} className="border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900">
+            Cancelar
+          </Button>
+          <Button
+            onClick={form.handleSubmit(onSubmit, (errors) => {
+              console.log("Errores de validación:", errors);
+              alert("⚠️ No se puede guardar. Revisa los campos en rojo.");
+            })}
+            className="min-w-[160px] gap-2 shadow-lg shadow-slate-900/20 bg-slate-900 hover:bg-slate-800 text-white transition-all hover:scale-[1.02]"
+          >
+            <Save className="w-4 h-4" /> Guardar Ficha
+          </Button>
+        </div>
+      </div>
+
+      <Form {...form}>
+        <form className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+          {/* --- LEFT COLUMN: DATA ENTRY (8 Cols) --- */}
+          <div className="lg:col-span-8 space-y-8">
+
+            {/* 1. Datos Personales (BLUE THEME) */}
+            <Card className="border-none shadow-md bg-white dark:bg-[#1e293b] dark:border dark:border-[#334155] overflow-hidden">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-[#334155] pb-4">
+                <CardTitle className="flex items-center gap-3 text-lg text-slate-800 dark:text-white">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shadow-sm">
+                    <User className="w-4 h-4" />
+                  </div>
+                  Información Personal
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid md:grid-cols-2 gap-6 pt-6">
+                <FormField
+                  control={form.control}
+                  name="nombreCompleto"
+                  render={({ field }) => (
+                    <FormItem className="col-span-2">
+                      <FormLabel className="text-slate-600">Nombre y Apellido</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ej. Mariana López" className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-blue-500 focus:ring-blue-500/20 transition-all dark:text-white" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="fechaNacimiento"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-600">Fecha de Nacimiento</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-blue-500 focus:ring-blue-500/20 transition-all dark:text-white" />
+                      </FormControl>
+                      {fechaNacimiento && (
+                        <p className="text-xs text-slate-500 mt-1">Edad: <span className="font-semibold text-blue-600">{edadCalculada} años</span></p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="sexo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-600">Sexo Biológico</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:ring-blue-500/20 dark:text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="masculino">Masculino</SelectItem>
+                          <SelectItem value="femenino">Femenino</SelectItem>
+                          <SelectItem value="otro">Otro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-600">Email (Opcional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="correo@ejemplo.com" {...field} className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-blue-500 focus:ring-blue-500/20 transition-all dark:text-white" />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="telefono"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-600">Teléfono (Opcional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+51..." {...field} className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-blue-500 focus:ring-blue-500/20 transition-all dark:text-white" />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            {/* 2. Antropometría Base (GREEN THEME) */}
+            <Card className="border-none shadow-md bg-white dark:bg-[#1e293b] dark:border dark:border-[#334155] overflow-hidden">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-[#334155] pb-4">
+                <CardTitle className="flex items-center gap-3 text-lg text-slate-800 dark:text-white">
+                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 shadow-sm">
+                    <Scale className="w-4 h-4" />
+                  </div>
+                  Antropometría Base
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid md:grid-cols-2 gap-6 pt-6">
+                <FormField
+                  control={form.control}
+                  name="peso"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-600">Peso Actual (kg)</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input type="number" step="0.1" {...field} className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-green-500 focus:ring-green-500/20 transition-all pr-8 dark:text-white" />
+                          <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium">kg</span>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="talla"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-600">Talla (cm)</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input type="number" step="0.1" {...field} className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-green-500 focus:ring-green-500/20 transition-all pr-8 dark:text-white" />
+                          <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium">cm</span>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="actividadFisica"
+                  render={({ field }) => (
+                    <FormItem className="col-span-2">
+                      <FormLabel className="text-slate-600">Nivel de Actividad Física</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:ring-green-500/20 dark:text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="sedentario">Sedentario (Poco o nada)</SelectItem>
+                          <SelectItem value="ligera">Ligera (1-3 días/sem)</SelectItem>
+                          <SelectItem value="moderada">Moderada (3-5 días/sem)</SelectItem>
+                          <SelectItem value="intensa">Intensa (6-7 días/sem)</SelectItem>
+                          <SelectItem value="muy_intensa">Muy Intensa (Doble sesión)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            {/* 3. Plan Nutricional (ORANGE THEME) */}
+            <Card className="border-none shadow-md bg-white dark:bg-[#1e293b] dark:border dark:border-[#334155] overflow-hidden">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-[#334155] pb-4">
+                <CardTitle className="flex items-center gap-3 text-lg text-slate-800 dark:text-white">
+                  <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 shadow-sm">
+                    <Utensils className="w-4 h-4" />
+                  </div>
+                  Configuración Nutricional
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid md:grid-cols-2 gap-6 pt-6">
+                <FormField
+                  control={form.control}
+                  name="objetivoPeso"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-600">Objetivo Principal</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:ring-orange-500/20 dark:text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="perder">Perder Grasa</SelectItem>
+                          <SelectItem value="mantenimiento">Mantenimiento</SelectItem>
+                          <SelectItem value="ganar">Ganar Músculo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="formulaGet"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-600">Fórmula Predictiva (GET)</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:ring-orange-500/20 dark:text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="mifflin">Mifflin-St Jeor (Recomendada)</SelectItem>
+                          <SelectItem value="harris">Harris-Benedict</SelectItem>
+                          <SelectItem value="fao">FAO/OMS</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="proteinaRatio"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-600">Ratio Proteína (g/kg)</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input type="number" step="0.1" {...field} className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-orange-500 focus:ring-orange-500/20 transition-all pr-12 dark:text-white" />
+                          <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium">g/kg</span>
+                        </div>
+                      </FormControl>
+                      <FormDescription className="text-xs">Recomendado: 1.6 - 2.2 g/kg</FormDescription>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="kcalAjuste"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-600">Ajuste Calórico (kcal)</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input type="number" step="50" {...field} className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-orange-500 focus:ring-orange-500/20 transition-all pr-12 dark:text-white" />
+                          <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium">kcal</span>
+                        </div>
+                      </FormControl>
+                      <FormDescription className="text-xs">Ej: -500 (Déficit) o +300 (Superávit)</FormDescription>
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            {/* 4. Notas (SLATE THEME) */}
+            <Card className="border-none shadow-md bg-white dark:bg-[#1e293b] dark:border dark:border-[#334155] overflow-hidden">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-[#334155] pb-4">
+                <CardTitle className="flex items-center gap-3 text-lg text-slate-800 dark:text-white">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-sm">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  Antecedentes Nutricionales
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <FormField
+                  control={form.control}
+                  name="notas"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-600">Antecedentes y Observaciones</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Alergias, lesiones previas, objetivos específicos..."
+                          className="min-h-[120px] bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-slate-500 focus:ring-slate-500/20 transition-all resize-none dark:text-white"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+          </div>
+
+          {/* --- RIGHT COLUMN: SUMMARY (4 Cols) --- */}
+          <div className="lg:col-span-4 space-y-6">
+            <div className="sticky top-6 space-y-6">
+
+              <Card className="bg-slate-900 text-white border-none shadow-xl overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                <CardHeader className="pb-2 relative z-10">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Calculator className="w-5 h-5 text-green-400" />
+                    Resumen Rápido
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6 relative z-10">
+
+                  {/* IMC Preview */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm text-slate-400">
+                      <span>IMC Estimado</span>
+                      <span className="text-white font-medium">{imc}</span>
+                    </div>
+                    <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${Number(imc) > 25 ? 'bg-orange-500' : Number(imc) < 18.5 ? 'bg-blue-500' : 'bg-green-500'}`}
+                        style={{ width: `${Math.min(Number(imc) * 2, 100)}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-right text-slate-500">
+                      {Number(imc) >= 25 ? 'Sobrepeso' : Number(imc) < 18.5 ? 'Bajo Peso' : 'Peso Normal'}
+                    </p>
+                  </div>
+
+                  <Separator className="bg-slate-800" />
+
+                  {/* Proteína Preview */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm text-slate-400">
+                      <span>Proteína Diaria</span>
+                      <span className="text-white font-medium">{totalProteina} g</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <Utensils className="w-3 h-3" />
+                      <span>Basado en {ratio} g/kg</span>
+                    </div>
+                  </div>
+
+                  <Separator className="bg-slate-800" />
+
+                  {/* Objetivo Preview */}
+                  <div className={`p-3 rounded-lg border border-white/10 ${getObjectiveColor()} bg-opacity-10`}>
+                    <p className="text-xs font-bold uppercase tracking-wider opacity-70">Objetivo</p>
+                    <p className="font-semibold capitalize">{objetivo}</p>
+                  </div>
+
+                </CardContent>
+              </Card>
+
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-4 flex gap-3 items-start">
+                <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-blue-900 dark:text-blue-300">Listo para empezar</h4>
+                  <p className="text-xs text-blue-700 dark:text-blue-400 leading-relaxed">
+                    Al guardar, serás redirigido al perfil del paciente donde podrás realizar la primera evaluación antropométrica completa.
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </form>
+      </Form>
+    </div>
+  );
+}

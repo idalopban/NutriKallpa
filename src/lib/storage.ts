@@ -1,0 +1,368 @@
+/**
+ * Unified Storage Service
+ * 
+ * Provides CRUD operations with localStorage as primary for immediate access
+ * and Supabase for cloud sync. Background sync keeps data up to date.
+ */
+
+import type { User, Paciente, MedidasAntropometricas, Dieta, Alimento, Cita, InvitationCode } from "@/types";
+import * as supabaseStorage from './supabase-storage';
+
+const STORAGE_KEYS = {
+  USERS: "nutrikallpa_users_v2",
+  PACIENTES: "nutrikallpa_pacientes_v2",
+  MEDIDAS: "nutrikallpa_medidas_v2",
+  DIETAS: "nutrikallpa_dietas_v2",
+  ALIMENTOS: "nutrikallpa_alimentos_v2",
+  CURRENT_USER: "nutrikallpa_user_v2",
+  AUTHENTICATED: "nutrikallpa_authenticated_v2",
+  CITAS: "nutrikallpa_citas_v2",
+  INVITATIONS: "nutrikallpa_invitations_v2",
+  LAST_SYNC: "nutrikallpa_last_sync_v2",
+} as const;
+
+// ============================================================================
+// HELPER: localStorage functions (synchronous)
+// ============================================================================
+
+function getFromLocalStorage<T>(key: string): T[] {
+  if (typeof window === "undefined") return [];
+  const data = localStorage.getItem(key);
+  return data ? JSON.parse(data) : [];
+}
+
+function saveToLocalStorage<T>(key: string, items: T[]): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(key, JSON.stringify(items));
+}
+
+// ============================================================================
+// BACKGROUND SYNC
+// ============================================================================
+
+let syncInProgress = false;
+
+export async function syncWithSupabase(userId: string): Promise<void> {
+  if (syncInProgress) return;
+  syncInProgress = true;
+
+  try {
+    // Sync pacientes from Supabase to localStorage
+    const supabasePacientes = await supabaseStorage.getPacientesFromSupabase(userId);
+    if (supabasePacientes.length > 0) {
+      saveToLocalStorage(STORAGE_KEYS.PACIENTES, supabasePacientes);
+    }
+
+    // Sync citas
+    const supabaseCitas = await supabaseStorage.getCitasFromSupabase();
+    if (supabaseCitas.length > 0) {
+      saveToLocalStorage(STORAGE_KEYS.CITAS, supabaseCitas);
+    }
+
+    // Mark sync time
+    localStorage.setItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
+  } catch (error) {
+    console.error('Sync with Supabase failed:', error);
+  } finally {
+    syncInProgress = false;
+  }
+}
+
+// ============================================================================
+// USERS (localStorage for session, sync to Supabase)
+// ============================================================================
+
+export function getUsers(): User[] {
+  return getFromLocalStorage<User>(STORAGE_KEYS.USERS);
+}
+
+export function saveUser(user: User): void {
+  const users = getUsers();
+  const index = users.findIndex((u) => u.id === user.id);
+  if (index >= 0) users[index] = user;
+  else users.push(user);
+  saveToLocalStorage(STORAGE_KEYS.USERS, users);
+
+  // Update current user if needed
+  try {
+    const current = getCurrentUser();
+    if (current && current.id === user.id) {
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  // Background sync to Supabase (silencioso si falla)
+  supabaseStorage.saveUserProfileToSupabase(user).catch(() => { /* silencioso */ });
+}
+
+export function getCurrentUser(): User | null {
+  if (typeof window === "undefined") return null;
+  const data = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+  return data ? JSON.parse(data) : null;
+}
+
+// ============================================================================
+// PACIENTES (sync operations - localStorage first, Supabase in background)
+// ============================================================================
+
+export function getPacientes(usuarioId?: string): Paciente[] {
+  const pacientes = getFromLocalStorage<Paciente>(STORAGE_KEYS.PACIENTES);
+  if (usuarioId) return pacientes.filter((p) => p.usuarioId === usuarioId);
+  return pacientes;
+}
+
+export function getPacienteById(id: string): Paciente | null {
+  const pacientes = getFromLocalStorage<Paciente>(STORAGE_KEYS.PACIENTES);
+  return pacientes.find((p) => p.id === id) || null;
+}
+
+export function savePaciente(paciente: Paciente): void {
+  const pacientes = getFromLocalStorage<Paciente>(STORAGE_KEYS.PACIENTES);
+  const index = pacientes.findIndex((p) => p.id === paciente.id);
+  if (index >= 0) {
+    pacientes[index] = { ...paciente, updatedAt: new Date().toISOString() };
+  } else {
+    pacientes.push({
+      ...paciente,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+  }
+  saveToLocalStorage(STORAGE_KEYS.PACIENTES, pacientes);
+
+  // Background sync to Supabase
+  supabaseStorage.savePacienteToSupabase(paciente).catch(console.error);
+}
+
+export function updatePaciente(pacienteActualizado: Paciente): void {
+  savePaciente(pacienteActualizado);
+}
+
+export function deletePaciente(id: string): void {
+  // Delete from localStorage
+  const pacientes = getFromLocalStorage<Paciente>(STORAGE_KEYS.PACIENTES);
+  saveToLocalStorage(STORAGE_KEYS.PACIENTES, pacientes.filter((p) => p.id !== id));
+
+  // Delete related medidas
+  const medidas = getFromLocalStorage<MedidasAntropometricas>(STORAGE_KEYS.MEDIDAS);
+  saveToLocalStorage(STORAGE_KEYS.MEDIDAS, medidas.filter((m) => m.pacienteId !== id));
+
+  // Delete related dietas
+  const dietas = getFromLocalStorage<Dieta>(STORAGE_KEYS.DIETAS);
+  saveToLocalStorage(STORAGE_KEYS.DIETAS, dietas.filter((d) => d.pacienteId !== id));
+
+  // Delete related citas
+  const citas = getFromLocalStorage<Cita>(STORAGE_KEYS.CITAS);
+  saveToLocalStorage(STORAGE_KEYS.CITAS, citas.filter((c) => c.pacienteId !== id));
+
+  // Background sync to Supabase (cascade delete)
+  supabaseStorage.deletePacienteFromSupabase(id).catch(console.error);
+}
+
+// ============================================================================
+// MEDIDAS (sync operations)
+// ============================================================================
+
+export function getMedidasByPaciente(pacienteId: string): MedidasAntropometricas[] {
+  const allMedidas = getFromLocalStorage<MedidasAntropometricas>(STORAGE_KEYS.MEDIDAS);
+  return allMedidas.filter((m) => m.pacienteId === pacienteId);
+}
+
+export function saveMedidas(medidas: MedidasAntropometricas): void {
+  const allMedidas = getFromLocalStorage<MedidasAntropometricas>(STORAGE_KEYS.MEDIDAS);
+  const index = allMedidas.findIndex((m) => m.id === medidas.id);
+  if (index >= 0) {
+    allMedidas[index] = { ...medidas, updatedAt: new Date().toISOString() };
+  } else {
+    allMedidas.push({
+      ...medidas,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+  }
+  saveToLocalStorage(STORAGE_KEYS.MEDIDAS, allMedidas);
+
+  // Background sync to Supabase
+  supabaseStorage.saveMedidasToSupabase(medidas).catch(console.error);
+}
+
+export function getAllMedidas(): MedidasAntropometricas[] {
+  return getFromLocalStorage<MedidasAntropometricas>(STORAGE_KEYS.MEDIDAS);
+}
+
+export function deleteMedida(id: string): void {
+  const allMedidas = getFromLocalStorage<MedidasAntropometricas>(STORAGE_KEYS.MEDIDAS);
+  saveToLocalStorage(STORAGE_KEYS.MEDIDAS, allMedidas.filter((m) => m.id !== id));
+
+  // Background sync to Supabase
+  supabaseStorage.deleteMedidaFromSupabase(id).catch(console.error);
+}
+
+export function deleteAllMedidasByPaciente(pacienteId: string): void {
+  const allMedidas = getFromLocalStorage<MedidasAntropometricas>(STORAGE_KEYS.MEDIDAS);
+  saveToLocalStorage(STORAGE_KEYS.MEDIDAS, allMedidas.filter((m) => m.pacienteId !== pacienteId));
+}
+
+// ============================================================================
+// CITAS (sync operations)
+// ============================================================================
+
+export function getCitas(): Cita[] {
+  return getFromLocalStorage<Cita>(STORAGE_KEYS.CITAS);
+}
+
+export function saveCita(cita: Cita): void {
+  const citas = getFromLocalStorage<Cita>(STORAGE_KEYS.CITAS);
+  const index = citas.findIndex((c) => c.id === cita.id);
+  if (index >= 0) citas[index] = { ...cita };
+  else citas.push(cita);
+
+  citas.sort((a, b) => {
+    const dateA = new Date(`${a.fecha}T${a.hora}`);
+    const dateB = new Date(`${b.fecha}T${b.hora}`);
+    return dateA.getTime() - dateB.getTime();
+  });
+  saveToLocalStorage(STORAGE_KEYS.CITAS, citas);
+
+  // Background sync to Supabase
+  supabaseStorage.saveCitaToSupabase(cita).catch(console.error);
+}
+
+export function deleteCita(id: string): void {
+  const citas = getFromLocalStorage<Cita>(STORAGE_KEYS.CITAS);
+  saveToLocalStorage(STORAGE_KEYS.CITAS, citas.filter((c) => c.id !== id));
+
+  // Background sync to Supabase
+  supabaseStorage.deleteCitaFromSupabase(id).catch(console.error);
+}
+
+// ============================================================================
+// DIETAS (legacy format)
+// ============================================================================
+
+export function getDietas(): Dieta[] {
+  return getFromLocalStorage<Dieta>(STORAGE_KEYS.DIETAS);
+}
+
+export function saveDieta(dieta: Dieta): void {
+  const dietas = getDietas();
+  const index = dietas.findIndex((d) => d.id === dieta.id);
+  if (index >= 0) dietas[index] = { ...dieta, updatedAt: new Date().toISOString() };
+  else dietas.push({ ...dieta, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+  saveToLocalStorage(STORAGE_KEYS.DIETAS, dietas);
+}
+
+// ============================================================================
+// ALIMENTOS
+// ============================================================================
+
+export function getAlimentos(): Alimento[] {
+  return getFromLocalStorage<Alimento>(STORAGE_KEYS.ALIMENTOS);
+}
+
+export function saveAlimento(alimento: Alimento): void {
+  const alimentos = getAlimentos();
+  const index = alimentos.findIndex((a) => a.id === alimento.id);
+  if (index >= 0) alimentos[index] = { ...alimento, updatedAt: new Date().toISOString() };
+  else alimentos.push({ ...alimento, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+  saveToLocalStorage(STORAGE_KEYS.ALIMENTOS, alimentos);
+}
+
+export function initializeMockData(): void {
+  // No-op
+}
+
+// ============================================================================
+// INVITACIONES (sync operations)
+// ============================================================================
+
+export function getInvitationCodes(): InvitationCode[] {
+  return getFromLocalStorage<InvitationCode>(STORAGE_KEYS.INVITATIONS);
+}
+
+export function saveInvitationCode(invitation: InvitationCode): void {
+  const codes = getFromLocalStorage<InvitationCode>(STORAGE_KEYS.INVITATIONS);
+  const index = codes.findIndex((c) => c.code === invitation.code);
+  if (index >= 0) codes[index] = invitation;
+  else codes.push(invitation);
+  saveToLocalStorage(STORAGE_KEYS.INVITATIONS, codes);
+
+  // Background sync to Supabase
+  supabaseStorage.saveInvitationCodeToSupabase(invitation).catch(console.error);
+}
+
+export function validateInvitationCode(code: string): InvitationCode | null {
+  const codes = getFromLocalStorage<InvitationCode>(STORAGE_KEYS.INVITATIONS);
+  return codes.find((c) => c.code === code && c.status === 'active') || null;
+}
+
+export async function validateInvitationCodeAsync(code: string): Promise<InvitationCode | null> {
+  // Try Supabase first for validation
+  const supabaseCode = await supabaseStorage.validateInvitationCodeFromSupabase(code);
+  if (supabaseCode) return supabaseCode;
+
+  // Fallback to localStorage
+  return validateInvitationCode(code);
+}
+
+export function markInvitationCodeAsUsed(code: string, email: string): void {
+  const codes = getFromLocalStorage<InvitationCode>(STORAGE_KEYS.INVITATIONS);
+  const index = codes.findIndex((c) => c.code === code);
+  if (index >= 0) {
+    codes[index].status = 'used';
+    codes[index].usedBy = email;
+    saveToLocalStorage(STORAGE_KEYS.INVITATIONS, codes);
+  }
+
+  // Background sync to Supabase
+  supabaseStorage.markInvitationCodeAsUsedInSupabase(code, email).catch(console.error);
+}
+
+export function deleteInvitationCode(code: string): void {
+  const codes = getFromLocalStorage<InvitationCode>(STORAGE_KEYS.INVITATIONS);
+  saveToLocalStorage(STORAGE_KEYS.INVITATIONS, codes.filter((c) => c.code !== code));
+
+  // Background sync to Supabase
+  supabaseStorage.deleteInvitationCodeFromSupabase(code).catch(console.error);
+}
+
+// ============================================================================
+// ASYNC VERSIONS (for explicit cloud operations)
+// ============================================================================
+
+export async function getPacientesAsync(usuarioId?: string): Promise<Paciente[]> {
+  const supabasePacientes = await supabaseStorage.getPacientesFromSupabase(usuarioId);
+  if (supabasePacientes.length > 0) {
+    saveToLocalStorage(STORAGE_KEYS.PACIENTES, supabasePacientes);
+    return supabasePacientes;
+  }
+  return getPacientes(usuarioId);
+}
+
+export async function getMedidasByPacienteAsync(pacienteId: string): Promise<MedidasAntropometricas[]> {
+  const supabaseMedidas = await supabaseStorage.getMedidasFromSupabase(pacienteId);
+  if (supabaseMedidas.length > 0) {
+    return supabaseMedidas;
+  }
+  return getMedidasByPaciente(pacienteId);
+}
+
+export async function getCitasAsync(): Promise<Cita[]> {
+  const supabaseCitas = await supabaseStorage.getCitasFromSupabase();
+  if (supabaseCitas.length > 0) {
+    saveToLocalStorage(STORAGE_KEYS.CITAS, supabaseCitas);
+    return supabaseCitas;
+  }
+  return getCitas();
+}
+
+export async function getInvitationCodesAsync(): Promise<InvitationCode[]> {
+  const supabaseCodes = await supabaseStorage.getInvitationCodesFromSupabase();
+  if (supabaseCodes.length > 0) {
+    saveToLocalStorage(STORAGE_KEYS.INVITATIONS, supabaseCodes);
+    return supabaseCodes;
+  }
+  return getInvitationCodes();
+}
