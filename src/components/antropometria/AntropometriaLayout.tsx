@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { PieChart, Target, Calendar, User, Scale, Save } from "lucide-react";
-import { Body3DViewer } from "./Body3DViewer";
+import { Body3DViewer } from "./Body3DViewerLazy";
 import { UnifiedMeasurementForm, FullMeasurementData } from "./UnifiedMeasurementForm";
 import { FormulaSelector } from "./FormulaSelector";
 import { FiveComponentPanel } from "./FiveComponentPanel";

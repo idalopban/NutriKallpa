@@ -34,7 +34,9 @@ const navItems = [
 export function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
-    const { user, logout } = useAuthStore();
+    // PERFORMANCE FIX: Use atomic selectors to prevent re-renders
+    const user = useAuthStore((state) => state.user);
+    const logout = useAuthStore((state) => state.logout);
 
     const handleLogout = () => {
         logout();

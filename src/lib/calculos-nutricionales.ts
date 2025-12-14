@@ -190,7 +190,10 @@ export function getBodyDensity(
 export function calculateBodyFat(dc: number): number {
   if (dc <= 0) return 0;
   // Siri Equation: (495 / DC) - 450
-  return (495 / dc) - 450;
+  const fat = (495 / dc) - 450;
+  // Clamp to physiologically valid range (3-60%)
+  // Essential fat is ~3% for men, extreme obesity rarely exceeds 60%
+  return Math.max(3, Math.min(fat, 60));
 }
 
 /* -------------------------------------------------------------------------- */

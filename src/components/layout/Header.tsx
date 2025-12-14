@@ -32,7 +32,9 @@ const navItems = [
 export function Header() {
     const pathname = usePathname();
     const router = useRouter();
-    const { user, logout } = useAuthStore();
+    // PERFORMANCE FIX: Use atomic selectors to prevent re-renders
+    const user = useAuthStore((state) => state.user);
+    const logout = useAuthStore((state) => state.logout);
     const [searchTerm, setSearchTerm] = useState("");
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
