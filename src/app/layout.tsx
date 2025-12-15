@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 import GlobalClientEffects from "@/components/GlobalClientEffects";
@@ -53,9 +54,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {content}
+          <ErrorBoundary>
+            {content}
+          </ErrorBoundary>
         </ThemeProvider>
       </body>
     </html>
   );
 }
+

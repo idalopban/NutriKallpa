@@ -158,15 +158,28 @@ BEGIN
         v_user_id := NULL;
     END;
     
-    -- Log the event
+    -- Log the event with full data for HIPAA compliance
     IF TG_OP = 'DELETE' THEN
         INSERT INTO public.audit_logs (user_id, action, resource_type, resource_id, details)
         VALUES (v_user_id, v_action, 'patient', OLD.id, 
                 jsonb_build_object('old_data', to_jsonb(OLD)));
-    ELSE
+    ELSIF TG_OP = 'UPDATE' THEN
+        -- Capture both old and new values for complete audit trail
         INSERT INTO public.audit_logs (user_id, action, resource_type, resource_id, details)
         VALUES (v_user_id, v_action, 'patient', NEW.id,
-                jsonb_build_object('patient_name', NEW.nombre || ' ' || NEW.apellido));
+                jsonb_build_object(
+                    'old_data', to_jsonb(OLD),
+                    'new_data', to_jsonb(NEW),
+                    'patient_name', NEW.nombre || ' ' || NEW.apellido
+                ));
+    ELSE
+        -- INSERT: log new data
+        INSERT INTO public.audit_logs (user_id, action, resource_type, resource_id, details)
+        VALUES (v_user_id, v_action, 'patient', NEW.id,
+                jsonb_build_object(
+                    'new_data', to_jsonb(NEW),
+                    'patient_name', NEW.nombre || ' ' || NEW.apellido
+                ));
     END IF;
     
     RETURN COALESCE(NEW, OLD);
@@ -207,14 +220,31 @@ BEGIN
         v_user_id := NULL;
     END;
     
+    -- Log with full measurement data for HIPAA compliance
     IF TG_OP = 'DELETE' THEN
         INSERT INTO public.audit_logs (user_id, action, resource_type, resource_id, details)
         VALUES (v_user_id, v_action, 'measurement', OLD.id, 
-                jsonb_build_object('patient_id', OLD.paciente_id));
-    ELSE
+                jsonb_build_object(
+                    'patient_id', OLD.paciente_id,
+                    'old_data', to_jsonb(OLD)
+                ));
+    ELSIF TG_OP = 'UPDATE' THEN
+        -- Capture both old and new values for complete audit trail
         INSERT INTO public.audit_logs (user_id, action, resource_type, resource_id, details)
         VALUES (v_user_id, v_action, 'measurement', NEW.id,
-                jsonb_build_object('patient_id', NEW.paciente_id));
+                jsonb_build_object(
+                    'patient_id', NEW.paciente_id,
+                    'old_data', to_jsonb(OLD),
+                    'new_data', to_jsonb(NEW)
+                ));
+    ELSE
+        -- INSERT: log new data
+        INSERT INTO public.audit_logs (user_id, action, resource_type, resource_id, details)
+        VALUES (v_user_id, v_action, 'measurement', NEW.id,
+                jsonb_build_object(
+                    'patient_id', NEW.paciente_id,
+                    'new_data', to_jsonb(NEW)
+                ));
     END IF;
     
     RETURN COALESCE(NEW, OLD);
@@ -260,3 +290,34 @@ CREATE POLICY "Authenticated users can insert audit logs"
 GRANT SELECT ON public.audit_logs TO authenticated;
 GRANT INSERT ON public.audit_logs TO authenticated;
 GRANT USAGE ON SCHEMA public TO authenticated;
+
+-- ============================================================================
+-- 9. AUDIT LOG IMMUTABILITY (HIPAA/GDPR Compliance)
+-- ============================================================================
+
+-- Drop existing immutability policy if exists
+DROP POLICY IF EXISTS "Audit logs are immutable - no delete" ON public.audit_logs;
+DROP POLICY IF EXISTS "Audit logs are immutable - no update" ON public.audit_logs;
+
+-- Nobody can delete audit logs (required for HIPAA)
+CREATE POLICY "Audit logs are immutable - no delete"
+    ON public.audit_logs FOR DELETE
+    USING (false);
+
+-- Nobody can update audit logs (immutable records)
+CREATE POLICY "Audit logs are immutable - no update"
+    ON public.audit_logs FOR UPDATE
+    USING (false);
+
+-- ============================================================================
+-- 10. RETENTION INDEX (6 years for HIPAA compliance)
+-- ============================================================================
+
+-- Index for efficient cleanup of old logs (retention policy: 6 years)
+CREATE INDEX IF NOT EXISTS idx_audit_logs_retention 
+    ON public.audit_logs(created_at) 
+    WHERE created_at < NOW() - INTERVAL '6 years';
+
+-- Comment explaining retention policy
+COMMENT ON INDEX idx_audit_logs_retention IS 
+    'Index for HIPAA retention policy - logs older than 6 years may be archived';

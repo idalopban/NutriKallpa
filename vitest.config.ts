@@ -12,4 +12,10 @@ export default defineConfig({
             '@': path.resolve(__dirname, './src'),
         },
     },
+    css: {
+        // Disable CSS processing in tests to avoid Tailwind 4 / PostCSS conflicts
+        postcss: {
+            plugins: [],
+        },
+    },
 });
