@@ -20,12 +20,23 @@ export function SettingsDialog() {
     const { logout } = useAuthStore();
     const router = useRouter();
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         logout();
         // Clear session cookie for middleware authentication
         document.cookie = 'nutrikallpa-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        // Clear ALL auth-related localStorage items
         localStorage.removeItem('nutrikallpa_authenticated');
-        router.push("/");
+        localStorage.removeItem('nutrikallpa-auth-storage'); // Zustand persist storage
+
+        // Call server-side logout to ensure cookie is cleared
+        try {
+            await fetch('/api/auth/logout', { method: 'POST' });
+        } catch (e) {
+            console.error('Server logout failed:', e);
+        }
+
+        // Use full page reload to completely clear state
+        window.location.href = '/';
     };
 
     return (
