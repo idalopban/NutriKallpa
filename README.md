@@ -1,4 +1,4 @@
-# ComVida
+# NutriKallpa
 
 Sistema de gestión nutricional para profesionales de la salud. Permite la gestión integral de pacientes, evaluaciones antropométricas avanzadas (ISAK), cálculos de composición corporal y planificación de dietas personalizadas.
 
@@ -54,7 +54,7 @@ src/
 ```bash
 # Clonar el repositorio
 git clone <repository-url>
-cd comvida
+cd nutrikallpa
 
 # Instalar dependencias
 npm install
