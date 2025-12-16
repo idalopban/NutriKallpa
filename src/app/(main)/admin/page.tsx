@@ -39,7 +39,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Copy, Plus, RefreshCw, Shield, Trash2, UserCog, Loader2 } from "lucide-react";
+import { Copy, Plus, RefreshCw, Shield, Trash2, UserCog, Loader2, Download, FileText, Sparkles } from "lucide-react";
+import { generateInvitationCodesPDF } from "@/lib/InvitationCodesPDFGenerator";
 
 export default function AdminPage() {
     const router = useRouter();
@@ -56,6 +57,12 @@ export default function AdminPage() {
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    // Bulk Code Generation State
+    const [bulkQuantity, setBulkQuantity] = useState(10);
+    const [bulkRole, setBulkRole] = useState<"usuario" | "admin">("usuario");
+    const [generatedCodes, setGeneratedCodes] = useState<string[]>([]);
+    const [isGeneratingBulk, setIsGeneratingBulk] = useState(false);
 
     useEffect(() => {
         if (!user || user.rol !== "admin") {
@@ -112,6 +119,99 @@ export default function AdminPage() {
             } else {
                 toast.error(result.error || "Error al eliminar código");
             }
+        }
+    };
+
+    // Bulk code generation
+    const handleGenerateBulk = async () => {
+        if (bulkQuantity < 1 || bulkQuantity > 50) {
+            toast.error("La cantidad debe estar entre 1 y 50");
+            return;
+        }
+
+        setIsGeneratingBulk(true);
+        const newCodes: string[] = [];
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (let i = 0; i < bulkQuantity; i++) {
+            const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+            const result = await createInvitationCode(code, bulkRole);
+            if (result.success) {
+                newCodes.push(code);
+                successCount++;
+            } else {
+                errorCount++;
+            }
+        }
+
+        setGeneratedCodes(newCodes);
+        setIsGeneratingBulk(false);
+
+        if (successCount > 0) {
+            toast.success(`${successCount} códigos generados correctamente`);
+            refreshData();
+        }
+        if (errorCount > 0) {
+            toast.error(`${errorCount} códigos fallaron al generarse`);
+        }
+    };
+
+    const copyAllCodes = () => {
+        if (generatedCodes.length === 0) return;
+        navigator.clipboard.writeText(generatedCodes.join('\n'));
+        toast.success(`${generatedCodes.length} códigos copiados al portapapeles`);
+    };
+
+    const downloadCodesPDF = () => {
+        if (generatedCodes.length === 0) return;
+
+        const codesData = generatedCodes.map(code => ({
+            code,
+            rol: bulkRole,
+            createdAt: new Date().toISOString()
+        }));
+
+        generateInvitationCodesPDF(codesData, user?.nombre);
+        toast.success("PDF descargado correctamente");
+    };
+
+    const handleDeleteUnusedCodes = async () => {
+        const unusedCodes = invitations.filter(inv => inv.status === 'active');
+
+        if (unusedCodes.length === 0) {
+            toast.info("No hay códigos sin usar para eliminar");
+            return;
+        }
+
+        if (!confirm(`¿Estás seguro de eliminar ${unusedCodes.length} códigos sin usar? Esta acción no se puede deshacer.`)) {
+            return;
+        }
+
+        setIsLoading(true);
+        let deletedCount = 0;
+        let errorCount = 0;
+
+        for (const inv of unusedCodes) {
+            const result = await deleteInvitationCodeFromDB(inv.code);
+            if (result.success) {
+                deletedCount++;
+            } else {
+                errorCount++;
+            }
+        }
+
+        setIsLoading(false);
+
+        // Clear the preview of generated codes
+        setGeneratedCodes([]);
+
+        if (deletedCount > 0) {
+            toast.success(`${deletedCount} códigos eliminados correctamente`);
+            refreshData();
+        }
+        if (errorCount > 0) {
+            toast.error(`${errorCount} códigos no pudieron ser eliminados`);
         }
     };
 
@@ -240,18 +340,140 @@ export default function AdminPage() {
                 </TabsContent>
 
                 {/* INVITATIONS TAB */}
-                <TabsContent value="invitations">
+                <TabsContent value="invitations" className="space-y-4">
+                    {/* BULK GENERATOR SECTION */}
+                    <Card className="border-dashed border-2 border-[#ff8508]/30 bg-gradient-to-br from-[#ff8508]/5 to-transparent">
+                        <CardHeader className="pb-4">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="h-5 w-5 text-[#ff8508]" />
+                                <CardTitle className="text-lg">Generación en Lote</CardTitle>
+                            </div>
+                            <CardDescription>
+                                Genera múltiples códigos de invitación de una sola vez y descárgalos en PDF.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex flex-wrap items-end gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="bulk-quantity">Cantidad (1-50)</Label>
+                                    <Input
+                                        id="bulk-quantity"
+                                        type="number"
+                                        min={1}
+                                        max={50}
+                                        value={bulkQuantity}
+                                        onChange={(e) => setBulkQuantity(Math.min(50, Math.max(1, parseInt(e.target.value) || 1)))}
+                                        className="w-24"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="bulk-role">Rol</Label>
+                                    <Select value={bulkRole} onValueChange={(val: "usuario" | "admin") => setBulkRole(val)}>
+                                        <SelectTrigger className="w-40">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="usuario">Nutricionista</SelectItem>
+                                            <SelectItem value="admin">Administrador</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <Button
+                                    onClick={handleGenerateBulk}
+                                    disabled={isGeneratingBulk}
+                                    className="gap-2 bg-[#ff8508] hover:bg-[#e67500]"
+                                >
+                                    {isGeneratingBulk ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            Generando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="h-4 w-4" />
+                                            Generar {bulkQuantity} Códigos
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+
+                            {/* Generated Codes Preview */}
+                            {generatedCodes.length > 0 && (
+                                <div className="mt-4 p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h4 className="font-semibold text-green-800 dark:text-green-200 flex items-center gap-2">
+                                            <FileText className="h-4 w-4" />
+                                            {generatedCodes.length} códigos generados
+                                        </h4>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={copyAllCodes}
+                                                className="gap-1"
+                                            >
+                                                <Copy className="h-3 w-3" />
+                                                Copiar Todos
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                onClick={downloadCodesPDF}
+                                                className="gap-1 bg-[#ff8508] hover:bg-[#e67500]"
+                                            >
+                                                <Download className="h-3 w-3" />
+                                                Descargar PDF
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setGeneratedCodes([])}
+                                                className="text-gray-500 hover:text-gray-700"
+                                                title="Cerrar vista previa"
+                                            >
+                                                ✕
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {generatedCodes.map((code, index) => (
+                                            <span
+                                                key={index}
+                                                className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-green-300 dark:border-green-700 rounded-md font-mono text-sm font-bold text-slate-700 dark:text-slate-200 cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
+                                                onClick={() => copyToClipboard(code)}
+                                                title="Click para copiar"
+                                            >
+                                                {code}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* EXISTING CODES TABLE */}
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <div>
-                                <CardTitle>Códigos de Invitación</CardTitle>
+                                <CardTitle>Códigos Existentes</CardTitle>
                                 <CardDescription>
-                                    Genera códigos para permitir el registro de nuevos nutricionistas.
+                                    Lista de todos los códigos de invitación generados.
                                 </CardDescription>
                             </div>
-                            <Button onClick={handleGenerateCode} className="gap-2">
-                                <Plus className="h-4 w-4" /> Generar Código
-                            </Button>
+                            <div className="flex gap-2">
+                                <Button
+                                    onClick={handleDeleteUnusedCodes}
+                                    variant="outline"
+                                    className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                    disabled={isLoading || invitations.filter(i => i.status === 'active').length === 0}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                    Eliminar No Usados ({invitations.filter(i => i.status === 'active').length})
+                                </Button>
+                                <Button onClick={handleGenerateCode} variant="outline" className="gap-2">
+                                    <Plus className="h-4 w-4" /> Generar Uno
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <Table>
