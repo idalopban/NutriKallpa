@@ -71,6 +71,11 @@ export async function loginUser(email: string, password: string) {
   try {
     const client = createPostgrestClient();
 
+    // DEBUG: Log connection info (remove in production after debugging)
+    console.log('[LOGIN] Attempting database connection...');
+    console.log('[LOGIN] POSTGREST_URL configured:', !!process.env.POSTGREST_URL);
+    console.log('[LOGIN] POSTGREST_API_KEY configured:', !!process.env.POSTGREST_API_KEY);
+
     // 2. Look up user by email (NEVER reveal if user exists or not)
     const { data: users, error } = await client
       .from('users')
@@ -79,7 +84,18 @@ export async function loginUser(email: string, password: string) {
       .limit(1);
 
     if (error) {
+      // Log detailed error for debugging
+      console.error('[LOGIN] Database error:', JSON.stringify(error, null, 2));
       logger.error('Database error during login', { action: 'login' }, error as Error);
+
+      // Check for common issues
+      if (error.message?.includes('FetchError') || error.message?.includes('fetch')) {
+        return { success: false, error: "Error de conexión al servidor. Verifica tu conexión a internet." };
+      }
+      if (error.code === '42P01') {
+        return { success: false, error: "Error de configuración de base de datos." };
+      }
+
       return { success: false, error: "Error del servidor. Intenta más tarde." };
     }
 
@@ -132,7 +148,9 @@ export async function loginUser(email: string, password: string) {
       }
     };
 
-  } catch (error) {
+  } catch (error: any) {
+    console.error('[LOGIN] Unexpected error:', error?.message || error);
+    console.error('[LOGIN] Error stack:', error?.stack);
     logger.error('Unexpected error during login', { action: 'login' }, error as Error);
     return { success: false, error: "Error del servidor. Intenta más tarde." };
   }
@@ -594,16 +612,19 @@ export async function getAllUsers(callerUserId?: string) {
  * @param callerUserId - ID of the user making the request (for role verification)
  */
 export async function deleteUser(userId: string, adminEmail: string, callerUserId?: string) {
+  console.log('[DELETE_USER] Starting deletion:', { userId, adminEmail, callerUserId });
+
   if (!userId) {
     return { success: false, error: "ID de usuario requerido" };
   }
 
   try {
-    const client = createPostgrestClient();
+    // Use Supabase Admin client with service_role key to bypass RLS
+    const supabase = createSupabaseAdmin();
 
     // SECURITY FIX: Verify caller is admin before allowing deletion
     if (callerUserId) {
-      const { data: caller } = await client
+      const { data: caller } = await supabase
         .from('users')
         .select('rol')
         .eq('id', callerUserId)
@@ -616,11 +637,13 @@ export async function deleteUser(userId: string, adminEmail: string, callerUserI
     }
 
     // Check if the user exists and is not the current admin
-    const { data: userToDelete } = await client
+    const { data: userToDelete, error: fetchError } = await supabase
       .from('users')
       .select('email, rol')
       .eq('id', userId)
       .single();
+
+    console.log('[DELETE_USER] User to delete:', userToDelete, 'Error:', fetchError);
 
     if (!userToDelete) {
       return { success: false, error: "Usuario no encontrado" };
@@ -628,28 +651,33 @@ export async function deleteUser(userId: string, adminEmail: string, callerUserI
 
     // Prevent deleting yourself
     if (userToDelete.email === adminEmail) {
+      console.log('[DELETE_USER] Blocked: attempting to delete self');
       return { success: false, error: "No puedes eliminar tu propia cuenta" };
     }
 
     // Prevent deleting other admins (optional extra security)
     if (userToDelete.rol === 'admin') {
+      console.log('[DELETE_USER] Blocked: attempting to delete another admin');
       return { success: false, error: "No se puede eliminar a otro administrador" };
     }
 
-    // Delete the user
-    const { error } = await client
+    // Delete the user using admin client (bypasses RLS)
+    console.log('[DELETE_USER] Executing delete for userId:', userId);
+    const { error, count } = await supabase
       .from('users')
       .delete()
       .eq('id', userId);
 
+    console.log('[DELETE_USER] Delete result - error:', error, 'count:', count);
+
     if (error) {
       console.error('[DELETE_USER] Error:', error);
-      return { success: false, error: "Error al eliminar usuario" };
+      return { success: false, error: `Error al eliminar usuario: ${error.message}` };
     }
 
-    console.log(`[SUCCESS] Usuario ${userToDelete.email} eliminado por admin`);
+    console.log(`[SUCCESS] Usuario ${userToDelete.email} eliminado correctamente`);
     return { success: true, message: "Usuario eliminado correctamente" };
-  } catch (error) {
+  } catch (error: any) {
     console.error('[DELETE_USER] Unexpected error:', error);
     return { success: false, error: "Error del servidor" };
   }
