@@ -167,7 +167,9 @@ export default function AgendaView() {
 
   // CRUD Operations
   const handleCreateCita = () => {
-    if (!formData.pacienteId || !formData.fecha || !formData.hora) {
+    // Para notas personales no se requiere paciente
+    const requiresPatient = formData.categoria !== 'personal';
+    if ((requiresPatient && !formData.pacienteId) || !formData.fecha || !formData.hora) {
       toast.error("Complete los campos requeridos");
       return;
     }
@@ -319,7 +321,7 @@ export default function AgendaView() {
             </div>
             <div className="flex items-center gap-3">
               <Checkbox id="cal-antro" checked={filters.antropometria} onCheckedChange={(c: boolean | "indeterminate") => setFilters(prev => ({ ...prev, antropometria: c === true }))} className="data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500" />
-              <Label htmlFor="cal-antro" className="text-sm font-medium text-slate-700 dark:text-slate-300">Antropometrías</Label>
+              <Label htmlFor="cal-antro" className="text-sm font-medium text-slate-700 dark:text-slate-300">Antropometría</Label>
             </div>
           </div>
         </div>
@@ -482,19 +484,11 @@ export default function AgendaView() {
         </div>
       </div>
 
-      {/* Appointment Dialog */}
       <Dialog open={isNewDialogOpen} onOpenChange={setIsNewDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader><DialogTitle>Nueva Cita</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{formData.categoria === 'personal' ? 'Nueva Nota Personal' : 'Nueva Cita'}</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="space-y-2"><Label>Paciente</Label><Select value={formData.pacienteId} onValueChange={(value) => setFormData({ ...formData, pacienteId: value })}><SelectTrigger><SelectValue placeholder="Seleccionar paciente" /></SelectTrigger><SelectContent>{pacientes.map(p => <SelectItem key={p.id} value={p.id}>{p.datosPersonales.nombre} {p.datosPersonales.apellido}</SelectItem>)}</SelectContent></Select></div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Fecha</Label><Input type="date" value={formData.fecha} onChange={e => setFormData({ ...formData, fecha: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Hora</Label><Input type="time" value={formData.hora} onChange={e => setFormData({ ...formData, hora: e.target.value })} /></div>
-            </div>
-            <div className="space-y-2"><Label>Motivo</Label><Input placeholder="Ej. Consulta General" value={formData.motivo} onChange={e => setFormData({ ...formData, motivo: e.target.value })} /></div>
-
-            {/* Category Selector */}
+            {/* Category Selector - FIRST */}
             <div className="space-y-2">
               <Label>Categoría</Label>
               <div className="flex gap-2">
@@ -510,7 +504,7 @@ export default function AgendaView() {
                   type="button"
                   variant={formData.categoria === 'personal' ? 'default' : 'outline'}
                   className={cn("flex-1 text-xs", formData.categoria === 'personal' && "bg-purple-500 hover:bg-purple-600")}
-                  onClick={() => setFormData({ ...formData, categoria: 'personal' })}
+                  onClick={() => setFormData({ ...formData, categoria: 'personal', pacienteId: '' })}
                 >
                   Personal
                 </Button>
@@ -525,9 +519,37 @@ export default function AgendaView() {
               </div>
             </div>
 
-            <div className="space-y-2"><Label>Modalidad</Label><Select value={formData.modalidad} onValueChange={(value: any) => setFormData({ ...formData, modalidad: value })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="presencial">Presencial</SelectItem><SelectItem value="virtual">Virtual</SelectItem></SelectContent></Select></div>
+            {/* Patient Selector - ONLY if NOT personal */}
+            {formData.categoria !== 'personal' && (
+              <div className="space-y-2"><Label>Paciente</Label><Select value={formData.pacienteId} onValueChange={(value) => setFormData({ ...formData, pacienteId: value })}><SelectTrigger><SelectValue placeholder="Seleccionar paciente" /></SelectTrigger><SelectContent>{pacientes.map(p => <SelectItem key={p.id} value={p.id}>{p.datosPersonales.nombre} {p.datosPersonales.apellido}</SelectItem>)}</SelectContent></Select></div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Fecha</Label><Input type="date" value={formData.fecha} onChange={e => setFormData({ ...formData, fecha: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Hora</Label><Input type="time" value={formData.hora} onChange={e => setFormData({ ...formData, hora: e.target.value })} /></div>
+            </div>
+
+            {/* Motivo/Nota - label changes based on category */}
+            <div className="space-y-2">
+              <Label>{formData.categoria === 'personal' ? 'Nota' : 'Motivo'}</Label>
+              <Input
+                placeholder={formData.categoria === 'personal' ? 'Ej. Recordatorio, tarea pendiente...' : 'Ej. Consulta General'}
+                value={formData.motivo}
+                onChange={e => setFormData({ ...formData, motivo: e.target.value })}
+              />
+            </div>
+
+            {/* Modalidad - ONLY if NOT personal */}
+            {formData.categoria !== 'personal' && (
+              <div className="space-y-2"><Label>Modalidad</Label><Select value={formData.modalidad} onValueChange={(value: any) => setFormData({ ...formData, modalidad: value })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="presencial">Presencial</SelectItem><SelectItem value="virtual">Virtual</SelectItem></SelectContent></Select></div>
+            )}
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setIsNewDialogOpen(false)}>Cancelar</Button><Button onClick={handleCreateCita} className="bg-[#6cba00] hover:bg-[#5da300]">Guardar Cita</Button></DialogFooter>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateCita} className="bg-[#6cba00] hover:bg-[#5da300]">
+              {formData.categoria === 'personal' ? 'Guardar Nota' : 'Guardar Cita'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
