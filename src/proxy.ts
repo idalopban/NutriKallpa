@@ -19,7 +19,7 @@ const PUBLIC_ROUTES = [
 // Rutas de autenticación (redirigir a dashboard si ya está autenticado)
 const AUTH_ROUTES = ['/', '/register'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // -------------------------------------------------------------------------
