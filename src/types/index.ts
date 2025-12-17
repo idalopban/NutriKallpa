@@ -47,6 +47,7 @@ export interface DatosPersonales {
   documentoIdentidad?: string;
   peso?: number; // Centralized weight
   talla?: number; // Centralized height
+  avatarUrl?: string; // URL de foto o identificador de icono (ej: "icon-1", "icon-2", o una URL de imagen)
 }
 
 export interface HistoriaClinica {
