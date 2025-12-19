@@ -7,6 +7,7 @@ import { getAllUsers, deleteUser, getInvitationCodesFromDB, createInvitationCode
 import type { User, InvitationCode, UserRole } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -57,6 +58,10 @@ export default function AdminPage() {
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    // Bulk User Selection State
+    const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+    const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
 
     // Bulk Code Generation State
     const [bulkQuantity, setBulkQuantity] = useState(10);
@@ -233,6 +238,57 @@ export default function AdminPage() {
         setUserToDelete(null);
     };
 
+    // Bulk User Selection Handlers
+    const toggleUserSelection = (userId: string) => {
+        setSelectedUsers(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(userId)) {
+                newSet.delete(userId);
+            } else {
+                newSet.add(userId);
+            }
+            return newSet;
+        });
+    };
+
+    const toggleSelectAll = () => {
+        const selectableUsers = users.filter(u => u.email !== user?.email);
+        if (selectedUsers.size === selectableUsers.length) {
+            setSelectedUsers(new Set());
+        } else {
+            setSelectedUsers(new Set(selectableUsers.map(u => u.id)));
+        }
+    };
+
+    const handleBulkDeleteUsers = async () => {
+        if (selectedUsers.size === 0 || !user?.email) return;
+
+        setIsDeleting(true);
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const userId of selectedUsers) {
+            const result = await deleteUser(userId, user.email);
+            if (result.success) {
+                successCount++;
+            } else {
+                errorCount++;
+            }
+        }
+
+        setIsDeleting(false);
+        setIsBulkDeleteDialogOpen(false);
+        setSelectedUsers(new Set());
+
+        if (successCount > 0) {
+            toast.success(`${successCount} usuario(s) eliminado(s) correctamente`);
+            refreshData();
+        }
+        if (errorCount > 0) {
+            toast.error(`${errorCount} usuario(s) no pudieron ser eliminados`);
+        }
+    };
+
     const handleUpdateUser = (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingUser) return;
@@ -272,19 +328,42 @@ export default function AdminPage() {
                     </TabsTrigger>
                 </TabsList>
 
+
                 {/* USERS TAB */}
                 <TabsContent value="users">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Usuarios Registrados</CardTitle>
-                            <CardDescription>
-                                Lista de todos los usuarios con acceso a la plataforma.
-                            </CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Usuarios Registrados</CardTitle>
+                                <CardDescription>
+                                    Lista de todos los usuarios con acceso a la plataforma.
+                                </CardDescription>
+                            </div>
+                            {selectedUsers.size > 0 && (
+                                <Button
+                                    onClick={() => setIsBulkDeleteDialogOpen(true)}
+                                    variant="destructive"
+                                    className="gap-2"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                    Eliminar Seleccionados ({selectedUsers.size})
+                                </Button>
+                            )}
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
+                                        <TableHead className="w-12">
+                                            <Checkbox
+                                                checked={
+                                                    users.filter(u => u.email !== user?.email).length > 0 &&
+                                                    selectedUsers.size === users.filter(u => u.email !== user?.email).length
+                                                }
+                                                onCheckedChange={toggleSelectAll}
+                                                aria-label="Seleccionar todos"
+                                            />
+                                        </TableHead>
                                         <TableHead>Nombre</TableHead>
                                         <TableHead>Email</TableHead>
                                         <TableHead>Rol</TableHead>
@@ -294,7 +373,18 @@ export default function AdminPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {users.map((u) => (
-                                        <TableRow key={u.id}>
+                                        <TableRow
+                                            key={u.id}
+                                            className={selectedUsers.has(u.id) ? "bg-red-50/50 dark:bg-red-950/20" : ""}
+                                        >
+                                            <TableCell>
+                                                <Checkbox
+                                                    checked={selectedUsers.has(u.id)}
+                                                    onCheckedChange={() => toggleUserSelection(u.id)}
+                                                    disabled={u.email === user?.email}
+                                                    aria-label={`Seleccionar ${u.nombre}`}
+                                                />
+                                            </TableCell>
                                             <TableCell className="font-medium">{u.nombre}</TableCell>
                                             <TableCell>{u.email}</TableCell>
                                             <TableCell>
@@ -638,6 +728,35 @@ export default function AdminPage() {
                                 </>
                             ) : (
                                 "Eliminar"
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* BULK DELETE USERS CONFIRMATION DIALOG */}
+            <AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Eliminar {selectedUsers.size} usuario(s)?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción no se puede deshacer. Se eliminarán permanentemente las cuentas de los {selectedUsers.size} usuario(s) seleccionado(s).
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleBulkDeleteUsers}
+                            disabled={isDeleting}
+                            className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                        >
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Eliminando...
+                                </>
+                            ) : (
+                                `Eliminar ${selectedUsers.size} usuario(s)`
                             )}
                         </AlertDialogAction>
                     </AlertDialogFooter>

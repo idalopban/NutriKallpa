@@ -260,7 +260,7 @@ export default function NuevoPacientePage() {
                     <FormItem className="col-span-2">
                       <FormLabel className="text-slate-600">Nombre y Apellido</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ej. Mariana López" className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-blue-500 focus:ring-blue-500/20 transition-all dark:text-white" {...field} />
+                        <Input placeholder="Ej. Daniel Lopez" className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-blue-500 focus:ring-blue-500/20 transition-all dark:text-white" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

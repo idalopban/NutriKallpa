@@ -14,15 +14,89 @@ interface DietChartsProps {
     weeklyPlan: DailyPlan[];
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+// Dashboard brand colors for macros
+const MACRO_COLORS = {
+    protein: '#3B82F6', // Blue
+    carbs: '#22C55E',   // Green  
+    fat: '#F59E0B',     // Orange/Yellow
+};
+
+const RADIAN = Math.PI / 180;
+
+// Custom label renderer with connector lines
+const renderCustomizedLabel = (props: {
+    cx: number;
+    cy: number;
+    midAngle: number;
+    innerRadius: number;
+    outerRadius: number;
+    value: number;
+    index: number;
+    name: string;
+}) => {
+    const { cx, cy, midAngle, outerRadius, value } = props;
+
+    // Calculate the position for the label (further out)
+    const labelRadius = outerRadius * 1.5;
+    const labelX = cx + labelRadius * Math.cos(-midAngle * RADIAN);
+    const labelY = cy + labelRadius * Math.sin(-midAngle * RADIAN);
+
+    // Calculate the position for the connector line start (on the pie edge)
+    const lineStartRadius = outerRadius * 1.05;
+    const lineStartX = cx + lineStartRadius * Math.cos(-midAngle * RADIAN);
+    const lineStartY = cy + lineStartRadius * Math.sin(-midAngle * RADIAN);
+
+    // Middle bend point for the elbow
+    const lineMidRadius = outerRadius * 1.25;
+    const lineMidX = cx + lineMidRadius * Math.cos(-midAngle * RADIAN);
+    const lineMidY = cy + lineMidRadius * Math.sin(-midAngle * RADIAN);
+
+    // Determine text anchor and line end based on position
+    const isRight = labelX > cx;
+    const textAnchor = isRight ? 'start' : 'end';
+    const lineEndX = isRight ? labelX - 8 : labelX + 8;
+
+    return (
+        <g>
+            {/* Connector polyline */}
+            <polyline
+                points={`${lineStartX},${lineStartY} ${lineMidX},${lineMidY} ${lineEndX},${labelY}`}
+                fill="none"
+                stroke="#94a3b8"
+                strokeWidth={1.5}
+            />
+            {/* Small circle at the end of the line */}
+            <circle
+                cx={lineEndX}
+                cy={labelY}
+                r={2}
+                fill="#94a3b8"
+            />
+            {/* Value text */}
+            <text
+                x={labelX}
+                y={labelY}
+                textAnchor={textAnchor}
+                dominantBaseline="central"
+                style={{
+                    fill: '#e2e8f0',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                }}
+            >
+                {value}
+            </text>
+        </g>
+    );
+};
 
 export function DietCharts({ currentPlan, weeklyPlan }: DietChartsProps) {
 
-    // 1. Macro Data (Pie)
+    // 1. Macro Data (Pie) with colors
     const macroData = [
-        { name: 'Proteína', value: Math.round(currentPlan.stats.macros.protein * 4) },
-        { name: 'Carbohidratos', value: Math.round(currentPlan.stats.macros.carbs * 4) },
-        { name: 'Grasa', value: Math.round(currentPlan.stats.macros.fat * 9) },
+        { name: 'Proteína', value: Math.round(currentPlan.stats.macros.protein * 4), color: MACRO_COLORS.protein },
+        { name: 'Carbohidratos', value: Math.round(currentPlan.stats.macros.carbs * 4), color: MACRO_COLORS.carbs },
+        { name: 'Grasa', value: Math.round(currentPlan.stats.macros.fat * 9), color: MACRO_COLORS.fat },
     ];
 
     // 2. Micro Data (Radar) - Normalized to % of Goal
@@ -46,32 +120,51 @@ export function DietCharts({ currentPlan, weeklyPlan }: DietChartsProps) {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Macros Chart */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-sm font-medium">Distribución Diaria (kcal)</CardTitle>
+                {/* Macros Chart - Modern Donut with External Labels */}
+                <Card className="bg-slate-900/80 dark:bg-slate-900/80 border-slate-700/50">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-slate-200">Distribución Diaria (kcal)</CardTitle>
                     </CardHeader>
-                    <CardContent className="h-[300px]">
+                    <CardContent className="h-[300px] pt-0">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
                                     data={macroData}
                                     cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    fill="#8884d8"
-                                    paddingAngle={5}
+                                    cy="45%"
+                                    innerRadius={50}
+                                    outerRadius={70}
+                                    paddingAngle={3}
                                     dataKey="value"
+                                    label={renderCustomizedLabel}
+                                    labelLine={false}
+                                    stroke="none"
+                                    isAnimationActive={true}
                                 >
                                     {macroData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        <Cell
+                                            key={`cell-${index}`}
+                                            fill={entry.color}
+                                            style={{
+                                                filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.4))'
+                                            }}
+                                        />
                                     ))}
                                 </Pie>
-                                <Tooltip />
-                                <Legend />
                             </PieChart>
                         </ResponsiveContainer>
+                        {/* Custom Legend at bottom */}
+                        <div className="flex justify-center items-center gap-6 -mt-6">
+                            {macroData.map((entry, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                    <div
+                                        className="w-2.5 h-2.5 rounded-full"
+                                        style={{ backgroundColor: entry.color }}
+                                    />
+                                    <span className="text-xs text-slate-400">{entry.name}</span>
+                                </div>
+                            ))}
+                        </div>
                     </CardContent>
                 </Card>
 

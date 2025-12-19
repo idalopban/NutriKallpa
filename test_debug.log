@@ -1,0 +1,223 @@
+{
+  "meal": "Desayuno - Avena Clásica con Fruta",
+  "hasProtein": false,
+  "hasCarb": true,
+  "hasVeggie": false,
+  "items": [
+    {
+      "name": "Atún en conserva",
+      "cat": "proteina",
+      "qty": 45
+    },
+    {
+      "name": "Arroz blanco",
+      "cat": "carbohidrato",
+      "qty": 40
+    }
+  ]
+}
+{
+  "meal": "Colación - Tartitas Arroz con Leche y Choco",
+  "hasProtein": true,
+  "hasCarb": true,
+  "hasVeggie": false,
+  "items": [
+    {
+      "name": "Arroz blanco",
+      "cat": "carbohidrato",
+      "qty": 80
+    },
+    {
+      "name": "Huevo",
+      "cat": "proteina",
+      "qty": 15
+    }
+  ]
+}
+{
+  "meal": "Desayuno - Camote con Relleno",
+  "hasProtein": true,
+  "hasCarb": true,
+  "hasVeggie": false,
+  "items": [
+    {
+      "name": "Camote",
+      "cat": "carbohidrato",
+      "qty": 235
+    },
+    {
+      "name": "Huevo",
+      "cat": "proteina",
+      "qty": 105
+    }
+  ]
+}
+{
+  "meal": "Colación - Pudding Proteico 3 Pisos",
+  "hasProtein": false,
+  "hasCarb": true,
+  "hasVeggie": false,
+  "items": [
+    {
+      "name": "Atún en conserva",
+      "cat": "proteina",
+      "qty": 40
+    },
+    {
+      "name": "Camote",
+      "cat": "carbohidrato",
+      "qty": 40
+    }
+  ]
+}
+{
+  "meal": "Desayuno - Tortilla de Verduras y Avena",
+  "hasProtein": true,
+  "hasCarb": true,
+  "hasVeggie": false,
+  "items": [
+    {
+      "name": "Huevo",
+      "cat": "proteina",
+      "qty": 125
+    },
+    {
+      "name": "Arroz blanco",
+      "cat": "carbohidrato",
+      "qty": 45
+    }
+  ]
+}
+{
+  "meal": "Cena - Chaufa de Quinua",
+  "hasProtein": true,
+  "hasCarb": false,
+  "hasVeggie": false,
+  "items": [
+    {
+      "name": "Pollo pechuga",
+      "cat": "proteina",
+      "qty": 105
+    },
+    {
+      "name": "Choclo",
+      "cat": "carbohidrato",
+      "qty": 45
+    }
+  ]
+}
+{
+  "meal": "Colación - Crepes de Chocolate Fitness",
+  "hasProtein": false,
+  "hasCarb": true,
+  "hasVeggie": true,
+  "items": [
+    {
+      "name": "Atún en conserva",
+      "cat": "proteina",
+      "qty": 40
+    },
+    {
+      "name": "Papa blanca",
+      "cat": "carbohidrato",
+      "qty": 75
+    },
+    {
+      "name": "Lechuga",
+      "cat": "verdura",
+      "qty": 150
+    }
+  ]
+}
+{
+  "meal": "Desayuno - Pan con Pejerrey Arrebozado",
+  "hasProtein": false,
+  "hasCarb": true,
+  "hasVeggie": true,
+  "items": [
+    {
+      "name": "Cebolla",
+      "cat": "verdura",
+      "qty": 60
+    },
+    {
+      "name": "Atún en conserva",
+      "cat": "proteina",
+      "qty": 50
+    },
+    {
+      "name": "Camote",
+      "cat": "carbohidrato",
+      "qty": 40
+    }
+  ]
+}
+{
+  "meal": "Almuerzo - Caldo de Gallina",
+  "hasProtein": true,
+  "hasCarb": true,
+  "hasVeggie": false,
+  "items": [
+    {
+      "name": "Pollo pechuga",
+      "cat": "proteina",
+      "qty": 175
+    },
+    {
+      "name": "Huevo",
+      "cat": "proteina",
+      "qty": 80
+    },
+    {
+      "name": "Arroz blanco",
+      "cat": "carbohidrato",
+      "qty": 250
+    }
+  ]
+}
+{
+  "meal": "Cena - Dieta de Pollo (Sopa)",
+  "hasProtein": true,
+  "hasCarb": true,
+  "hasVeggie": false,
+  "items": [
+    {
+      "name": "Arroz blanco",
+      "cat": "carbohidrato",
+      "qty": 70
+    },
+    {
+      "name": "Huevo",
+      "cat": "proteina",
+      "qty": 80
+    }
+  ]
+}
+{
+  "meal": "Almuerzo - Adobo de Cerdo",
+  "hasProtein": false,
+  "hasCarb": true,
+  "hasVeggie": true,
+  "items": [
+    {
+      "name": "Camote",
+      "cat": "carbohidrato",
+      "qty": 125
+    },
+    {
+      "name": "Arroz blanco",
+      "cat": "carbohidrato",
+      "qty": 250
+    },
+    {
+      "name": "Cebolla",
+      "cat": "verdura",
+      "qty": 60
+    },
+    {
+      "name": "Atún en conserva",
+      "cat": "proteina",
+      "qty": 80
+    }
+  ]
+}

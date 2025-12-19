@@ -60,6 +60,7 @@ import { DietReport } from "@/components/diet/DietReport";
 import { MacronutrientsPanel } from "@/components/diet/MacronutrientsPanel";
 import { MicronutrientsPanel } from "@/components/diet/MicronutrientsPanel";
 import type { Paciente, MedidasAntropometricas } from "@/types";
+import { PatientNutritionConfig } from "@/components/patient/PatientNutritionConfig";
 import { calculateMifflinStJeor, ACTIVITY_FACTORS, calcularEdad, type ActivityLevel } from "@/lib/calculos-nutricionales";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useDietHistory } from "@/hooks/useDietHistory";
@@ -719,6 +720,9 @@ function DietasContent() {
                         </Dialog>
                     </div>
                 </div>
+
+                {/* Patient Nutrition Config - Macro Distribution */}
+                <PatientNutritionConfig editable={true} compact={true} />
 
                 {/* VISUALIZATIONS */}
                 <DietCharts

@@ -17,6 +17,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import type { User } from '@/types';
 import { loginUser, sendRecoveryCode, verifyRecoveryCode, resetPassword, registerGoogleUser } from '@/actions/auth-actions';
 import { createBrowserClient } from '@/lib/supabase';
+import { LoginBackground } from '@/components/auth/LoginBackground';
 
 type RecoveryStep = 'EMAIL' | 'CODE' | 'PASSWORD';
 
@@ -325,38 +326,40 @@ function HomeContent() {
   };
 
   return (
-    <div className="min-h-screen min-h-screen-safe bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-green-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-950 flex flex-col mobile-safe">
-      <div className="container mx-auto px-4 py-4 md:py-8 flex-1 flex flex-col overflow-y-auto">
+    <div className="relative min-h-screen min-h-screen-safe flex flex-col mobile-safe overflow-x-hidden">
+      <LoginBackground />
+      <div className="container mx-auto px-4 py-4 md:py-8 flex-1 flex flex-col overflow-y-auto relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-24 items-center max-w-6xl mx-auto flex-1 pt-8 lg:pt-16">
           {/* Left Side - Hero Content */}
-          <div className="space-y-8 animate-in fade-in slide-in-from-left-8 duration-700 delay-100">
+          <div className="space-y-12 animate-in fade-in slide-in-from-left-8 duration-1000 delay-100 lg:pr-8">
             <div className="space-y-6">
-              <h1 className="text-4xl lg:text-6xl font-extrabold text-gray-900 dark:text-white leading-tight tracking-tight">
-                Nutrición Profesional <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#6cba00] to-[#ff8508]">
+              <h1 className="text-5xl lg:text-7xl font-black text-gray-900 dark:text-white leading-[1.1] tracking-tighter drop-shadow-sm">
+                Nutrición <br />
+                Profesional <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#6cba00] via-[#ff8508] to-[#6cba00] bg-[length:200%_auto] animate-gradient-x drop-shadow-lg">
                   Simplificada
                 </span>
               </h1>
-              <p className="text-xl text-gray-600 dark:text-gray-300 max-w-lg leading-relaxed">
+              <p className="text-lg md:text-xl text-gray-700 dark:text-zinc-300 max-w-lg leading-relaxed font-medium">
                 La plataforma integral diseñada para nutricionistas modernos. Gestiona pacientes, realiza evaluaciones antropométricas precisas y optimiza tu práctica clínica.
               </p>
             </div>
 
-            {/* Features */}
-            <div className="grid sm:grid-cols-2 gap-6 pt-4">
+            {/* Features Glass Grid */}
+            <div className="grid sm:grid-cols-2 gap-4 pt-4">
               {[
-                { icon: Users, title: "Gestión de Pacientes", desc: "Historial clínico digital completo", color: "text-green-600", bg: "bg-green-100", darkBg: "dark:bg-green-500/10", darkColor: "dark:text-green-400" },
-                { icon: Activity, title: "Antropometría ISAK", desc: "Cálculos de composición corporal", color: "text-[#ff8508]", bg: "bg-orange-50", darkBg: "dark:bg-orange-500/10", darkColor: "dark:text-orange-400" },
-                { icon: TrendingUp, title: "Seguimiento", desc: "Gráficos de evolución detallados", color: "text-purple-600", bg: "bg-purple-100", darkBg: "dark:bg-purple-500/10", darkColor: "dark:text-purple-400" },
-                { icon: Heart, title: "Planes Alimenticios", desc: "Diseño de dietas personalizadas", color: "text-orange-600", bg: "bg-orange-100", darkBg: "dark:bg-orange-500/10", darkColor: "dark:text-orange-400" }
+                { icon: Users, title: "Gestión de Pacientes", desc: "Historial clínico digital completo", color: "text-[#6cba00]", bg: "bg-[#6cba00]/20" },
+                { icon: Activity, title: "Antropometría ISAK", desc: "Cálculos de composición corporal", color: "text-[#ff8508]", bg: "bg-[#ff8508]/20" },
+                { icon: TrendingUp, title: "Seguimiento", desc: "Gráficos de evolución detallados", color: "text-purple-500 dark:text-purple-400", bg: "bg-purple-500/20" },
+                { icon: Heart, title: "Planes Alimenticios", desc: "Diseño de dietas personalizadas", color: "text-red-500 dark:text-red-400", bg: "bg-red-500/20" }
               ].map((feature, idx) => (
-                <div key={idx} className="flex items-start gap-4 group hover:bg-white/50 dark:hover:bg-white/5 p-3 rounded-xl transition-colors">
-                  <div className={`w-12 h-12 ${feature.bg} ${feature.darkBg} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
-                    <feature.icon className={`w-6 h-6 ${feature.color} ${feature.darkColor}`} />
+                <div key={idx} className="flex items-start gap-4 p-4 rounded-2xl bg-white/60 dark:bg-white/5 border border-gray-200/50 dark:border-white/10 backdrop-blur-xl shadow-lg group hover:bg-white/80 dark:hover:bg-white/10 hover:scale-[1.02] transition-all duration-300">
+                  <div className={`w-12 h-12 ${feature.bg} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:rotate-12 transition-all`}>
+                    <feature.icon className={`w-6 h-6 ${feature.color}`} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">{feature.title}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{feature.desc}</p>
+                    <h3 className="font-bold text-gray-900 dark:text-white text-base tracking-tight">{feature.title}</h3>
+                    <p className="text-xs text-gray-600 dark:text-zinc-400 font-medium">{feature.desc}</p>
                   </div>
                 </div>
               ))}
@@ -365,7 +368,7 @@ function HomeContent() {
 
           {/* Right Side - Login/Recovery Form */}
           <div className="animate-in fade-in slide-in-from-right-8 duration-700 delay-200">
-            <Card className="shadow-2xl border-0 bg-white/70 dark:bg-gray-800/60 backdrop-blur-xl ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden relative">
+            <Card className="shadow-2xl border-0 bg-white/90 dark:bg-gray-800/80 backdrop-blur-xl ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden relative">
               {/* Form Content Wrapper with Transition */}
               <div className="relative w-full transition-all duration-500 ease-in-out">
                 {!isRecoveringPassword ? (

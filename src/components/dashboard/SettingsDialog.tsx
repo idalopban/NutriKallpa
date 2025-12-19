@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Settings, Moon, Sun, User as UserIcon, LogOut } from "lucide-react";
+import { Settings, Moon, Sun, Monitor, User as UserIcon, LogOut } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRouter } from "next/navigation";
@@ -57,19 +57,37 @@ export function SettingsDialog() {
                     <div className="flex items-center justify-between">
                         <div className="flex flex-col space-y-1">
                             <Label>Tema</Label>
-                            <span className="text-xs text-muted-foreground">Cambiar entre modo claro y oscuro</span>
+                            <span className="text-xs text-muted-foreground">Selecciona tu preferencia de tema</span>
                         </div>
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-                        >
-                            {theme === "light" ? (
-                                <Sun className="h-4 w-4" />
-                            ) : (
-                                <Moon className="h-4 w-4" />
-                            )}
-                        </Button>
+                        <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+                            <Button
+                                variant={theme === "light" ? "default" : "ghost"}
+                                size="sm"
+                                onClick={() => setTheme("light")}
+                                className={`gap-1.5 h-8 px-3 ${theme === "light" ? "bg-white dark:bg-slate-700 shadow-sm" : ""}`}
+                            >
+                                <Sun className="h-3.5 w-3.5" />
+                                <span className="text-xs">Claro</span>
+                            </Button>
+                            <Button
+                                variant={theme === "dark" ? "default" : "ghost"}
+                                size="sm"
+                                onClick={() => setTheme("dark")}
+                                className={`gap-1.5 h-8 px-3 ${theme === "dark" ? "bg-white dark:bg-slate-700 shadow-sm" : ""}`}
+                            >
+                                <Moon className="h-3.5 w-3.5" />
+                                <span className="text-xs">Oscuro</span>
+                            </Button>
+                            <Button
+                                variant={theme === "system" ? "default" : "ghost"}
+                                size="sm"
+                                onClick={() => setTheme("system")}
+                                className={`gap-1.5 h-8 px-3 ${theme === "system" ? "bg-white dark:bg-slate-700 shadow-sm" : ""}`}
+                            >
+                                <Monitor className="h-3.5 w-3.5" />
+                                <span className="text-xs">Sistema</span>
+                            </Button>
+                        </div>
                     </div>
 
                     <div className="flex items-center justify-between">

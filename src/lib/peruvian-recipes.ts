@@ -1,4 +1,4 @@
-export type MealType = 'desayuno' | 'almuerzo' | 'cena';
+export type MealType = 'desayuno' | 'almuerzo' | 'cena' | 'snack';
 export type Category = 'proteina' | 'carbohidrato' | 'grasa' | 'verdura' | 'fruta' | 'lacteo' | 'miscelaneo';
 
 export interface RecipeComponent {
@@ -12,6 +12,17 @@ export interface PeruvianRecipe {
     name: string;
     mealTypes: MealType[];
     ingredients: RecipeComponent[];
+}
+
+// Simplified snack recipe interface for fitness desserts
+export interface SnackRecipe {
+    name: string;
+    type: 'snack';
+    ingredients: {
+        searchTerms: string[];
+        ratio: number;
+        category?: Category; // Optional, will be inferred
+    }[];
 }
 
 export const PERUVIAN_RECIPES: PeruvianRecipe[] = [
@@ -183,18 +194,6 @@ export const PERUVIAN_RECIPES: PeruvianRecipe[] = [
         ]
     },
     {
-        id: 'alm-caigua-rellena',
-        name: 'Caigua Rellena',
-        mealTypes: ['almuerzo', 'cena'],
-        ingredients: [
-            { category: 'verdura', searchTerms: ['Caigua', 'Caigua serrana'], ratio: 1.0 },
-            { category: 'proteina', searchTerms: ['Res, carne molida', 'Res', 'Pollo'], ratio: 0.8 },
-            { category: 'carbohidrato', searchTerms: ['Arroz blanco'], ratio: 0.4 },
-            { category: 'verdura', searchTerms: ['Cebolla', 'Pasas'], ratio: 0.2 },
-            { category: 'grasa', searchTerms: ['Aceite'], ratio: 0.1 }
-        ]
-    },
-    {
         id: 'alm-locro',
         name: 'Locro de Zapallo',
         mealTypes: ['almuerzo', 'cena'],
@@ -227,18 +226,6 @@ export const PERUVIAN_RECIPES: PeruvianRecipe[] = [
             { category: 'carbohidrato', searchTerms: ['Arroz blanco'], ratio: 0.4 },
             { category: 'verdura', searchTerms: ['Cebolla', 'Tomate'], ratio: 0.2 },
             { category: 'grasa', searchTerms: ['Aceite'], ratio: 0.15 }
-        ]
-    },
-    {
-        id: 'alm-tallarin-verde',
-        name: 'Tallarines Verdes con Bistec',
-        mealTypes: ['almuerzo'],
-        ingredients: [
-            { category: 'proteina', searchTerms: ['Res, carne pulpa', 'Bisteck', 'Hígado'], ratio: 1.0 },
-            { category: 'carbohidrato', searchTerms: ['Fideo tallarín', 'Espagueti'], ratio: 1.0 },
-            { category: 'verdura', searchTerms: ['Espinaca', 'Albahaca'], ratio: 0.4 },
-            { category: 'lacteo', searchTerms: ['Leche evaporada', 'Queso fresco'], ratio: 0.2 },
-            { category: 'grasa', searchTerms: ['Aceite'], ratio: 0.1 }
         ]
     },
     {
@@ -425,5 +412,952 @@ export const PERUVIAN_RECIPES: PeruvianRecipe[] = [
             { category: 'carbohidrato', searchTerms: ['Papa amarilla'], ratio: 0.3 },
             { category: 'verdura', searchTerms: ['Zanahoria', 'Apio'], ratio: 0.3 }
         ]
+    },
+
+    // ==================== NUEVAS RECETAS SALUDABLES ====================
+    {
+        id: 'des-avena-manzana-canela',
+        name: 'Avena con Manzana y Canela',
+        mealTypes: ['desayuno'],
+        ingredients: [
+            { category: 'carbohidrato', searchTerms: ['Avena', 'Avena en hojuelas'], ratio: 0.6 },
+            { category: 'fruta', searchTerms: ['Manzana', 'Manzana delicia'], ratio: 0.4 },
+            { category: 'lacteo', searchTerms: ['Leche', 'Leche evaporada'], ratio: 0.4 },
+            { category: 'miscelaneo', searchTerms: ['Canela', 'Miel'], ratio: 0.05 }
+        ]
+    },
+    {
+        id: 'des-pan-palta-huevo-pochado',
+        name: 'Pan con Palta y Huevo Pochado',
+        mealTypes: ['desayuno'],
+        ingredients: [
+            { category: 'carbohidrato', searchTerms: ['Pan integral', 'Pan'], ratio: 0.5 },
+            { category: 'grasa', searchTerms: ['Palta', 'Aguacate'], ratio: 0.4 },
+            { category: 'proteina', searchTerms: ['Huevo', 'Huevo de gallina'], ratio: 0.5 },
+            { category: 'verdura', searchTerms: ['Tomate', 'Cebolla'], ratio: 0.1 }
+        ]
+    },
+    {
+        id: 'alm-quinua-atamalada',
+        name: 'Quinua Atamalada con Pollo',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'carbohidrato', searchTerms: ['Quinua', 'Quinua blanca'], ratio: 0.7 },
+            { category: 'proteina', searchTerms: ['Pollo, pechuga', 'Pollo'], ratio: 0.8 },
+            { category: 'lacteo', searchTerms: ['Queso fresco', 'Queso'], ratio: 0.3 },
+            { category: 'verdura', searchTerms: ['Ají amarillo', 'Cebolla'], ratio: 0.2 },
+            { category: 'grasa', searchTerms: ['Aceite'], ratio: 0.1 }
+        ]
+    },
+    {
+        id: 'alm-pollo-plancha-ensalada-rusa',
+        name: 'Pollo a la Plancha con Ensalada Rusa',
+        mealTypes: ['almuerzo', 'cena'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Pollo, pechuga', 'Pollo'], ratio: 1.0 },
+            { category: 'carbohidrato', searchTerms: ['Papa blanca', 'Papa'], ratio: 0.5 },
+            { category: 'verdura', searchTerms: ['Zanahoria', 'Arveja', 'Vainita'], ratio: 0.4 },
+            { category: 'grasa', searchTerms: ['Mayonesa', 'Aceite'], ratio: 0.15 }
+        ]
+    },
+    {
+        id: 'alm-causa-pollo',
+        name: 'Causa Rellena de Pollo',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'carbohidrato', searchTerms: ['Papa amarilla', 'Papa'], ratio: 0.8 },
+            { category: 'proteina', searchTerms: ['Pollo, pechuga', 'Pollo'], ratio: 0.6 },
+            { category: 'grasa', searchTerms: ['Palta', 'Mayonesa'], ratio: 0.3 },
+            { category: 'verdura', searchTerms: ['Ají amarillo', 'Limón'], ratio: 0.15 }
+        ]
+    },
+    {
+        id: 'alm-chaufa-vegetariano',
+        name: 'Arroz Chaufa Vegetariano',
+        mealTypes: ['almuerzo', 'cena'],
+        ingredients: [
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco'], ratio: 0.8 },
+            { category: 'proteina', searchTerms: ['Huevo', 'Tofu'], ratio: 0.5 },
+            { category: 'verdura', searchTerms: ['Cebolla china', 'Pimiento', 'Zanahoria'], ratio: 0.4 },
+            { category: 'grasa', searchTerms: ['Aceite de ajonjolí', 'Aceite'], ratio: 0.1 }
+        ]
+    },
+    {
+        id: 'cen-ensalada-atun-palta',
+        name: 'Ensalada de Atún con Palta',
+        mealTypes: ['cena'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Atún', 'Atún en conserva'], ratio: 0.8 },
+            { category: 'grasa', searchTerms: ['Palta', 'Aguacate'], ratio: 0.5 },
+            { category: 'verdura', searchTerms: ['Tomate', 'Lechuga', 'Cebolla'], ratio: 0.5 },
+            { category: 'carbohidrato', searchTerms: ['Pan integral', 'Tostada'], ratio: 0.3 }
+        ]
+    },
+    {
+        id: 'cen-ceviche-champinones',
+        name: 'Ceviche de Champiñones',
+        mealTypes: ['cena'],
+        ingredients: [
+            { category: 'verdura', searchTerms: ['Champiñón', 'Hongos'], ratio: 0.8 },
+            { category: 'carbohidrato', searchTerms: ['Camote', 'Choclo'], ratio: 0.5 },
+            { category: 'verdura', searchTerms: ['Cebolla', 'Limón', 'Ají'], ratio: 0.4 },
+            { category: 'grasa', searchTerms: ['Aceite de oliva'], ratio: 0.1 }
+        ]
+    },
+
+    // ==================== ALMUERZOS INS LIMA 2024 (24 ALMUERZOS SALUDABLES) ====================
+    // --- SEMANA 1: PESCADOS Y ENLATADOS ---
+    {
+        id: 'alm-ins-tortilla-verduras-atun',
+        name: 'Tortilla de Verduras con Atún',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Atún', 'Atún en conserva', 'Conserva'], ratio: 0.35 },
+            { category: 'proteina', searchTerms: ['Huevo', 'Huevo de gallina'], ratio: 0.25 },
+            { category: 'verdura', searchTerms: ['Espinaca', 'Acelga'], ratio: 0.15 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.15 },
+            { category: 'carbohidrato', searchTerms: ['Papa', 'Papa blanca', 'Yuca'], ratio: 0.1 }
+        ]
+    },
+    {
+        id: 'alm-ins-pescado-saltado-criollo',
+        name: 'Pescado Saltado Criollo',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Pescado', 'Pescado bonito', 'Bonito', 'Jurel', 'Pescado jurel', 'Tilapia'], ratio: 0.4 },
+            { category: 'verdura', searchTerms: ['Cebolla', 'Tomate'], ratio: 0.25 },
+            { category: 'carbohidrato', searchTerms: ['Papa', 'Papa amarilla'], ratio: 0.2 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.15 }
+        ]
+    },
+    {
+        id: 'alm-ins-sudado-pescado-lentejas',
+        name: 'Sudado de Pescado con Lentejas',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Pescado', 'Pescado filete', 'Filete', 'Bonito', 'Jurel', 'Tilapia'], ratio: 0.35 },
+            { category: 'carbohidrato', searchTerms: ['Lenteja', 'Lenteja chica', 'Menestra'], ratio: 0.35 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.15 },
+            { category: 'verdura', searchTerms: ['Cebolla', 'Tomate'], ratio: 0.15 }
+        ]
+    },
+    {
+        id: 'alm-ins-escabeche-pescado',
+        name: 'Escabeche de Pescado',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Pescado', 'Pescado bonito', 'Bonito', 'Jurel', 'Tilapia'], ratio: 0.4 },
+            { category: 'verdura', searchTerms: ['Cebolla', 'Ají amarillo'], ratio: 0.3 },
+            { category: 'carbohidrato', searchTerms: ['Camote', 'Camote amarillo'], ratio: 0.2 },
+            { category: 'proteina', searchTerms: ['Huevo', 'Huevo duro'], ratio: 0.1 }
+        ]
+    },
+    // --- SEMANA 2: POLLO Y PAVITA ---
+    {
+        id: 'alm-ins-estofado-pollo',
+        name: 'Estofado de Pollo',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Pollo', 'Pollo presa', 'Presa'], ratio: 0.35 },
+            { category: 'verdura', searchTerms: ['Zanahoria', 'Arveja'], ratio: 0.25 },
+            { category: 'carbohidrato', searchTerms: ['Papa', 'Papa blanca'], ratio: 0.2 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.2 }
+        ]
+    },
+    {
+        id: 'alm-ins-seco-pollo-frejoles',
+        name: 'Seco de Pollo con Frejoles',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Pollo', 'Pollo pechuga', 'Pechuga'], ratio: 0.35 },
+            { category: 'carbohidrato', searchTerms: ['Frejol', 'Frejol canario', 'Canario', 'Lenteja', 'Panamito'], ratio: 0.3 },
+            { category: 'verdura', searchTerms: ['Culantro', 'Espinaca'], ratio: 0.15 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.2 }
+        ]
+    },
+    {
+        id: 'alm-ins-aji-gallina-saludable',
+        name: 'Ají de Gallina Saludable',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Pollo', 'Pollo pechuga', 'Pechuga'], ratio: 0.4 },
+            { category: 'lacteo', searchTerms: ['Leche', 'Leche descremada'], ratio: 0.1 },
+            { category: 'carbohidrato', searchTerms: ['Pan', 'Galleta soda'], ratio: 0.1 },
+            { category: 'carbohidrato', searchTerms: ['Papa', 'Papa amarilla'], ratio: 0.2 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.2 }
+        ]
+    },
+    {
+        id: 'alm-ins-arroz-pollo-fit',
+        name: 'Arroz con Pollo (Versión Fit)',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Pollo', 'Pollo presa', 'Presa'], ratio: 0.4 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.3 },
+            { category: 'verdura', searchTerms: ['Culantro', 'Zanahoria', 'Arveja'], ratio: 0.3 }
+        ]
+    },
+    {
+        id: 'alm-ins-caigua-rellena',
+        name: 'Caigua Rellena',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Carne molida', 'Res carne molida', 'Pollo'], ratio: 0.3 },
+            { category: 'verdura', searchTerms: ['Caigua', 'Caigua serrana'], ratio: 0.4 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.2 },
+            { category: 'proteina', searchTerms: ['Huevo', 'Huevo duro'], ratio: 0.1 }
+        ]
+    },
+    // --- SEMANA 3: VÍSCERAS Y SANGRECITA (HIERRO) ---
+    {
+        id: 'alm-ins-saltado-sangrecita',
+        name: 'Saltado de Sangrecita',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Sangrecita', 'Pollo sangre cocida', 'Sangre'], ratio: 0.4 },
+            { category: 'verdura', searchTerms: ['Cebolla china', 'Pimiento'], ratio: 0.3 },
+            { category: 'carbohidrato', searchTerms: ['Papa', 'Papa blanca', 'Yuca'], ratio: 0.15 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.15 }
+        ]
+    },
+    {
+        id: 'alm-ins-higado-encebollado',
+        name: 'Hígado Encebollado',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Hígado', 'Hígado de res', 'Hígado res'], ratio: 0.4 },
+            { category: 'verdura', searchTerms: ['Cebolla', 'Tomate'], ratio: 0.3 },
+            { category: 'carbohidrato', searchTerms: ['Papa', 'Papa sancochada'], ratio: 0.15 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.15 }
+        ]
+    },
+    {
+        id: 'alm-ins-chanfainita-ligera',
+        name: 'Chanfainita (Versión Ligera)',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Bofe', 'Pulmón', 'Corazón'], ratio: 0.35 },
+            { category: 'carbohidrato', searchTerms: ['Papa', 'Papa tumbay'], ratio: 0.35 },
+            { category: 'carbohidrato', searchTerms: ['Mote', 'Maíz'], ratio: 0.2 },
+            { category: 'verdura', searchTerms: ['Hierbabuena'], ratio: 0.1 }
+        ]
+    },
+    {
+        id: 'alm-ins-cau-cau-pollo',
+        name: 'Cau Cau de Pollo',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Pollo', 'Pollo pechuga', 'Pechuga'], ratio: 0.35 },
+            { category: 'carbohidrato', searchTerms: ['Papa', 'Papa cuadraditos'], ratio: 0.3 },
+            { category: 'verdura', searchTerms: ['Zanahoria', 'Arveja'], ratio: 0.15 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.2 }
+        ]
+    },
+    {
+        id: 'alm-ins-mollejitas-saltadas',
+        name: 'Mollejitas Saltadas',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Molleja'], ratio: 0.4 },
+            { category: 'verdura', searchTerms: ['Cebolla', 'Tomate'], ratio: 0.3 },
+            { category: 'carbohidrato', searchTerms: ['Papa', 'Papa frita'], ratio: 0.15 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.15 }
+        ]
+    },
+    // --- SEMANA 4: CRIOLLOS Y MENESTRAS ---
+    {
+        id: 'alm-ins-carapulcra-baja-grasa',
+        name: 'Carapulcra (Baja en Grasa)',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Chancho', 'Cerdo', 'Cerdo magro', 'Pollo'], ratio: 0.3 },
+            { category: 'carbohidrato', searchTerms: ['Papa seca'], ratio: 0.3 },
+            { category: 'carbohidrato', searchTerms: ['Yuca', 'Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.2 },
+            { category: 'grasa', searchTerms: ['Aní', 'Aní molido', 'Maní'], ratio: 0.2 }
+        ]
+    },
+    {
+        id: 'alm-ins-locro-zapallo-queso',
+        name: 'Locro de Zapallo con Queso',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'verdura', searchTerms: ['Zapallo', 'Zapallo macre', 'Macre'], ratio: 0.45 },
+            { category: 'carbohidrato', searchTerms: ['Papa', 'Papa amarilla'], ratio: 0.15 },
+            { category: 'lacteo', searchTerms: ['Queso', 'Queso fresco'], ratio: 0.15 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.15 },
+            { category: 'carbohidrato', searchTerms: ['Choclo', 'Maíz grano fresco'], ratio: 0.1 }
+        ]
+    },
+    {
+        id: 'alm-ins-olluquito-carne',
+        name: 'Olluquito con Carne',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'carbohidrato', searchTerms: ['Olluco', 'Olluco picado'], ratio: 0.45 },
+            { category: 'proteina', searchTerms: ['Carne', 'Res', 'Res carne picada', 'Carne picada'], ratio: 0.3 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.25 }
+        ]
+    },
+    {
+        id: 'alm-ins-tallarines-verdes-bistec',
+        name: 'Tallarines Verdes con Bistec',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Res', 'Bistec', 'Res carne pulpa'], ratio: 0.35 },
+            { category: 'carbohidrato', searchTerms: ['Fideo', 'Fideo tallarín', 'Tallarín', 'Espagueti'], ratio: 0.35 },
+            { category: 'verdura', searchTerms: ['Espinaca', 'Albahaca'], ratio: 0.2 },
+            { category: 'lacteo', searchTerms: ['Queso', 'Queso parmesano'], ratio: 0.1 }
+        ]
+    },
+    {
+        id: 'alm-ins-tallarines-rojos-pollo',
+        name: 'Tallarines Rojos con Pollo',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Pollo', 'Pollo presa', 'Presa'], ratio: 0.35 },
+            { category: 'carbohidrato', searchTerms: ['Fideo', 'Fideo tallarín', 'Tallarín', 'Espagueti'], ratio: 0.35 },
+            { category: 'verdura', searchTerms: ['Tomate', 'Zanahoria'], ratio: 0.3 }
+        ]
+    },
+    {
+        id: 'alm-ins-quinua-atamalada-queso',
+        name: 'Quinua Atamalada con Queso',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'carbohidrato', searchTerms: ['Quinua', 'Quinua blanca'], ratio: 0.4 },
+            { category: 'lacteo', searchTerms: ['Queso', 'Queso fresco'], ratio: 0.2 },
+            { category: 'carbohidrato', searchTerms: ['Papa', 'Papa amarilla'], ratio: 0.2 },
+            { category: 'proteina', searchTerms: ['Huevo', 'Huevo de gallina'], ratio: 0.2 }
+        ]
+    },
+    {
+        id: 'alm-ins-pepian-choclo-pollo',
+        name: 'Pepián de Choclo con Pollo',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'carbohidrato', searchTerms: ['Choclo', 'Maíz', 'Maíz grano fresco'], ratio: 0.4 },
+            { category: 'proteina', searchTerms: ['Pollo', 'Pollo guiso'], ratio: 0.3 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.2 },
+            { category: 'verdura', searchTerms: ['Culantro'], ratio: 0.1 }
+        ]
+    },
+    {
+        id: 'alm-ins-aguadito-pollo',
+        name: 'Aguadito de Pollo',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Pollo', 'Pollo menudencia', 'Menudencia'], ratio: 0.3 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.3 },
+            { category: 'carbohidrato', searchTerms: ['Papa', 'Papa amarilla'], ratio: 0.1 },
+            { category: 'verdura', searchTerms: ['Culantro', 'Verduras'], ratio: 0.3 }
+        ]
+    },
+    {
+        id: 'alm-ins-adobo-pavita',
+        name: 'Adobo de Pavita',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Pavita', 'Cerdo'], ratio: 0.4 },
+            { category: 'carbohidrato', searchTerms: ['Camote', 'Camote amarillo'], ratio: 0.3 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.2 },
+            { category: 'verdura', searchTerms: ['Cebolla', 'Ají panca'], ratio: 0.1 }
+        ]
+    },
+    {
+        id: 'alm-ins-lentejas-pescado-frito',
+        name: 'Lentejas con Pescado Frito',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'carbohidrato', searchTerms: ['Lenteja', 'Lenteja chica'], ratio: 0.35 },
+            { category: 'proteina', searchTerms: ['Pescado', 'Pescado filete', 'Filete', 'Bonito', 'Jurel', 'Tilapia'], ratio: 0.35 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco', 'Arroz integral'], ratio: 0.2 },
+            { category: 'verdura', searchTerms: ['Ensalada', 'Cebolla'], ratio: 0.1 }
+        ]
+    },
+
+    // ==================== ALMUERZOS SALUDABLES TUMBES 2024 ====================
+    // --- PLATOS EMBLEMÁTICOS DE TUMBES ---
+    {
+        id: 'alm-tumbes-majarisco',
+        name: 'Majarisco Tumbesino',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'carbohidrato', searchTerms: ['Plátano verde', 'Plátano', 'Plátano bellaco'], ratio: 0.35 },
+            { category: 'proteina', searchTerms: ['Langostino', 'Camarón', 'Mariscos'], ratio: 0.25 },
+            { category: 'proteina', searchTerms: ['Calamar', 'Pota'], ratio: 0.15 },
+            { category: 'verdura', searchTerms: ['Cebolla', 'Tomate', 'Ají amarillo'], ratio: 0.25 }
+        ]
+    },
+    {
+        id: 'alm-tumbes-majado-pescado',
+        name: 'Majado de Plátano con Pescado Frito',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'carbohidrato', searchTerms: ['Plátano verde', 'Plátano'], ratio: 0.45 },
+            { category: 'proteina', searchTerms: ['Pescado', 'Pescado filete', 'Pescado frito'], ratio: 0.35 },
+            { category: 'verdura', searchTerms: ['Cebolla', 'Tomate'], ratio: 0.15 },
+            { category: 'grasa', searchTerms: ['Aceite'], ratio: 0.05 }
+        ]
+    },
+    {
+        id: 'alm-tumbes-seco-cabrito',
+        name: 'Seco de Cabrito (o Res) con Frejoles',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Cabrito', 'Carnero', 'Res'], ratio: 0.35 },
+            { category: 'carbohidrato', searchTerms: ['Frejol', 'Frejol canario', 'Canario'], ratio: 0.25 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco'], ratio: 0.2 },
+            { category: 'verdura', searchTerms: ['Zapallo', 'Culantro'], ratio: 0.2 }
+        ]
+    },
+    {
+        id: 'alm-tumbes-bolas-platano',
+        name: 'Bolas de Plátano a la Tumbesina',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'carbohidrato', searchTerms: ['Plátano verde', 'Plátano'], ratio: 0.4 },
+            { category: 'proteina', searchTerms: ['Carne molida', 'Carne picada', 'Res carne molida'], ratio: 0.25 },
+            { category: 'grasa', searchTerms: ['Maní', 'Cacahuete'], ratio: 0.1 },
+            { category: 'proteina', searchTerms: ['Huevo', 'Huevo duro'], ratio: 0.1 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco'], ratio: 0.15 }
+        ]
+    },
+    {
+        id: 'alm-tumbes-sanguito-platano',
+        name: 'Sanguito de Plátano con Pescado',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'carbohidrato', searchTerms: ['Plátano maduro', 'Plátano'], ratio: 0.4 },
+            { category: 'proteina', searchTerms: ['Pescado', 'Pescado sudado', 'Pescado guiso'], ratio: 0.35 },
+            { category: 'verdura', searchTerms: ['Cebolla', 'Tomate'], ratio: 0.25 }
+        ]
+    },
+    // --- PLATOS CON POTA Y MARISCOS (ECONÓMICOS) ---
+    {
+        id: 'alm-tumbes-panamito-pota',
+        name: 'Guiso de Panamito con Chicharrón de Pota',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Pota', 'Calamar'], ratio: 0.35 },
+            { category: 'carbohidrato', searchTerms: ['Panamito', 'Frejol', 'Frejol panamito'], ratio: 0.3 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco'], ratio: 0.2 },
+            { category: 'verdura', searchTerms: ['Ensalada', 'Cebolla', 'Tomate'], ratio: 0.15 }
+        ]
+    },
+    {
+        id: 'alm-tumbes-picante-mariscos',
+        name: 'Picante de Mariscos',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Mariscos', 'Pota', 'Mix mariscos'], ratio: 0.4 },
+            { category: 'carbohidrato', searchTerms: ['Papa amarilla', 'Papa'], ratio: 0.2 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco'], ratio: 0.2 },
+            { category: 'lacteo', searchTerms: ['Ají panca', 'Crema de leche', 'Leche'], ratio: 0.2 }
+        ]
+    },
+    {
+        id: 'alm-tumbes-cau-cau-toyo',
+        name: 'Cau Cau de Toyo (o Pescado)',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Toyo', 'Pescado', 'Tiburón'], ratio: 0.35 },
+            { category: 'carbohidrato', searchTerms: ['Papa', 'Papa cuadraditos'], ratio: 0.3 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco'], ratio: 0.2 },
+            { category: 'verdura', searchTerms: ['Hierbabuena', 'Palillo'], ratio: 0.15 }
+        ]
+    },
+    {
+        id: 'alm-tumbes-pota-italiana',
+        name: 'Pota a la Italiana',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Pota', 'Calamar'], ratio: 0.4 },
+            { category: 'verdura', searchTerms: ['Tomate', 'Pasta de tomate'], ratio: 0.2 },
+            { category: 'verdura', searchTerms: ['Zanahoria', 'Hongo'], ratio: 0.1 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco'], ratio: 0.15 },
+            { category: 'carbohidrato', searchTerms: ['Papa frita', 'Papa'], ratio: 0.15 }
+        ]
+    },
+    // --- VÍSCERAS Y OTROS (Alto Hierro) ---
+    {
+        id: 'alm-tumbes-sangrecita-patacones',
+        name: 'Picante de Sangrecita con Patacones',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Sangrecita', 'Pollo sangre cocida'], ratio: 0.4 },
+            { category: 'carbohidrato', searchTerms: ['Plátano verde', 'Plátano'], ratio: 0.3 },
+            { category: 'verdura', searchTerms: ['Cebolla china', 'Ají'], ratio: 0.2 },
+            { category: 'carbohidrato', searchTerms: ['Yuca'], ratio: 0.1 }
+        ]
+    },
+    {
+        id: 'alm-tumbes-corazones-zarandaja',
+        name: 'Corazones con Zarandaja',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Corazón', 'Anticucho', 'Corazón de res'], ratio: 0.35 },
+            { category: 'carbohidrato', searchTerms: ['Zarandaja', 'Lenteja', 'Frejol'], ratio: 0.3 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco'], ratio: 0.2 },
+            { category: 'verdura', searchTerms: ['Ensalada', 'Cebolla'], ratio: 0.15 }
+        ]
+    },
+    {
+        id: 'alm-tumbes-higado-pallares',
+        name: 'Hígado Encebollado con Pallares',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Hígado', 'Hígado de res'], ratio: 0.35 },
+            { category: 'carbohidrato', searchTerms: ['Pallares', 'Menestra', 'Frejol'], ratio: 0.3 },
+            { category: 'verdura', searchTerms: ['Cebolla', 'Tomate'], ratio: 0.2 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco'], ratio: 0.15 }
+        ]
+    },
+    // --- CLÁSICOS ADAPTADOS ---
+    {
+        id: 'alm-tumbes-enrollado-mero',
+        name: 'Enrollado de Mero con Puré',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Mero', 'Pescado blanco', 'Pescado'], ratio: 0.4 },
+            { category: 'carbohidrato', searchTerms: ['Camote amarillo', 'Camote'], ratio: 0.25 },
+            { category: 'verdura', searchTerms: ['Espinaca', 'Relleno'], ratio: 0.15 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco'], ratio: 0.2 }
+        ]
+    },
+    {
+        id: 'alm-tumbes-albondigas-cangrejo',
+        name: 'Albóndigas de Pulpa de Cangrejo',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Cangrejo', 'Pulpa de cangrejo', 'Pescado'], ratio: 0.35 },
+            { category: 'carbohidrato', searchTerms: ['Pan', 'Harina'], ratio: 0.1 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco'], ratio: 0.25 },
+            { category: 'verdura', searchTerms: ['Ensalada', 'Ensalada fresca', 'Lechuga'], ratio: 0.3 }
+        ]
+    },
+    {
+        id: 'alm-tumbes-sudado-yuca',
+        name: 'Sudado de Pescado con Yuca',
+        mealTypes: ['almuerzo'],
+        ingredients: [
+            { category: 'proteina', searchTerms: ['Pescado', 'Cabría', 'Bonito'], ratio: 0.4 },
+            { category: 'carbohidrato', searchTerms: ['Yuca', 'Yuca sancochada'], ratio: 0.3 },
+            { category: 'verdura', searchTerms: ['Tomate', 'Cebolla', 'Chicha'], ratio: 0.2 },
+            { category: 'carbohidrato', searchTerms: ['Arroz', 'Arroz blanco'], ratio: 0.1 }
+        ]
     }
 ];
+
+// ==================== FITNESS DESSERT RECIPES (SNACKS/COLACIONES) ====================
+export const FITNESS_DESSERT_RECIPES: SnackRecipe[] = [
+    // --- MUFFINS Y CUPCAKES ---
+    {
+        name: "Cupcakes de Chocolate y Manzana",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["manzana"], ratio: 0.3, category: 'fruta' },
+            { searchTerms: ["platano", "banana"], ratio: 0.2, category: 'fruta' },
+            { searchTerms: ["avena", "harina avena", "hojuelas de avena"], ratio: 0.2, category: 'carbohidrato' },
+            { searchTerms: ["huevo"], ratio: 0.1, category: 'proteina' },
+            { searchTerms: ["proteina", "whey", "suero de leche"], ratio: 0.1, category: 'proteina' },
+            { searchTerms: ["cacao", "polvo cacao"], ratio: 0.1, category: 'miscelaneo' }
+        ]
+    },
+    {
+        name: "Muffins Pizza Fit (Salado)",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["avena", "harina"], ratio: 0.4, category: 'carbohidrato' },
+            { searchTerms: ["clara", "huevo", "clara de huevo"], ratio: 0.3, category: 'proteina' },
+            { searchTerms: ["pavo", "jamon", "jamón de pavo"], ratio: 0.2, category: 'proteina' },
+            { searchTerms: ["queso", "bajo grasa", "queso fresco"], ratio: 0.1, category: 'lacteo' }
+        ]
+    },
+    {
+        name: "Maxi Muffin de Manzana",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["avena", "harina"], ratio: 0.4, category: 'carbohidrato' },
+            { searchTerms: ["clara", "huevo"], ratio: 0.3, category: 'proteina' },
+            { searchTerms: ["manzana"], ratio: 0.2, category: 'fruta' },
+            { searchTerms: ["queso batido", "yogur griego", "queso cottage", "yogur"], ratio: 0.1, category: 'lacteo' }
+        ]
+    },
+    {
+        name: "Magdalenas de Chocolate Pro",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["avena", "salvado"], ratio: 0.4, category: 'carbohidrato' },
+            { searchTerms: ["huevo"], ratio: 0.2, category: 'proteina' },
+            { searchTerms: ["yogur", "natural"], ratio: 0.2, category: 'lacteo' },
+            { searchTerms: ["cacao"], ratio: 0.1, category: 'miscelaneo' },
+            { searchTerms: ["proteina", "whey"], ratio: 0.1, category: 'proteina' }
+        ]
+    },
+
+    // --- BIZCOCHOS Y PASTELES ---
+    {
+        name: "Brownie con Crema de Vainilla",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["avena", "harina"], ratio: 0.4, category: 'carbohidrato' },
+            { searchTerms: ["clara", "huevo"], ratio: 0.4, category: 'proteina' },
+            { searchTerms: ["aceite oliva", "aceite coco"], ratio: 0.1, category: 'grasa' },
+            { searchTerms: ["queso batido", "yogur griego"], ratio: 0.1, category: 'lacteo' }
+        ]
+    },
+    {
+        name: "Pastel de Manzana Fitness",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["manzana"], ratio: 0.4, category: 'fruta' },
+            { searchTerms: ["clara", "huevo"], ratio: 0.3, category: 'proteina' },
+            { searchTerms: ["avena"], ratio: 0.2, category: 'carbohidrato' },
+            { searchTerms: ["queso fresco", "queso batido", "yogur"], ratio: 0.1, category: 'lacteo' }
+        ]
+    },
+    {
+        name: "Bizcocho Jugoso Plátano y Coco",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["platano", "banana"], ratio: 0.3, category: 'fruta' },
+            { searchTerms: ["avena", "harina integral"], ratio: 0.3, category: 'carbohidrato' },
+            { searchTerms: ["leche", "leche de soja", "leche de almendra"], ratio: 0.2, category: 'lacteo' },
+            { searchTerms: ["coco", "coco rallado"], ratio: 0.1, category: 'miscelaneo' },
+            { searchTerms: ["miel", "edulcorante"], ratio: 0.1, category: 'miscelaneo' }
+        ]
+    },
+    {
+        name: "Carrot Cake Donut",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["zanahoria"], ratio: 0.3, category: 'verdura' },
+            { searchTerms: ["avena"], ratio: 0.3, category: 'carbohidrato' },
+            { searchTerms: ["huevo"], ratio: 0.2, category: 'proteina' },
+            { searchTerms: ["nueces", "nuez"], ratio: 0.1, category: 'grasa' },
+            { searchTerms: ["queso quark", "queso batido", "yogur griego"], ratio: 0.1, category: 'lacteo' }
+        ]
+    },
+    {
+        name: "Bizcocho Húmedo Stracciatella",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["yogur", "desnatado", "yogur natural"], ratio: 0.3, category: 'lacteo' },
+            { searchTerms: ["avena"], ratio: 0.3, category: 'carbohidrato' },
+            { searchTerms: ["clara", "huevo"], ratio: 0.3, category: 'proteina' },
+            { searchTerms: ["cacao", "chocolate chips"], ratio: 0.1, category: 'miscelaneo' }
+        ]
+    },
+    {
+        name: "Pastel de Queso y Manzana",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["queso batido", "quark", "yogur griego", "queso cottage"], ratio: 0.4, category: 'lacteo' },
+            { searchTerms: ["avena"], ratio: 0.3, category: 'carbohidrato' },
+            { searchTerms: ["clara"], ratio: 0.2, category: 'proteina' },
+            { searchTerms: ["manzana"], ratio: 0.1, category: 'fruta' }
+        ]
+    },
+    {
+        name: "Brownie Express en Sartén",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["avena"], ratio: 0.3, category: 'carbohidrato' },
+            { searchTerms: ["huevo"], ratio: 0.3, category: 'proteina' },
+            { searchTerms: ["cacao"], ratio: 0.2, category: 'miscelaneo' },
+            { searchTerms: ["leche"], ratio: 0.1, category: 'lacteo' },
+            { searchTerms: ["nueces", "nuez"], ratio: 0.1, category: 'grasa' }
+        ]
+    },
+    {
+        name: "Tronco de Navidad Fit",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["huevo"], ratio: 0.3, category: 'proteina' },
+            { searchTerms: ["avena"], ratio: 0.3, category: 'carbohidrato' },
+            { searchTerms: ["queso batido", "yogur griego"], ratio: 0.2, category: 'lacteo' },
+            { searchTerms: ["cacao"], ratio: 0.2, category: 'miscelaneo' }
+        ]
+    },
+
+    // --- POSTRES DE CUCHARA Y CREMAS ---
+    {
+        name: "Cheesecake en Vaso",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["queso batido", "yogur griego", "queso cottage"], ratio: 0.5, category: 'lacteo' },
+            { searchTerms: ["proteina", "whey"], ratio: 0.2, category: 'proteina' },
+            { searchTerms: ["avena"], ratio: 0.2, category: 'carbohidrato' },
+            { searchTerms: ["mermelada", "fresa"], ratio: 0.1, category: 'fruta' }
+        ]
+    },
+    {
+        name: "Pudding Proteico 3 Pisos",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["proteina", "whey"], ratio: 0.4, category: 'proteina' },
+            { searchTerms: ["crema cacahuete", "mani", "mantequilla mani"], ratio: 0.2, category: 'grasa' },
+            { searchTerms: ["almendra", "harina almendra"], ratio: 0.2, category: 'grasa' },
+            { searchTerms: ["leche"], ratio: 0.2, category: 'lacteo' }
+        ]
+    },
+    {
+        name: "Tarta Petit Suisse Fit",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["queso batido", "yogur griego"], ratio: 0.4, category: 'lacteo' },
+            { searchTerms: ["proteina", "fresa"], ratio: 0.3, category: 'proteina' },
+            { searchTerms: ["avena"], ratio: 0.15, category: 'carbohidrato' },
+            { searchTerms: ["clara"], ratio: 0.15, category: 'proteina' }
+        ]
+    },
+    {
+        name: "Mousse de Chocolate y Aguacate",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["aguacate", "palta"], ratio: 0.5, category: 'grasa' },
+            { searchTerms: ["clara", "huevo"], ratio: 0.2, category: 'proteina' },
+            { searchTerms: ["avena"], ratio: 0.15, category: 'carbohidrato' },
+            { searchTerms: ["cacao", "chocolate"], ratio: 0.15, category: 'miscelaneo' }
+        ]
+    },
+    {
+        name: "Flan de Huevo Saludable",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["leche"], ratio: 0.6, category: 'lacteo' },
+            { searchTerms: ["huevo", "yema"], ratio: 0.2, category: 'proteina' },
+            { searchTerms: ["proteina", "whey"], ratio: 0.2, category: 'proteina' }
+        ]
+    },
+    {
+        name: "Flan Proteico de Chocolate",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["queso fresco", "queso batido", "yogur griego"], ratio: 0.5, category: 'lacteo' },
+            { searchTerms: ["leche"], ratio: 0.2, category: 'lacteo' },
+            { searchTerms: ["proteina"], ratio: 0.2, category: 'proteina' },
+            { searchTerms: ["cacao"], ratio: 0.1, category: 'miscelaneo' }
+        ]
+    },
+
+    // --- HELADOS Y FRESCOS ---
+    {
+        name: "Stracciacookies Heladas",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["queso batido", "yogur griego"], ratio: 0.3, category: 'lacteo' },
+            { searchTerms: ["avena"], ratio: 0.3, category: 'carbohidrato' },
+            { searchTerms: ["clara"], ratio: 0.2, category: 'proteina' },
+            { searchTerms: ["chocolate", "negro"], ratio: 0.1, category: 'miscelaneo' },
+            { searchTerms: ["proteina"], ratio: 0.1, category: 'proteina' }
+        ]
+    },
+    {
+        name: "Flan de Plátano y Fresa",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["queso batido", "yogur griego"], ratio: 0.5, category: 'lacteo' },
+            { searchTerms: ["platano", "banana"], ratio: 0.3, category: 'fruta' },
+            { searchTerms: ["chocolate", "cacao"], ratio: 0.2, category: 'miscelaneo' }
+        ]
+    },
+    {
+        name: "Helado Proteico Vainilla/Choco",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["queso batido", "yogur griego", "queso cottage"], ratio: 0.6, category: 'lacteo' },
+            { searchTerms: ["yogur", "griego"], ratio: 0.2, category: 'lacteo' },
+            { searchTerms: ["proteina"], ratio: 0.1, category: 'proteina' },
+            { searchTerms: ["cacao"], ratio: 0.1, category: 'miscelaneo' }
+        ]
+    },
+    {
+        name: "Bombones Helados Proteicos",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["queso batido", "yogur griego"], ratio: 0.4, category: 'lacteo' },
+            { searchTerms: ["proteina"], ratio: 0.4, category: 'proteina' },
+            { searchTerms: ["almendra", "nueces"], ratio: 0.2, category: 'grasa' }
+        ]
+    },
+    {
+        name: "Helado Plátano y Cacahuete",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["yogur", "natural"], ratio: 0.4, category: 'lacteo' },
+            { searchTerms: ["platano", "banana"], ratio: 0.4, category: 'fruta' },
+            { searchTerms: ["crema cacahuete", "mani", "mantequilla mani"], ratio: 0.2, category: 'grasa' }
+        ]
+    },
+
+    // --- GALLETAS, DONUTS Y BOCADITOS ---
+    {
+        name: "Enrollados Chocolateados",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["avena"], ratio: 0.4, category: 'carbohidrato' },
+            { searchTerms: ["clara", "huevo"], ratio: 0.3, category: 'proteina' },
+            { searchTerms: ["queso batido", "yogur"], ratio: 0.2, category: 'lacteo' },
+            { searchTerms: ["proteina"], ratio: 0.1, category: 'proteina' }
+        ]
+    },
+    {
+        name: "Tarta Choco-Cacahuete",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["queso batido", "yogur griego"], ratio: 0.4, category: 'lacteo' },
+            { searchTerms: ["avena"], ratio: 0.3, category: 'carbohidrato' },
+            { searchTerms: ["crema cacahuete", "mantequilla mani"], ratio: 0.2, category: 'grasa' },
+            { searchTerms: ["cacao"], ratio: 0.1, category: 'miscelaneo' }
+        ]
+    },
+    {
+        name: "Bocaditos de Plátano y Cacao",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["platano", "banana"], ratio: 0.7, category: 'fruta' },
+            { searchTerms: ["cacao", "chocolate"], ratio: 0.2, category: 'miscelaneo' },
+            { searchTerms: ["aceite coco", "aceite oliva"], ratio: 0.1, category: 'grasa' }
+        ]
+    },
+    {
+        name: "Bizcochitos Rellenos",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["avena"], ratio: 0.3, category: 'carbohidrato' },
+            { searchTerms: ["clara", "huevo"], ratio: 0.3, category: 'proteina' },
+            { searchTerms: ["leche"], ratio: 0.2, category: 'lacteo' },
+            { searchTerms: ["queso batido", "yogur"], ratio: 0.1, category: 'lacteo' },
+            { searchTerms: ["chocolate", "cacao"], ratio: 0.1, category: 'miscelaneo' }
+        ]
+    },
+    {
+        name: "Donuts Bombón Fit",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["avena"], ratio: 0.3, category: 'carbohidrato' },
+            { searchTerms: ["clara", "huevo"], ratio: 0.3, category: 'proteina' },
+            { searchTerms: ["almendra", "harina almendra"], ratio: 0.2, category: 'grasa' },
+            { searchTerms: ["chocolate"], ratio: 0.2, category: 'miscelaneo' }
+        ]
+    },
+    {
+        name: "Galletas Fitness",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["leche"], ratio: 0.3, category: 'lacteo' },
+            { searchTerms: ["avena", "integral"], ratio: 0.3, category: 'carbohidrato' },
+            { searchTerms: ["clara", "huevo"], ratio: 0.2, category: 'proteina' },
+            { searchTerms: ["proteina"], ratio: 0.2, category: 'proteina' }
+        ]
+    },
+    {
+        name: "Tartitas Arroz con Leche y Choco",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["arroz", "integral"], ratio: 0.4, category: 'carbohidrato' },
+            { searchTerms: ["leche"], ratio: 0.4, category: 'lacteo' },
+            { searchTerms: ["huevo", "yema"], ratio: 0.1, category: 'proteina' },
+            { searchTerms: ["cacao"], ratio: 0.1, category: 'miscelaneo' }
+        ]
+    },
+    {
+        name: "Crepes de Chocolate Fitness",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["clara"], ratio: 0.5, category: 'proteina' },
+            { searchTerms: ["avena"], ratio: 0.3, category: 'carbohidrato' },
+            { searchTerms: ["cacao"], ratio: 0.1, category: 'miscelaneo' },
+            { searchTerms: ["fresa", "fruta"], ratio: 0.1, category: 'fruta' }
+        ]
+    },
+    {
+        name: "Conchas Rellenas de Nutella Fit",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["avena"], ratio: 0.5, category: 'carbohidrato' },
+            { searchTerms: ["leche"], ratio: 0.2, category: 'lacteo' },
+            { searchTerms: ["huevo"], ratio: 0.15, category: 'proteina' },
+            { searchTerms: ["crema avellana", "cacao", "avellana"], ratio: 0.15, category: 'grasa' }
+        ]
+    },
+    {
+        name: "Gofres de Plátano",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["avena"], ratio: 0.3, category: 'carbohidrato' },
+            { searchTerms: ["platano", "banana"], ratio: 0.3, category: 'fruta' },
+            { searchTerms: ["huevo", "clara"], ratio: 0.2, category: 'proteina' },
+            { searchTerms: ["leche"], ratio: 0.2, category: 'lacteo' }
+        ]
+    },
+    {
+        name: "Mil Hojas de Avena y Fresa",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["avena"], ratio: 0.4, category: 'carbohidrato' },
+            { searchTerms: ["clara"], ratio: 0.3, category: 'proteina' },
+            { searchTerms: ["queso batido", "yogur"], ratio: 0.2, category: 'lacteo' },
+            { searchTerms: ["fresa", "frambuesa"], ratio: 0.1, category: 'fruta' }
+        ]
+    },
+    {
+        name: "Bizcocho Choco-Coco-Zanahoria",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["avena"], ratio: 0.3, category: 'carbohidrato' },
+            { searchTerms: ["zanahoria"], ratio: 0.2, category: 'verdura' },
+            { searchTerms: ["coco", "coco rallado"], ratio: 0.15, category: 'miscelaneo' },
+            { searchTerms: ["huevo", "clara"], ratio: 0.2, category: 'proteina' },
+            { searchTerms: ["proteina", "cacao"], ratio: 0.15, category: 'miscelaneo' }
+        ]
+    },
+    {
+        name: "Bombones de Proteína y Cacahuete",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["crema cacahuete", "mani", "mantequilla mani"], ratio: 0.4, category: 'grasa' },
+            { searchTerms: ["proteina"], ratio: 0.4, category: 'proteina' },
+            { searchTerms: ["cacao"], ratio: 0.1, category: 'miscelaneo' },
+            { searchTerms: ["cacahuete", "mani"], ratio: 0.1, category: 'grasa' }
+        ]
+    },
+    {
+        name: "Turrón de Avellanas Fit",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["cacao", "chocolate puro"], ratio: 0.5, category: 'miscelaneo' },
+            { searchTerms: ["avellana"], ratio: 0.3, category: 'grasa' },
+            { searchTerms: ["leche"], ratio: 0.2, category: 'lacteo' }
+        ]
+    },
+    {
+        name: "Rosquillas Naranja y Cacao",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["avena"], ratio: 0.4, category: 'carbohidrato' },
+            { searchTerms: ["yogur"], ratio: 0.2, category: 'lacteo' },
+            { searchTerms: ["huevo"], ratio: 0.1, category: 'proteina' },
+            { searchTerms: ["naranja", "zumo naranja", "jugo naranja"], ratio: 0.1, category: 'fruta' },
+            { searchTerms: ["cacao"], ratio: 0.1, category: 'miscelaneo' },
+            { searchTerms: ["aceite coco"], ratio: 0.1, category: 'grasa' }
+        ]
+    },
+    {
+        name: "Donettes Fitness Glaseados",
+        type: "snack",
+        ingredients: [
+            { searchTerms: ["clara"], ratio: 0.4, category: 'proteina' },
+            { searchTerms: ["avena"], ratio: 0.3, category: 'carbohidrato' },
+            { searchTerms: ["yogur"], ratio: 0.1, category: 'lacteo' },
+            { searchTerms: ["huevo"], ratio: 0.1, category: 'proteina' },
+            { searchTerms: ["cacao"], ratio: 0.1, category: 'miscelaneo' }
+        ]
+    }
+];
+
+// Helper: Get a random snack recipe
+export function getRandomSnackRecipe(): SnackRecipe {
+    return FITNESS_DESSERT_RECIPES[Math.floor(Math.random() * FITNESS_DESSERT_RECIPES.length)];
+}

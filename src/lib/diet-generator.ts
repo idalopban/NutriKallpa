@@ -1,5 +1,5 @@
 import { Alimento } from "./csv-parser";
-import { PERUVIAN_RECIPES, PeruvianRecipe, RecipeComponent, MealType, Category } from "./peruvian-recipes";
+import { PERUVIAN_RECIPES, PeruvianRecipe, RecipeComponent, MealType, Category, FITNESS_DESSERT_RECIPES } from "./peruvian-recipes";
 
 // --- TYPES ---
 
@@ -78,6 +78,123 @@ export const DEFAULT_MICRO_GOALS = {
     sodio: 2300, // Limit
     potasio: 4700
 };
+
+const FILLERS = {
+    protein: [
+        { searchTerms: ["huevo", "sancochado"], ratio: 0.25, name: "Huevo Duro (Extra)" },
+        { searchTerms: ["queso", "fresco"], ratio: 0.2, name: "Queso Fresco (Extra)" },
+        { searchTerms: ["atun", "conserva"], ratio: 0.25, name: "Atún en Agua (Extra)" }
+    ],
+    carb: [
+        { searchTerms: ["papa", "sancochada"], ratio: 0.25, name: "Papa Sancochada" },
+        { searchTerms: ["arroz", "cocido"], ratio: 0.25, name: "Porción de Arroz" },
+        { searchTerms: ["choclo"], ratio: 0.2, name: "Choclo Desgranado" },
+        { searchTerms: ["camote"], ratio: 0.25, name: "Camote Sancochado" }
+    ],
+    veggie: [
+        { searchTerms: ["lechuga", "tomate"], ratio: 0.2, name: "Ensalada Fresca" },
+        { searchTerms: ["pepino", "limon"], ratio: 0.15, name: "Ensalada de Pepino" },
+        { searchTerms: ["vainita", "zanahoria"], ratio: 0.15, name: "Verduras al Vapor" }
+    ]
+};
+
+// Hard Caps - Maximum realistic portion sizes by food type (in grams)
+export const HARD_CAPS: Record<string, number> = {
+    // By category
+    'fruta': 200,        // Max 200g fruit per serving
+    'lacteo': 250,       // Max 250g dairy
+    'grasa': 15,         // Max 15g oils/fats
+    'verdura': 150,      // Max 150g vegetables per ingredient
+
+    // By specific food patterns (higher priority)
+    'avena': 80,         // Dry oats max 80g
+    'cereal': 80,        // Cereals max 80g
+    'arroz': 250,        // Cooked rice max 250g
+    'papa': 250,         // Potatoes max 250g
+    'camote': 250,       // Sweet potato max 250g
+    'yuca': 250,         // Yuca max 250g
+    'quinua': 200,       // Quinoa max 200g (cooked)
+    'fideo': 200,        // Pasta max 200g
+    'pan': 120,          // Bread max 120g
+    'proteina': 180,     // Protein sources max 180g
+
+    // Specific ingredients
+    'ajo': 5,
+    'aceite': 15,
+    'cebolla': 60,
+    'huevo': 150,        // ~2-3 eggs max
+
+    // Snack-specific caps
+    'whey': 30,          // Protein powder max 30g per serving
+    'proteina polvo': 30,
+    'cacao': 15,         // Cacao powder max 15g
+    'chocolate': 30,     // Chocolate max 30g
+    'crema cacahuete': 30, // Peanut butter max 30g
+    'mani': 30,
+    'almendra': 30,
+    'nueces': 30,
+    'avellana': 30,
+};
+
+// Synonym map for ingredients that may not exist in CSV
+export const INGREDIENT_SYNONYMS: Record<string, string[]> = {
+    'queso batido': ['yogur griego', 'queso cottage', 'yogur natural', 'requesón'],
+    'queso quark': ['yogur griego', 'queso cottage', 'yogur natural'],
+    'whey': ['proteína', 'suero de leche'],
+    'proteina': ['suero de leche', 'clara de huevo'],
+    'harina avena': ['avena', 'hojuelas de avena', 'avena en hojuelas'],
+    'crema cacahuete': ['mantequilla maní', 'maní', 'cacahuete'],
+    'leche almendra': ['leche de soja', 'leche descremada'],
+    'leche soja': ['leche descremada', 'leche evaporada'],
+};
+
+// Helper: Get the hard cap for a MealItem based on category and food name
+function getHardCap(item: MealItem): number {
+    const foodName = item.food.nombre.toLowerCase();
+
+    // Check specific food patterns first (higher priority)
+    for (const [pattern, cap] of Object.entries(HARD_CAPS)) {
+        if (pattern !== item.category && foodName.includes(pattern)) {
+            return cap;
+        }
+    }
+
+    // Fallback to category cap
+    if (HARD_CAPS[item.category]) {
+        return HARD_CAPS[item.category];
+    }
+
+    // Default high cap for uncategorized items
+    return 500;
+}
+
+// Helper: Get snack-specific cap (for fitness desserts)
+function getSnackCap(foodName: string, category?: string): number {
+    const name = foodName.toLowerCase();
+
+    // Protein powder: max 30g
+    if (name.includes('whey') || name.includes('proteina') || name.includes('proteína')) {
+        return 30;
+    }
+
+    // Cacao: max 15g
+    if (name.includes('cacao')) {
+        return 15;
+    }
+
+    // Nuts and nut butters: max 30g
+    if (name.includes('nuez') || name.includes('almendra') || name.includes('cacahuete') ||
+        name.includes('mani') || name.includes('avellana') || name.includes('crema')) {
+        return 30;
+    }
+
+    // Use default hard caps for other items
+    if (category && HARD_CAPS[category]) {
+        return HARD_CAPS[category];
+    }
+
+    return 200; // Default snack portion
+}
 
 // --- CALCULATIONS ---
 
@@ -166,6 +283,51 @@ function getRandom<T>(arr: T[]): T {
     return arr[Math.floor(Math.random() * arr.length)];
 }
 
+/**
+ * Detects if a macro group is present using keywords in searchTerms,
+ * AND ensuring the ingredient actually exists in the provided foods.
+ */
+function hasMacro(ingredients: RecipeComponent[], keywords: string[], availableFoods: Alimento[]): boolean {
+    return ingredients.some(ing => {
+        // 1. Check Keywords
+        const matchesKeyword = ing.searchTerms.some(term =>
+            keywords.some(kw => term.toLowerCase().includes(kw))
+        );
+        if (!matchesKeyword) return false;
+
+        // 2. Check Availability
+        const match = findBestMatch(ing.searchTerms, availableFoods, ing.category);
+        return match !== null;
+    });
+}
+
+/**
+ * Ensures a recipe has at least one item from each critical macro group:
+ * protein, carb and veggie, using keyword detection and checking food availability.
+ */
+function ensureBalancedMeal(ingredients: RecipeComponent[], availableFoods: Alimento[]): RecipeComponent[] {
+    const PROTEIN_KEYWORDS = ["pollo", "res", "carne", "pescado", "atun", "huevo", "pavita", "higado", "sangrecita", "queso", "lomo", "bistec", "cerdo", "chancho", "lechon", "cordero", "pavo", "pato"];
+    const CARB_KEYWORDS = ["arroz", "papa", "camote", "yuca", "fideo", "tallarin", "pan", "avena", "quinua", "trigo", "menestra", "lenteja", "frejol", "garbanzo", "haba", "mote", "maiz", "choclo"];
+    const VEGGIE_KEYWORDS = ["ensalada", "lechuga", "tomate", "cebolla", "zanahoria", "vainita", "brocoli", "espinaca", "zapallo", "caigua", "acelga", "apio", "pepino", "rabanito", "beterraga"];
+
+    const result = [...ingredients];
+
+    if (!hasMacro(result, PROTEIN_KEYWORDS, availableFoods)) {
+        const filler = getRandom(FILLERS.protein);
+        result.push({ category: 'proteina', searchTerms: filler.searchTerms, ratio: filler.ratio });
+    }
+    if (!hasMacro(result, CARB_KEYWORDS, availableFoods)) {
+        const filler = getRandom(FILLERS.carb);
+        result.push({ category: 'carbohidrato', searchTerms: filler.searchTerms, ratio: filler.ratio });
+    }
+    if (!hasMacro(result, VEGGIE_KEYWORDS, availableFoods)) {
+        const filler = getRandom(FILLERS.veggie);
+        result.push({ category: 'verdura', searchTerms: filler.searchTerms, ratio: filler.ratio });
+    }
+
+    return result;
+}
+
 export function generateSmartDailyPlan(
     goals: NutritionalGoals,
     availableFoods: Alimento[],
@@ -202,23 +364,37 @@ export function generateSmartDailyPlan(
             { name: 'Desayuno', type: 'desayuno', ratio: 0.25 },
             { name: 'Almuerzo', type: 'almuerzo', ratio: 0.35 },
             { name: 'Cena', type: 'cena', ratio: 0.25 },
-            { name: 'Colación', type: 'desayuno', ratio: 0.15 } // Reuse breakfast/light options for snack
+            { name: 'Colación', type: 'snack', ratio: 0.15 }
         ];
+
+        // 3. Prepare All Recipes Pool
+        const normalizedDesserts: PeruvianRecipe[] = FITNESS_DESSERT_RECIPES.map((r, i) => ({
+            id: `fit-dessert-${i}`,
+            name: r.name,
+            mealTypes: ['snack'],
+            ingredients: r.ingredients.map(ing => ({
+                category: ing.category || 'miscelaneo',
+                searchTerms: ing.searchTerms,
+                ratio: ing.ratio
+            }))
+        }));
+
+        const allRecipesPool = [...PERUVIAN_RECIPES, ...normalizedDesserts];
 
         let meals: Meal[] = [];
 
-        // 3. Generate Each Meal
+        // 4. Generate Each Meal
         mealTargets.forEach(target => {
             const targetCalories = goals.calories * target.ratio;
 
             // Select a random recipe for this meal type
-            const possibleRecipes = PERUVIAN_RECIPES.filter(r => r.mealTypes.includes(target.type as MealType));
+            const possibleRecipes = allRecipesPool.filter(r => r.mealTypes.includes(target.type as MealType));
 
             let recipe = getRandom(possibleRecipes);
 
             // Fallback if no recipe found
             if (!recipe) {
-                recipe = getRandom(PERUVIAN_RECIPES);
+                recipe = getRandom(allRecipesPool);
             }
 
             if (!recipe) {
@@ -229,22 +405,25 @@ export function generateSmartDailyPlan(
 
             const mealItems: MealItem[] = [];
 
-            // Calculate Total Ratio Sum for this recipe
-            const totalRatio = recipe.ingredients.reduce((sum, ing) => sum + ing.ratio, 0);
+            // --- Balanced Plate Guarantee ---
+            // Mutate/Refine ingredients to ensure balance using keyword detection and food availability
+            const ingredientsToProcess = ensureBalancedMeal(recipe.ingredients, filteredFoods);
 
-            recipe.ingredients.forEach(ing => {
+            // Calculate Total Ratio Sum for this recipe (including fillers)
+            const totalRatio = ingredientsToProcess.reduce((sum, ing) => sum + ing.ratio, 0);
+
+            ingredientsToProcess.forEach(ing => {
                 const food = findBestMatch(ing.searchTerms, filteredFoods, ing.category);
 
                 if (food) {
                     // Formula: CaloriasIngrediente = (TotalMealCalories * Ingrediente.ratio) / SumaDeRatios
-                    const ingredientCalories = (targetCalories * ing.ratio) / (totalRatio || 1); // Avoid div by 0
+                    const ingredientCalories = (targetCalories * ing.ratio) / (totalRatio || 1);
 
-                    // Formula: Gramos = (CaloriasIngrediente / CaloriasPor100g_DelCSV) * 100
                     let grams = 0;
                     if (food.energia > 0) {
                         grams = (ingredientCalories / food.energia) * 100;
                     } else {
-                        grams = 50; // Default for 0 calorie items like water/tea
+                        grams = 50;
                     }
 
                     mealItems.push({
@@ -256,6 +435,31 @@ export function generateSmartDailyPlan(
                 }
             });
 
+            // --- FAIL-SAFE Balanced Plate Guarantee ---
+            const PROT_REGEX = /\b(pollo|res|carne|pescado|atun|huevo|pavita|higado|sangrecita|queso|lomo|bistec|cerdo|chancho|lechon|cordero|pavo|pato)\b/i;
+            const CARB_REGEX = /\b(arroz|papa|camote|yuca|fideo|tallarin|pan|avena|quinua|trigo|menestra|lenteja|frejol|garbanzo|haba|mote|maiz|choclo)\b/i;
+            const VEGG_REGEX = /\b(ensalada|lechuga|tomate|cebolla|zanahoria|vainita|brocoli|espinaca|zapallo|caigua|acelga|apio|pepino|rabanito|beterraga)\b/i;
+
+            const isProtein = (i: MealItem) => i.category === 'proteina' || PROT_REGEX.test(i.food.nombre);
+            const isCarb = (i: MealItem) => i.category === 'carbohidrato' || CARB_REGEX.test(i.food.nombre);
+            const isVeggie = (i: MealItem) => i.category === 'verdura' || VEGG_REGEX.test(i.food.nombre);
+
+            if (!mealItems.some(isProtein)) {
+                const filler = getRandom(FILLERS.protein);
+                const food = findBestMatch(filler.searchTerms, filteredFoods, 'proteina');
+                if (food) mealItems.push({ id: Math.random().toString(36).substr(2, 9), food, quantity: 80, category: 'proteina' });
+            }
+            if (!mealItems.some(isCarb)) {
+                const filler = getRandom(FILLERS.carb);
+                const food = findBestMatch(filler.searchTerms, filteredFoods, 'carbohidrato');
+                if (food) mealItems.push({ id: Math.random().toString(36).substr(2, 9), food, quantity: 100, category: 'carbohidrato' });
+            }
+            if (!mealItems.some(isVeggie)) {
+                const filler = getRandom(FILLERS.veggie);
+                const food = findBestMatch(filler.searchTerms, filteredFoods, 'verdura');
+                if (food) mealItems.push({ id: Math.random().toString(36).substr(2, 9), food, quantity: 100, category: 'verdura' });
+            }
+
             meals.push({ name: `${target.name} - ${recipe.name}`, items: mealItems });
         });
 
@@ -263,7 +467,14 @@ export function generateSmartDailyPlan(
         meals = applyRealismConstraints(meals);
         meals = applyNutritionistConstraints(meals);
 
-        // 5. Calculate Final Stats
+        // 5. CALORIC CALIBRATION SYSTEM (Precisión Estricta)
+        // Step A: Run main calibration on all scalable ingredients
+        meals = calibrateDailyPlan(meals, goals.calories);
+
+        // Step B: Force adjustment if still outside tolerance (fallback)
+        meals = forceAdjustLunchCarb(meals, goals.calories);
+
+        // 6. Calculate Final Stats
         const stats = calculateDailyStats(meals);
 
         return {
@@ -344,64 +555,323 @@ function applyNutritionistConstraints(meals: Meal[]): Meal[] {
 }
 
 function applyRealismConstraints(meals: Meal[]): Meal[] {
-    const INGREDIENT_CAPS: Record<string, number> = {
-        'verdura': 50,    // Máx 50g de cebolla/tomate por plato (si es aderezo)
-        'ajo': 5,         // Máx 5g de ajo
-        'grasa': 15,      // Máx 15g de aceite
-        'olluco': 250,    // Máx 250g
-        'guarnicion': 250 // Máx 250g (se usará lógica dinámica)
-    };
-
     return meals.map(meal => {
         let items = [...meal.items];
-        let caloriesPool = 0; // Calorías que "sobran" al recortar
+        let overflowCalories = 0; // Calories "lost" when capping ingredients
 
-        // PASO 1: Recortar Excesos
+        // PASO 1: Apply Hard Caps and collect overflow
         items = items.map(item => {
-            // Determinar cap basado en categoría o nombre
-            let cap = 1000; // Default alto
-
-            if (item.category === 'verdura') cap = INGREDIENT_CAPS['verdura'];
-            if (item.category === 'grasa') cap = INGREDIENT_CAPS['grasa'];
-
-            // Caps específicos por nombre (más prioritario)
-            if (item.food.nombre.toLowerCase().includes('ajo')) cap = INGREDIENT_CAPS['ajo'];
-            if (item.food.nombre.toLowerCase().includes('olluco')) cap = INGREDIENT_CAPS['olluco'];
-
-            // Caps para carbohidratos densos (Arroz/Papa) para evitar platos de 400g
-            if (item.category === 'carbohidrato') cap = INGREDIENT_CAPS['guarnicion'];
+            const cap = getHardCap(item);
 
             if (item.quantity > cap) {
                 const excessGrams = item.quantity - cap;
-                // Calories saved = excess grams * (kcal/100g / 100) -> NO, kcal per 100g.
-                // Kcal = grams * (energy / 100)
+                // Calculate calories lost: kcal = grams * (energy / 100)
                 const savedCalories = excessGrams * (item.food.energia / 100);
-                caloriesPool += savedCalories;
+                overflowCalories += savedCalories;
 
                 return { ...item, quantity: cap };
             }
             return item;
         });
 
-        // PASO 2: Redistribuir al "Carbohidrato Denso" o "Proteína"
-        // Buscamos el ingrediente más capaz de absorber calorías (Arroz > Papa > Pan)
-        const denseCarb = items.find(i =>
-            i.category === 'carbohidrato' &&
-            (i.food.nombre.toLowerCase().includes('arroz') ||
-                i.food.nombre.toLowerCase().includes('papa') ||
-                i.food.nombre.toLowerCase().includes('pan'))
-        );
+        // PASO 2: Redistribute overflow calories intelligently
+        if (overflowCalories > 10) { // Only redistribute if significant
+            // Priority order for redistribution:
+            // 1. Dense carbs (arroz, papa, pan) - can absorb more calories
+            // 2. Protein sources - if carbs are already at limits
+            // 3. Any remaining ingredient proportionally
 
-        if (denseCarb && caloriesPool > 0) {
-            // Convertimos las calorías sobrantes en gramos de ese carbohidrato
-            // New Grams = Calories / (Energy / 100)
-            if (denseCarb.food.energia > 0) {
-                const addedGrams = caloriesPool / (denseCarb.food.energia / 100);
-                // Actualizamos el item en el array
-                denseCarb.quantity += addedGrams;
+            const redistributionTargets = items
+                .filter(item => {
+                    const cap = getHardCap(item);
+                    const headroom = cap - item.quantity;
+                    // Only consider items with at least 20g of headroom
+                    return headroom >= 20 && item.food.energia > 0;
+                })
+                .sort((a, b) => {
+                    // Prioritize dense carbs
+                    const aIsDenseCarb = ['arroz', 'papa', 'pan', 'fideo', 'quinua'].some(
+                        term => a.food.nombre.toLowerCase().includes(term)
+                    );
+                    const bIsDenseCarb = ['arroz', 'papa', 'pan', 'fideo', 'quinua'].some(
+                        term => b.food.nombre.toLowerCase().includes(term)
+                    );
+                    if (aIsDenseCarb && !bIsDenseCarb) return -1;
+                    if (!aIsDenseCarb && bIsDenseCarb) return 1;
+
+                    // Then prioritize by energy density (more efficient absorption)
+                    return b.food.energia - a.food.energia;
+                });
+
+            // Distribute overflow across targets
+            for (const target of redistributionTargets) {
+                if (overflowCalories <= 0) break;
+
+                const cap = getHardCap(target);
+                const headroom = cap - target.quantity;
+
+                // How many grams can we add to this target?
+                const maxGramsToAdd = headroom;
+
+                // How many grams would absorb remaining overflow?
+                const gramsNeeded = (overflowCalories * 100) / target.food.energia;
+
+                // Add the minimum of what we need and what's available
+                const gramsToAdd = Math.min(maxGramsToAdd, gramsNeeded);
+
+                if (gramsToAdd > 0) {
+                    target.quantity += gramsToAdd;
+                    const absorbedCalories = gramsToAdd * (target.food.energia / 100);
+                    overflowCalories -= absorbedCalories;
+                }
             }
         }
+
+        // PASO 3: Ensure no item exceeds its hard cap after redistribution
+        items = items.map(item => {
+            const cap = getHardCap(item);
+            if (item.quantity > cap) {
+                return { ...item, quantity: cap };
+            }
+            return item;
+        });
 
         return { ...meal, items };
     });
 }
+
+// --- CALORIC CALIBRATION SYSTEM ---
+// Constants for calibration tolerance
+const CALORIE_TOLERANCE_MIN = 0.95; // 95% of target
+const CALORIE_TOLERANCE_MAX = 1.05; // 105% of target
+
+// Patterns for identifying scalable vs fixed ingredients
+const SCALABLE_CARB_PATTERNS = ['arroz', 'papa', 'camote', 'avena', 'fideo', 'quinua', 'yuca', 'pan', 'menestra', 'lenteja', 'frejol'];
+const SCALABLE_PROTEIN_PATTERNS = ['pollo', 'res', 'carne', 'pescado', 'atun', 'pavita', 'lomo', 'bistec', 'cerdo'];
+const FIXED_INGREDIENT_PATTERNS = ['aceite', 'ajo', 'sal', 'pimienta', 'oregano', 'comino', 'limon', 'vinagre'];
+
+/**
+ * Determines if a MealItem is "scalable" for calorie calibration.
+ * Scalable ingredients are dense carbs and main proteins that can be adjusted.
+ * Fixed ingredients (oils, condiments, small portions, whole units) are NOT scaled.
+ */
+function isScalableIngredient(item: MealItem): boolean {
+    const foodName = item.food.nombre.toLowerCase();
+
+    // Rule 1: Never scale items < 15g (likely condiments or small additions)
+    if (item.quantity < 15) {
+        return false;
+    }
+
+    // Rule 2: Never scale fixed ingredients (oils, condiments)
+    if (FIXED_INGREDIENT_PATTERNS.some(pattern => foodName.includes(pattern))) {
+        return false;
+    }
+
+    // Rule 3: Never scale fats category (aceites)
+    if (item.category === 'grasa') {
+        return false;
+    }
+
+    // Rule 4: Never scale whole eggs (they come in units)
+    if (foodName.includes('huevo') && item.quantity <= 60) {
+        return false; // ~1 egg, treat as a fixed unit
+    }
+
+    // Rule 5: Check if it's a scalable dense carb
+    const isDenseCarb = SCALABLE_CARB_PATTERNS.some(pattern => foodName.includes(pattern));
+    if (isDenseCarb) {
+        return true;
+    }
+
+    // Rule 6: Check if it's a main protein source
+    const isMainProtein = SCALABLE_PROTEIN_PATTERNS.some(pattern => foodName.includes(pattern));
+    if (isMainProtein) {
+        return true;
+    }
+
+    // Rule 7: Category-based fallback for proteins and carbs with sufficient quantity
+    if ((item.category === 'proteina' || item.category === 'carbohidrato') && item.quantity >= 50) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Calculate the current caloric sum of all meals in the plan.
+ */
+function calculateTotalCalories(meals: Meal[]): number {
+    return meals.reduce((total, meal) => {
+        return total + meal.items.reduce((mealTotal, item) => {
+            return mealTotal + (item.food.energia * item.quantity / 100);
+        }, 0);
+    }, 0);
+}
+
+/**
+ * Main Calibration Function: Adjusts scalable ingredients proportionally
+ * to bring the total daily calories within 95-105% of the target.
+ */
+function calibrateDailyPlan(meals: Meal[], targetCalories: number): Meal[] {
+    const currentTotal = calculateTotalCalories(meals);
+    const minAllowed = targetCalories * CALORIE_TOLERANCE_MIN;
+    const maxAllowed = targetCalories * CALORIE_TOLERANCE_MAX;
+
+    // Step 1: Check if already within tolerance
+    if (currentTotal >= minAllowed && currentTotal <= maxAllowed) {
+        return meals; // No calibration needed
+    }
+
+    // Step 2: Calculate correction factor
+    const correctionFactor = targetCalories / currentTotal;
+
+    // Step 3: Clone meals and identify all scalable ingredients
+    const calibratedMeals = meals.map(meal => ({
+        ...meal,
+        items: meal.items.map(item => ({ ...item }))
+    }));
+
+    // Step 4: Apply correction factor to scalable ingredients
+    for (const meal of calibratedMeals) {
+        for (const item of meal.items) {
+            if (isScalableIngredient(item)) {
+                // Calculate new quantity with correction factor
+                let newQuantity = item.quantity * correctionFactor;
+
+                // Apply bounds: minimum 30g, maximum from hard cap
+                const cap = getHardCap(item);
+                newQuantity = Math.max(30, Math.min(cap, newQuantity));
+
+                // Round to nearest 5g for aesthetic portions
+                newQuantity = Math.round(newQuantity / 5) * 5;
+
+                item.quantity = newQuantity;
+            }
+        }
+    }
+
+    // Step 5: Recalculate and verify
+    const newTotal = calculateTotalCalories(calibratedMeals);
+
+    // Step 6: If still outside tolerance (edge case), return calibrated anyway
+    // The force adjustment in generateSmartDailyPlan will handle extreme cases
+    if (newTotal < minAllowed || newTotal > maxAllowed) {
+        console.log(`[Calibration] After initial pass: ${Math.round(newTotal)} kcal (target: ${targetCalories}). Needs force adjustment.`);
+    } else {
+        console.log(`[Calibration] Success: ${Math.round(currentTotal)} -> ${Math.round(newTotal)} kcal (target: ${targetCalories})`);
+    }
+
+    return calibratedMeals;
+}
+
+/**
+ * Force adjustment on carbs when calibration couldn't fully correct the deviation.
+ * This is the last resort to ensure mathematical accuracy.
+ * Now searches across ALL meals if lunch adjustment isn't sufficient.
+ */
+function forceAdjustLunchCarb(meals: Meal[], targetCalories: number): Meal[] {
+    const currentTotal = calculateTotalCalories(meals);
+    let calorieGap = targetCalories - currentTotal;
+    const minAllowed = targetCalories * CALORIE_TOLERANCE_MIN;
+    const maxAllowed = targetCalories * CALORIE_TOLERANCE_MAX;
+
+    // Only act if still outside tolerance
+    if (currentTotal >= minAllowed && currentTotal <= maxAllowed) {
+        return meals;
+    }
+
+    // Clone for modification
+    const adjustedMeals = meals.map(meal => ({
+        ...meal,
+        items: meal.items.map(item => ({ ...item }))
+    }));
+
+    // Priority order: Lunch > Dinner > Breakfast > Snack
+    const mealPriority = ['almuerzo', 'cena', 'desayuno', 'colación'];
+    const carbPatterns = ['arroz', 'papa', 'quinua', 'fideo', 'camote', 'avena', 'pan', 'yuca'];
+
+    // Try to find and adjust carbs in priority order
+    for (const mealPattern of mealPriority) {
+        if (Math.abs(calorieGap) < 10) break; // Close enough
+
+        const mealIndex = adjustedMeals.findIndex(m => m.name.toLowerCase().includes(mealPattern));
+        if (mealIndex === -1) continue;
+
+        const meal = adjustedMeals[mealIndex];
+
+        // Find main carbs in this meal
+        const mainCarbs = meal.items.filter(item =>
+            item.category === 'carbohidrato' &&
+            carbPatterns.some(term => item.food.nombre.toLowerCase().includes(term)) &&
+            item.food.energia > 0
+        );
+
+        for (const carb of mainCarbs) {
+            if (Math.abs(calorieGap) < 10) break;
+
+            // Calculate grams needed to close the gap
+            const gramsNeeded = (calorieGap * 100) / carb.food.energia;
+            const cap = getHardCap(carb);
+            const minQty = 40;
+
+            // Calculate how much we can actually adjust
+            const maxAddable = cap - carb.quantity;
+            const maxRemovable = carb.quantity - minQty;
+
+            let actualGramsChange = gramsNeeded;
+            if (gramsNeeded > 0) {
+                // Need to add
+                actualGramsChange = Math.min(gramsNeeded, maxAddable);
+            } else {
+                // Need to remove
+                actualGramsChange = Math.max(gramsNeeded, -maxRemovable);
+            }
+
+            if (Math.abs(actualGramsChange) >= 5) {
+                carb.quantity += actualGramsChange;
+                carb.quantity = Math.round(carb.quantity / 5) * 5;
+                const caloriesAdjusted = actualGramsChange * (carb.food.energia / 100);
+                calorieGap -= caloriesAdjusted;
+            }
+        }
+    }
+
+    // Fallback: If still outside tolerance, try to adjust ANY carb in ANY meal
+    const newTotal = calculateTotalCalories(adjustedMeals);
+    if (newTotal < minAllowed || newTotal > maxAllowed) {
+        const remainingGap = targetCalories - newTotal;
+
+        // Find all adjustable carbs across all meals
+        for (const meal of adjustedMeals) {
+            for (const item of meal.items) {
+                if (Math.abs(remainingGap) < 10) break;
+
+                if (item.category === 'carbohidrato' && item.food.energia > 0) {
+                    const cap = getHardCap(item);
+                    const gramsNeeded = (remainingGap * 100) / item.food.energia;
+
+                    if (remainingGap > 0 && item.quantity < cap) {
+                        const addable = Math.min(gramsNeeded, cap - item.quantity);
+                        item.quantity += addable;
+                        item.quantity = Math.round(item.quantity / 5) * 5;
+                    } else if (remainingGap < 0 && item.quantity > 40) {
+                        const removable = Math.min(Math.abs(gramsNeeded), item.quantity - 40);
+                        item.quantity -= removable;
+                        item.quantity = Math.round(item.quantity / 5) * 5;
+                    }
+                }
+            }
+        }
+    }
+
+    const finalTotal = calculateTotalCalories(adjustedMeals);
+    if (finalTotal >= minAllowed && finalTotal <= maxAllowed) {
+        console.log(`[ForceAdjust] Success: ${Math.round(currentTotal)} -> ${Math.round(finalTotal)} kcal (target: ${targetCalories})`);
+    } else {
+        console.warn(`[ForceAdjust] Could not fully calibrate: ${Math.round(finalTotal)} kcal (target: ${targetCalories}, allowed: ${Math.round(minAllowed)}-${Math.round(maxAllowed)})`);
+    }
+
+    return adjustedMeals;
+}
+

@@ -3,12 +3,12 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { saveUser } from "@/lib/storage";
-import { uploadProfileImage, updateUserProfile } from "@/actions/auth-actions";
+import { uploadProfileImage, updateUserProfile, changePassword } from "@/actions/auth-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Camera, Save, Loader2, Trash2, CheckCircle } from "lucide-react";
+import { Camera, Save, Loader2, Trash2, CheckCircle, Lock, ShieldCheck, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@/types";
 
@@ -21,6 +21,14 @@ export function ProfileSettings() {
     const [formData, setFormData] = useState<Partial<User>>({});
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [hasChanges, setHasChanges] = useState(false);
+
+    // Password change state
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
+    const [passwordData, setPasswordData] = useState({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+    });
 
     useEffect(() => {
         if (user) {
@@ -71,6 +79,48 @@ export function ProfileSettings() {
         setFormData(prev => ({ ...prev, photoUrl: "" }));
         setHasChanges(true);
         toast.info("Foto eliminada. Guarda los cambios para confirmar.");
+    };
+
+    const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setPasswordData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handlePasswordSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+            toast.error("Las nuevas contraseñas no coinciden");
+            return;
+        }
+
+        if (passwordData.newPassword.length < 8) {
+            toast.error("La nueva contraseña debe tener al menos 8 caracteres");
+            return;
+        }
+
+        setIsChangingPassword(true);
+        try {
+            const result = await changePassword({
+                currentPassword: passwordData.currentPassword,
+                newPassword: passwordData.newPassword
+            });
+
+            if (result.success) {
+                toast.success(result.message || "Contraseña actualizada");
+                setPasswordData({
+                    currentPassword: "",
+                    newPassword: "",
+                    confirmPassword: ""
+                });
+            } else {
+                toast.error(result.error || "Error al cambiar contraseña");
+            }
+        } catch (error) {
+            toast.error("Error de servidor al cambiar contraseña");
+        } finally {
+            setIsChangingPassword(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -311,24 +361,93 @@ export function ProfileSettings() {
                         )}
 
                         {activeTab === "seguridad" && (
-                            <div className="space-y-4">
+                            <div className="space-y-8">
                                 <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                                    <h3 className="font-medium text-slate-800 dark:text-white mb-1">Información de Cuenta</h3>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                                        Email: <span className="font-medium text-slate-700 dark:text-slate-300">{user.email}</span>
-                                    </p>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                                        Rol: <span className="font-medium text-slate-700 dark:text-slate-300 capitalize">{user.rol}</span>
-                                    </p>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                                        Miembro desde: <span className="font-medium text-slate-700 dark:text-slate-300">
-                                            {user.createdAt ? new Date(user.createdAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A'}
-                                        </span>
-                                    </p>
+                                    <h3 className="font-medium text-slate-800 dark:text-white mb-2 flex items-center gap-2">
+                                        <ShieldCheck className="w-4 h-4 text-blue-500" />
+                                        Información de Cuenta
+                                    </h3>
+                                    <div className="grid sm:grid-cols-2 gap-4 mt-3">
+                                        <div className="space-y-1">
+                                            <p className="text-xs text-slate-400 uppercase font-semibold">Correo Electrónico</p>
+                                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{user.email}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-xs text-slate-400 uppercase font-semibold">Rol de Usuario</p>
+                                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 capitalize">{user.rol}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-xs text-slate-400 uppercase font-semibold">Miembro desde</p>
+                                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                                {user.createdAt ? new Date(user.createdAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A'}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <p className="text-xs text-slate-400">
-                                    Para cambiar tu contraseña o eliminar tu cuenta, contacta con soporte.
-                                </p>
+
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Lock className="w-5 h-5 text-slate-400" />
+                                        <h3 className="text-lg font-semibold text-slate-800 dark:text-white">Cambiar Contraseña</h3>
+                                    </div>
+
+                                    <div className="grid gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="currentPassword">Contraseña Actual</Label>
+                                            <div className="relative">
+                                                <Input
+                                                    id="currentPassword"
+                                                    name="currentPassword"
+                                                    type="password"
+                                                    value={passwordData.currentPassword}
+                                                    onChange={handlePasswordChange}
+                                                    className="h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 pl-10"
+                                                    placeholder="••••••••"
+                                                />
+                                                <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="newPassword">Nueva Contraseña</Label>
+                                                <Input
+                                                    id="newPassword"
+                                                    name="newPassword"
+                                                    type="password"
+                                                    value={passwordData.newPassword}
+                                                    onChange={handlePasswordChange}
+                                                    className="h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                                                    placeholder="Mínimo 8 caracteres"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña</Label>
+                                                <Input
+                                                    id="confirmPassword"
+                                                    name="confirmPassword"
+                                                    type="password"
+                                                    value={passwordData.confirmPassword}
+                                                    onChange={handlePasswordChange}
+                                                    className="h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                                                    placeholder="Repite la contraseña"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-2">
+                                            <Button
+                                                type="button"
+                                                onClick={handlePasswordSubmit}
+                                                disabled={isChangingPassword || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+                                                className="w-full md:w-auto gap-2 bg-slate-900 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+                                            >
+                                                {isChangingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                                Actualizar Contraseña
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
 

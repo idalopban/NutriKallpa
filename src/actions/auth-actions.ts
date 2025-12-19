@@ -885,3 +885,70 @@ export async function updateUserProfile(userId: string, data: {
     return { success: false, error: "Error del servidor" };
   }
 }
+
+/**
+ * Change user password
+ * SECURITY: Requires current password and validates session
+ */
+export async function changePassword(data: {
+  currentPassword: string;
+  newPassword: string;
+}) {
+  try {
+    // 1. Validate session
+    const userId = await getServerSession();
+    if (!userId) {
+      return { success: false, error: "No autorizado - sesión inválida" };
+    }
+
+    // 2. Validate input
+    const validation = passwordSchema.safeParse(data.newPassword);
+    if (!validation.success) {
+      return { success: false, error: validation.error.errors[0].message };
+    }
+
+    const supabase = createSupabaseAdmin();
+
+    // 3. Get current password hash
+    const { data: user, error: fetchError } = await supabase
+      .from('users')
+      .select('password_hash')
+      .eq('id', userId)
+      .single();
+
+    if (fetchError || !user) {
+      logger.error('Error fetching user for password change', { action: 'changePassword', userId });
+      return { success: false, error: "Error al verificar el usuario" };
+    }
+
+    // 4. Verify current password
+    const passwordsMatch = await verifyPassword(data.currentPassword, user.password_hash);
+    if (!passwordsMatch) {
+      return { success: false, error: "La contraseña actual es incorrecta" };
+    }
+
+    // 5. Hash new password
+    const newPasswordHash = await hashPassword(data.newPassword);
+
+    // 6. Update password in database
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        password_hash: newPasswordHash,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+    if (updateError) {
+      logger.error('Error updating password', { action: 'changePassword', userId }, updateError as Error);
+      return { success: false, error: "Error al actualizar la contraseña" };
+    }
+
+    logger.info('Password changed successfully', { action: 'changePassword', userId: userId.slice(0, 8) + '...' });
+    return { success: true, message: "Contraseña actualizada correctamente" };
+
+  } catch (error) {
+    logger.error('Unexpected error in changePassword', { action: 'changePassword' }, error as Error);
+    return { success: false, error: "Error del servidor" };
+  }
+}

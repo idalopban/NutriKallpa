@@ -8,7 +8,7 @@
  */
 
 import { useState } from "react";
-import { Scale, Utensils, Edit2, Check, X } from "lucide-react";
+import { Scale, Utensils, Edit2, Check, X, PieChart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,8 +37,15 @@ export function PatientNutritionConfig({ editable = true, compact = false }: Pro
         objetivoPeso,
         formulaGET,
         proteinaRatio,
-        kcalAjuste
+        kcalAjuste,
+        macroProteina,
+        macroCarbohidratos,
+        macroGrasa
     } = usePatientNutrition();
+
+    // Validate macros sum to 100%
+    const macrosTotal = (config.macroProteina ?? 25) + (config.macroCarbohidratos ?? 50) + (config.macroGrasa ?? 25);
+    const macrosValid = macrosTotal === 100;
 
     const [isEditing, setIsEditing] = useState(false);
     const [localConfig, setLocalConfig] = useState(config);
@@ -76,28 +83,70 @@ export function PatientNutritionConfig({ editable = true, compact = false }: Pro
     // Compact view (just displays values)
     if (compact && !isEditing) {
         return (
-            <div className="flex flex-wrap gap-2 items-center text-sm">
-                <span className="px-2 py-1 bg-green-500/10 text-green-600 rounded-md flex items-center gap-1">
-                    <Scale className="w-3 h-3" />
-                    {nivelActividad && activityLabels[nivelActividad]}
-                </span>
-                <span className="px-2 py-1 bg-orange-500/10 text-orange-600 rounded-md">
-                    {objetivoPeso && goalLabels[objetivoPeso]}
-                </span>
-                <span className="px-2 py-1 bg-blue-500/10 text-blue-600 rounded-md">
-                    {proteinaRatio}g/kg proteína
-                </span>
-                {editable && (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setIsEditing(true)}
-                        className="h-7 px-2"
-                    >
-                        <Edit2 className="w-3 h-3" />
-                    </Button>
-                )}
-            </div>
+            <Card className="border border-slate-200 dark:border-slate-700 bg-gradient-to-r from-slate-50 to-white dark:from-slate-800/50 dark:to-slate-900/50 shadow-sm overflow-hidden">
+                <CardContent className="p-4">
+                    <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                        {/* Left: Config Tags */}
+                        <div className="flex flex-wrap gap-2 items-center">
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-medium border border-emerald-200 dark:border-emerald-800">
+                                <Scale className="w-3 h-3" />
+                                {nivelActividad && activityLabels[nivelActividad]}
+                            </div>
+                            <div className="px-3 py-1.5 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-full text-xs font-medium border border-amber-200 dark:border-amber-800">
+                                {objetivoPeso && goalLabels[objetivoPeso]}
+                            </div>
+                            <div className="px-3 py-1.5 bg-sky-500/10 text-sky-700 dark:text-sky-400 rounded-full text-xs font-medium border border-sky-200 dark:border-sky-800">
+                                {proteinaRatio}g/kg proteína
+                            </div>
+                        </div>
+
+                        {/* Right: Macro Distribution Visual */}
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                                <PieChart className="w-4 h-4" />
+                                <span className="font-medium">Macros:</span>
+                            </div>
+
+                            {/* Visual Macro Bars */}
+                            <div className="flex items-center gap-1 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 overflow-hidden min-w-[180px]">
+                                {/* Protein */}
+                                <div
+                                    className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-md flex items-center justify-center transition-all"
+                                    style={{ width: `${macroProteina}%` }}
+                                >
+                                    <span className="text-[10px] font-bold text-white drop-shadow-sm">P {macroProteina}%</span>
+                                </div>
+                                {/* Carbs */}
+                                <div
+                                    className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-md flex items-center justify-center transition-all"
+                                    style={{ width: `${macroCarbohidratos}%` }}
+                                >
+                                    <span className="text-[10px] font-bold text-white drop-shadow-sm">C {macroCarbohidratos}%</span>
+                                </div>
+                                {/* Fat */}
+                                <div
+                                    className="h-full bg-gradient-to-r from-orange-400 to-orange-500 rounded-md flex items-center justify-center transition-all"
+                                    style={{ width: `${macroGrasa}%` }}
+                                >
+                                    <span className="text-[10px] font-bold text-white drop-shadow-sm">G {macroGrasa}%</span>
+                                </div>
+                            </div>
+
+                            {/* Edit Button */}
+                            {editable && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setIsEditing(true)}
+                                    className="h-8 w-8 p-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full"
+                                >
+                                    <Edit2 className="w-4 h-4 text-slate-500" />
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
         );
     }
 
@@ -257,6 +306,105 @@ export function PatientNutritionConfig({ editable = true, compact = false }: Pro
                             <p className="text-xs text-slate-500">Ej: -500 (Déficit) o +300 (Superávit)</p>
                         </div>
                     </div>
+                </CardContent>
+            </Card>
+
+            {/* Distribución de Macronutrientes */}
+            <Card className="border-none shadow-md bg-white dark:bg-[#1e293b] overflow-hidden">
+                <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-[#334155] pb-4">
+                    <CardTitle className="flex items-center gap-3 text-lg text-slate-800 dark:text-white">
+                        <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 shadow-sm">
+                            <PieChart className="w-4 h-4" />
+                        </div>
+                        Distribución de Macronutrientes
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6">
+                    <div className="grid md:grid-cols-3 gap-6">
+                        {/* Proteína % */}
+                        <div className="space-y-2">
+                            <Label className="text-slate-600 dark:text-slate-400">Proteína (%)</Label>
+                            {isEditing ? (
+                                <div className="relative">
+                                    <Input
+                                        type="number"
+                                        min={5}
+                                        max={60}
+                                        step={5}
+                                        value={localConfig.macroProteina ?? 25}
+                                        onChange={(e) => setLocalConfig({ ...localConfig, macroProteina: parseInt(e.target.value) || 0 })}
+                                        className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] pr-8"
+                                    />
+                                    <span className="absolute right-3 top-2.5 text-xs text-slate-400">%</span>
+                                </div>
+                            ) : (
+                                <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md text-blue-700 dark:text-blue-300 font-medium">
+                                    {macroProteina}%
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Carbohidratos % */}
+                        <div className="space-y-2">
+                            <Label className="text-slate-600 dark:text-slate-400">Carbohidratos (%)</Label>
+                            {isEditing ? (
+                                <div className="relative">
+                                    <Input
+                                        type="number"
+                                        min={10}
+                                        max={70}
+                                        step={5}
+                                        value={localConfig.macroCarbohidratos ?? 50}
+                                        onChange={(e) => setLocalConfig({ ...localConfig, macroCarbohidratos: parseInt(e.target.value) || 0 })}
+                                        className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] pr-8"
+                                    />
+                                    <span className="absolute right-3 top-2.5 text-xs text-slate-400">%</span>
+                                </div>
+                            ) : (
+                                <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-md text-green-700 dark:text-green-300 font-medium">
+                                    {macroCarbohidratos}%
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Grasa % */}
+                        <div className="space-y-2">
+                            <Label className="text-slate-600 dark:text-slate-400">Grasa (%)</Label>
+                            {isEditing ? (
+                                <div className="relative">
+                                    <Input
+                                        type="number"
+                                        min={10}
+                                        max={50}
+                                        step={5}
+                                        value={localConfig.macroGrasa ?? 25}
+                                        onChange={(e) => setLocalConfig({ ...localConfig, macroGrasa: parseInt(e.target.value) || 0 })}
+                                        className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] pr-8"
+                                    />
+                                    <span className="absolute right-3 top-2.5 text-xs text-slate-400">%</span>
+                                </div>
+                            ) : (
+                                <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-md text-yellow-700 dark:text-yellow-300 font-medium">
+                                    {macroGrasa}%
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Validation message */}
+                    {isEditing && (
+                        <div className={`mt-4 p-3 rounded-md text-sm flex items-center gap-2 ${((localConfig.macroProteina ?? 25) + (localConfig.macroCarbohidratos ?? 50) + (localConfig.macroGrasa ?? 25)) === 100
+                            ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+                            : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                            }`}>
+                            <span className="font-medium">
+                                Total: {(localConfig.macroProteina ?? 25) + (localConfig.macroCarbohidratos ?? 50) + (localConfig.macroGrasa ?? 25)}%
+                            </span>
+                            {((localConfig.macroProteina ?? 25) + (localConfig.macroCarbohidratos ?? 50) + (localConfig.macroGrasa ?? 25)) === 100
+                                ? '✓ Los porcentajes suman 100%'
+                                : '⚠ Los porcentajes deben sumar 100%'}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 

@@ -282,7 +282,11 @@ export const usePatientStore = create<PatientState>((set, get) => ({
             objetivoPeso: patient?.configuracionNutricional?.objetivoPeso || 'mantenimiento',
             formulaGET: patient?.configuracionNutricional?.formulaGET || 'mifflin',
             proteinaRatio: patient?.configuracionNutricional?.proteinaRatio || 1.6,
-            kcalAjuste: patient?.configuracionNutricional?.kcalAjuste || 0
+            kcalAjuste: patient?.configuracionNutricional?.kcalAjuste || 0,
+            // Distribución de macros (default: 25% prot, 50% carbs, 25% grasa)
+            macroProteina: patient?.configuracionNutricional?.macroProteina ?? 25,
+            macroCarbohidratos: patient?.configuracionNutricional?.macroCarbohidratos ?? 50,
+            macroGrasa: patient?.configuracionNutricional?.macroGrasa ?? 25
         };
     }
 }));
@@ -333,6 +337,10 @@ export const usePatientNutrition = () => {
         objetivoPeso: config.objetivoPeso,
         formulaGET: config.formulaGET,
         proteinaRatio: config.proteinaRatio,
-        kcalAjuste: config.kcalAjuste
+        kcalAjuste: config.kcalAjuste,
+        // Macros distribution
+        macroProteina: config.macroProteina,
+        macroCarbohidratos: config.macroCarbohidratos,
+        macroGrasa: config.macroGrasa
     };
 };

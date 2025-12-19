@@ -69,6 +69,10 @@ export interface ConfiguracionNutricional {
   formulaGET?: FormulaGET;
   proteinaRatio?: number;  // g/kg
   kcalAjuste?: number;     // +/- kcal
+  // Distribución de macronutrientes (deben sumar 100%)
+  macroProteina?: number;      // % de calorías de proteína (default: 25)
+  macroCarbohidratos?: number; // % de calorías de carbohidratos (default: 50)
+  macroGrasa?: number;         // % de calorías de grasa (default: 25)
 }
 
 export interface Paciente {
