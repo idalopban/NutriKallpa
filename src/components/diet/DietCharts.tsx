@@ -93,10 +93,15 @@ const renderCustomizedLabel = (props: {
 export function DietCharts({ currentPlan, weeklyPlan }: DietChartsProps) {
 
     // 1. Macro Data (Pie) with colors
+    const proteinKcal = Math.round(currentPlan.stats.macros.protein * 4);
+    const carbsKcal = Math.round(currentPlan.stats.macros.carbs * 4);
+    const fatKcal = Math.round(currentPlan.stats.macros.fat * 9);
+    const totalMacroKcal = proteinKcal + carbsKcal + fatKcal;
+
     const macroData = [
-        { name: 'Proteína', value: Math.round(currentPlan.stats.macros.protein * 4), color: MACRO_COLORS.protein },
-        { name: 'Carbohidratos', value: Math.round(currentPlan.stats.macros.carbs * 4), color: MACRO_COLORS.carbs },
-        { name: 'Grasa', value: Math.round(currentPlan.stats.macros.fat * 9), color: MACRO_COLORS.fat },
+        { name: 'Proteína', value: proteinKcal, percent: totalMacroKcal > 0 ? Math.round((proteinKcal / totalMacroKcal) * 100) : 0, color: MACRO_COLORS.protein },
+        { name: 'Carbohidratos', value: carbsKcal, percent: totalMacroKcal > 0 ? Math.round((carbsKcal / totalMacroKcal) * 100) : 0, color: MACRO_COLORS.carbs },
+        { name: 'Grasa', value: fatKcal, percent: totalMacroKcal > 0 ? Math.round((fatKcal / totalMacroKcal) * 100) : 0, color: MACRO_COLORS.fat },
     ];
 
     // 2. Micro Data (Radar) - Normalized to % of Goal
@@ -153,7 +158,7 @@ export function DietCharts({ currentPlan, weeklyPlan }: DietChartsProps) {
                                 </Pie>
                             </PieChart>
                         </ResponsiveContainer>
-                        {/* Custom Legend at bottom */}
+                        {/* Custom Legend at bottom with percentages */}
                         <div className="flex justify-center items-center gap-6 -mt-6">
                             {macroData.map((entry, index) => (
                                 <div key={index} className="flex items-center gap-2">
@@ -162,6 +167,7 @@ export function DietCharts({ currentPlan, weeklyPlan }: DietChartsProps) {
                                         style={{ backgroundColor: entry.color }}
                                     />
                                     <span className="text-xs text-slate-400">{entry.name}</span>
+                                    <span className="text-xs font-semibold text-slate-200">({entry.percent}%)</span>
                                 </div>
                             ))}
                         </div>

@@ -83,49 +83,49 @@ export function PatientNutritionConfig({ editable = true, compact = false }: Pro
     // Compact view (just displays values)
     if (compact && !isEditing) {
         return (
-            <Card className="border border-slate-200 dark:border-slate-700 bg-gradient-to-r from-slate-50 to-white dark:from-slate-800/50 dark:to-slate-900/50 shadow-sm overflow-hidden">
+            <Card className="border border-slate-200/80 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-sm">
                 <CardContent className="p-4">
                     <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
                         {/* Left: Config Tags */}
                         <div className="flex flex-wrap gap-2 items-center">
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-medium border border-emerald-200 dark:border-emerald-800">
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-full text-xs font-medium">
                                 <Scale className="w-3 h-3" />
                                 {nivelActividad && activityLabels[nivelActividad]}
                             </div>
-                            <div className="px-3 py-1.5 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-full text-xs font-medium border border-amber-200 dark:border-amber-800">
+                            <div className="px-3 py-1.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded-full text-xs font-medium">
                                 {objetivoPeso && goalLabels[objetivoPeso]}
                             </div>
-                            <div className="px-3 py-1.5 bg-sky-500/10 text-sky-700 dark:text-sky-400 rounded-full text-xs font-medium border border-sky-200 dark:border-sky-800">
+                            <div className="px-3 py-1.5 bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 rounded-full text-xs font-medium">
                                 {proteinaRatio}g/kg proteína
                             </div>
                         </div>
 
                         {/* Right: Macro Distribution Visual */}
                         <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                            <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
                                 <PieChart className="w-4 h-4" />
-                                <span className="font-medium">Macros:</span>
+                                <span className="font-semibold">Macros:</span>
                             </div>
 
                             {/* Visual Macro Bars */}
-                            <div className="flex items-center gap-1 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 overflow-hidden min-w-[180px]">
+                            <div className="flex items-center gap-0.5 h-9 bg-slate-200/60 dark:bg-slate-700/60 rounded-xl p-1 overflow-hidden min-w-[200px]">
                                 {/* Protein */}
                                 <div
-                                    className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-md flex items-center justify-center transition-all"
+                                    className="h-full bg-[#3b82f6] rounded-lg flex items-center justify-center transition-all shadow-sm"
                                     style={{ width: `${macroProteina}%` }}
                                 >
                                     <span className="text-[10px] font-bold text-white drop-shadow-sm">P {macroProteina}%</span>
                                 </div>
                                 {/* Carbs */}
                                 <div
-                                    className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-md flex items-center justify-center transition-all"
+                                    className="h-full bg-[#22c55e] rounded-lg flex items-center justify-center transition-all shadow-sm"
                                     style={{ width: `${macroCarbohidratos}%` }}
                                 >
                                     <span className="text-[10px] font-bold text-white drop-shadow-sm">C {macroCarbohidratos}%</span>
                                 </div>
                                 {/* Fat */}
                                 <div
-                                    className="h-full bg-gradient-to-r from-orange-400 to-orange-500 rounded-md flex items-center justify-center transition-all"
+                                    className="h-full bg-[#f59e0b] rounded-lg flex items-center justify-center transition-all shadow-sm"
                                     style={{ width: `${macroGrasa}%` }}
                                 >
                                     <span className="text-[10px] font-bold text-white drop-shadow-sm">G {macroGrasa}%</span>
@@ -138,9 +138,9 @@ export function PatientNutritionConfig({ editable = true, compact = false }: Pro
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => setIsEditing(true)}
-                                    className="h-8 w-8 p-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full"
+                                    className="h-9 w-9 p-0 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full border border-slate-200 dark:border-slate-600"
                                 >
-                                    <Edit2 className="w-4 h-4 text-slate-500" />
+                                    <Edit2 className="w-4 h-4 text-slate-600 dark:text-slate-300" />
                                 </Button>
                             )}
                         </div>

@@ -45,7 +45,7 @@ import {
 import { parseAlimentosCSV, type Alimento } from "@/lib/csv-parser";
 import { getPlanById } from "@/lib/diet-service";
 import { getPacientes, getMedidasByPaciente } from "@/lib/storage";
-import { usePatientStore } from "@/store/usePatientStore";
+import { usePatientStore, usePatientNutrition } from "@/store/usePatientStore";
 import {
     generateSmartDailyPlan,
     calculateDailyStats,
@@ -106,6 +106,9 @@ function DietasContent() {
         medidas,
         loadPatient
     } = usePatientStore();
+
+    // Get macro configuration from patient store
+    const { macroProteina, macroCarbohidratos, macroGrasa } = usePatientNutrition();
 
     // --- STATE ---
     const [pacientesList, setPacientesList] = useState<Paciente[]>([]);
@@ -175,10 +178,14 @@ function DietasContent() {
             }
         }
 
-        // Default goals for new plans
+        // Default goals for new plans - USE PATIENT'S CONFIGURED MACROS
         const defaultGoals: NutritionalGoals = {
             calories: computedCalories,
-            macros: { protein: 20, carbs: 50, fat: 30 },
+            macros: {
+                protein: macroProteina ?? 25,
+                carbs: macroCarbohidratos ?? 50,
+                fat: macroGrasa ?? 25
+            },
             micros: DEFAULT_MICRO_GOALS
         };
 
@@ -244,6 +251,20 @@ function DietasContent() {
             }));
         }
     }, [targetCalories, targetProteinGrams, searchParams]);
+
+    // Sync goals with patient's configured macros when they change
+    useEffect(() => {
+        if (macroProteina !== undefined && macroCarbohidratos !== undefined && macroGrasa !== undefined) {
+            setGoals(prev => ({
+                ...prev,
+                macros: {
+                    protein: macroProteina,
+                    carbs: macroCarbohidratos,
+                    fat: macroGrasa
+                }
+            }));
+        }
+    }, [macroProteina, macroCarbohidratos, macroGrasa]);
 
     // --- HELPERS ---
     const currentPlan = weeklyPlan[currentDayIndex];
