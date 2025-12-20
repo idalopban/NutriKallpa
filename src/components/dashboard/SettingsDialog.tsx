@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
     Dialog,
     DialogContent,
@@ -20,6 +21,12 @@ export function SettingsDialog() {
     const { logout } = useAuthStore();
     const router = useRouter();
 
+    // FIX: Prevent Radix Portal from rendering before hydration to avoid DOM errors
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const handleLogout = async () => {
         logout();
         // Clear session cookie for middleware authentication
@@ -38,6 +45,15 @@ export function SettingsDialog() {
         // Use full page reload to completely clear state
         window.location.href = '/';
     };
+
+    // Don't render Portal-based component until mounted
+    if (!mounted) {
+        return (
+            <button className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-200 dark:border-slate-700 text-[#6cba00] hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                <Settings className="w-5 h-5" />
+            </button>
+        );
+    }
 
     return (
         <Dialog>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -20,6 +20,12 @@ export function NotificationsPopover() {
     const router = useRouter();
     const { notifications, markAsRead, markAllAsRead, removeNotification, clearAll } = useNotificationStore();
     const unreadCount = notifications.filter(n => !n.read).length;
+
+    // FIX: Prevent Radix Portal from rendering before hydration to avoid DOM errors
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const handleNotificationClick = (notification: any) => {
         markAsRead(notification.id);
@@ -61,6 +67,15 @@ export function NotificationsPopover() {
         if (minutes > 0) return `Hace ${minutes} min`;
         return "Hace un momento";
     };
+
+    // Don't render Portal-based component until mounted
+    if (!mounted) {
+        return (
+            <button className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-200 dark:border-slate-700 text-[#ff8508] hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors relative outline-none">
+                <Bell className="w-5 h-5" />
+            </button>
+        );
+    }
 
     return (
         <DropdownMenu>
