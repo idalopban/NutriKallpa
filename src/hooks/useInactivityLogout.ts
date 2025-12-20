@@ -11,7 +11,7 @@ import { useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 
-const INACTIVITY_TIMEOUT_MS = 8 * 60 * 1000; // 8 minutes
+const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
 // Events that indicate user activity
 const ACTIVITY_EVENTS = [
