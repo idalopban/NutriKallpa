@@ -1,0 +1,149 @@
+﻿
+> nutrikallpa@0.1.0 test
+> vitest --run src/tests/clinical-formulas.test.ts
+
+node.exe : [33mThe CJS 
+build of Vite's Node API is 
+deprecated. See https://vite
+.dev/guide/troubleshooting.h
+tml#vite-cjs-node-api-deprec
+ated for more details.[39m
+En línea: 1 Carácter: 1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
+    + CategoryInfo          
+    : NotSpecified: ([33m  
+  The CJS bu...e details.   
+ [39m:String) [], Remot    
+eException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
+
+[7m[1m[36m RUN [39m[22m[27m [36mv1.6.1[39m [90mC:/Users/Escritorio/Desktop/Proyectos/Codigo/Proyecto 1.0[39m
+
+ [33mÔØ»[39m src/tests/clinical-formulas.test.ts [2m ([22m[2m32 tests[22m [2m|[22m [31m2 failed[39m[2m)[22m[90m 12[2mms[22m[39m
+[31m   [33mÔØ»[31m src/tests/clinical-formulas.test.ts[2m > [22mPregnancy Module - Atalah Classification[2m > [22mhandles edge weeks (6 and 42)[39m
+[31m     ÔåÆ expected 'Normal' to be 'Sobrepeso' // Object.is equality[39m
+[31m   [33mÔØ»[31m src/tests/clinical-formulas.test.ts[2m > [22mCardiometabolic Risk - Waist Hip Ratio[2m > [22mclassifies WHR risk correctly for adult female[39m
+[31m     ÔåÆ expected 'moderado' to be 'bajo' // Object.is equality[39m
+
+[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[
+1m[7m Failed Tests 2 [27m
+[22mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[3
+9m
+
+[31m[1m[7m FAIL 
+[27m[22m[39m src/tests/cl
+inical-formulas.test.ts[2m 
+> [22mPregnancy Module - 
+Atalah Classification[2m > 
+[22mhandles edge weeks (6 
+and 42)
+[31m[1mAssertionError[22m
+: expected 'Normal' to be 
+'Sobrepeso' // Object.is 
+equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- Sobrepeso[39m
+[31m+ Normal[39m
+
+[36m [2mÔØ»[22m src/tests
+/clinical-formulas.test.ts:
+[2m58:42[22m[39m
+    [90m 56| [39m    
+[34mit[39m([32m'handles 
+edge weeks (6 and 
+42)'[39m[33m,[39m () 
+[33m=>[39m {
+    [90m 57| [39m        
+[34mexpect[39m([34mclassif
+yAtalah[39m([34m21.0[39m
+[33m,[39m [34m6[39m))[33
+m.[39m[34mtoBe[39m([32m'
+Normal'[39m)[33m;[39m
+    [90m 58| [39m        
+[34mexpect[39m([34mclassif
+yAtalah[39m([34m30.0[39m
+[33m,[39m [34m42[39m))[3
+3m.[39m[34mtoBe[39m([32m
+'Sobrepeso'[39m)[33m;[39m
+    [90m   | [39m         
+                            
+    [31m^[39m
+    [90m 59| [39m    
+})[33m;[39m
+    [90m 60| 
+[39m})[33m;[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/
+2]ÔÄ»[22m[39m
+
+[31m[1m[7m FAIL 
+[27m[22m[39m src/tests/cl
+inical-formulas.test.ts[2m 
+> [22mCardiometabolic Risk 
+- Waist Hip Ratio[2m > 
+[22mclassifies WHR risk 
+correctly for adult female
+[31m[1mAssertionError[22m
+: expected 'moderado' to be 
+'bajo' // Object.is 
+equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- bajo[39m
+[31m+ moderado[39m
+
+[36m [2mÔØ»[22m src/tests
+/clinical-formulas.test.ts:
+[2m196:29[22m[39m
+    [90m194| [39m        
+[35mconst[39m result 
+[33m=[39m [34mcalculateWa
+istHipRatio[39m([34m70[39
+m[33m,[39m 
+[34m95[39m[33m,[39m 
+[34m30[39m[33m,[39m [32
+m'femenino'[39m)[33m;[39m
+    [90m195| [39m        
+[34mexpect[39m(result[33m.
+[39mratio)[33m.[39m[34mt
+oBeCloseTo[39m([34m0.74[3
+9m[33m,[39m 
+[34m2[39m)[33m;[39m
+    [90m196| [39m        
+[34mexpect[39m(result[33m.
+[39mrisk)[33m.[39m[34mto
+Be[39m([32m'bajo'[39m)[3
+3m;[39m
+    [90m   | [39m         
+                   
+[31m^[39m
+    [90m197| [39m    
+})[33m;[39m
+    [90m198| 
+[39m})[33m;[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/
+2]ÔÄ»[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m30 passed[39m[22m[90m (32)[39m
+[2m   Start at [22m 17:20:06
+[2m   Duration [22m 427ms[2m (transform 56ms, setup 0ms, collect 63ms, tests 12ms, environment 0ms, prepare 136ms)[22m
+

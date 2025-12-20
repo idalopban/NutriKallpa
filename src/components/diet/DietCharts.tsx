@@ -126,9 +126,9 @@ export function DietCharts({ currentPlan, weeklyPlan }: DietChartsProps) {
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Macros Chart - Modern Donut with External Labels */}
-                <Card className="bg-slate-900/80 dark:bg-slate-900/80 border-slate-700/50">
+                <Card className="bg-white dark:bg-[#1e293b] border-none shadow-sm dark:border dark:border-[#334155]">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-200">Distribución Diaria (kcal)</CardTitle>
+                        <CardTitle className="text-sm font-medium text-gray-900 dark:text-white">Distribución Diaria (kcal)</CardTitle>
                     </CardHeader>
                     <CardContent className="h-[300px] pt-0">
                         <ResponsiveContainer width="100%" height="100%">
@@ -141,7 +141,6 @@ export function DietCharts({ currentPlan, weeklyPlan }: DietChartsProps) {
                                     outerRadius={70}
                                     paddingAngle={3}
                                     dataKey="value"
-                                    label={renderCustomizedLabel}
                                     labelLine={false}
                                     stroke="none"
                                     isAnimationActive={true}
@@ -151,7 +150,7 @@ export function DietCharts({ currentPlan, weeklyPlan }: DietChartsProps) {
                                             key={`cell-${index}`}
                                             fill={entry.color}
                                             style={{
-                                                filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.4))'
+                                                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))'
                                             }}
                                         />
                                     ))}
@@ -163,11 +162,11 @@ export function DietCharts({ currentPlan, weeklyPlan }: DietChartsProps) {
                             {macroData.map((entry, index) => (
                                 <div key={index} className="flex items-center gap-2">
                                     <div
-                                        className="w-2.5 h-2.5 rounded-full"
+                                        className="w-2.5 h-2.5 rounded-full shadow-sm ring-2 ring-white dark:ring-gray-800"
                                         style={{ backgroundColor: entry.color }}
                                     />
-                                    <span className="text-xs text-slate-400">{entry.name}</span>
-                                    <span className="text-xs font-semibold text-slate-200">({entry.percent}%)</span>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">{entry.name}</span>
+                                    <span className="text-xs font-semibold text-gray-900 dark:text-white">({entry.percent}%)</span>
                                 </div>
                             ))}
                         </div>

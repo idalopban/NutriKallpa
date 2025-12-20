@@ -56,9 +56,14 @@ const formSchema = z.object({
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   telefono: z.string().optional(),
 
+  // Motivo de Consulta (Prioridad Clínica)
+  motivoConsulta: z.string().optional(),
+
   // Antropometría
   peso: z.coerce.number().min(1, "Peso requerido"),
   talla: z.coerce.number().min(1, "Talla requerida"),
+  circunferenciaCintura: z.coerce.number().optional(),
+  circunferenciaCadera: z.coerce.number().optional(),
   actividadFisica: z.string(),
 
   // Nutrición
@@ -67,9 +72,17 @@ const formSchema = z.object({
   kcalAjuste: z.coerce.number().default(0),
   proteinaRatio: z.coerce.number().min(0.5).default(1.6),
 
-  // Extra
+  // Historia Clínica Estructurada
   notas: z.string().optional(),
   patologias: z.array(z.string()).default([]),
+  alergias: z.array(z.string()).default([]),
+  medicamentos: z.array(z.string()).default([]),
+  antecedentesFamiliares: z.array(z.string()).default([]),
+
+  // Estilo de Vida
+  horasSueno: z.coerce.number().min(0).max(24).optional(),
+  tabaquismo: z.boolean().default(false),
+  consumoAlcohol: z.enum(["nunca", "ocasional", "frecuente"]).default("nunca"),
 
   // Bioquímica (Opcional)
   glucosa: z.coerce.number().optional(),
@@ -96,6 +109,45 @@ const COMMON_PATHOLOGIES = [
   "Anemia"
 ];
 
+// Alergias Alimentarias Comunes (Seguridad del Paciente)
+const COMMON_ALLERGIES = [
+  "Lácteos",
+  "Gluten",
+  "Maní",
+  "Frutos secos",
+  "Mariscos",
+  "Pescado",
+  "Huevo",
+  "Soya",
+  "Trigo",
+  "Sulfitos"
+];
+
+// Medicamentos Comunes que afectan nutrición
+const COMMON_MEDICATIONS = [
+  "Metformina",
+  "Atorvastatina",
+  "Losartán",
+  "Levotiroxina",
+  "Omeprazol",
+  "Insulina",
+  "Anticonceptivos",
+  "Multivitamínico",
+  "Warfarina",
+  "Prednisona"
+];
+
+// Antecedentes Familiares de Riesgo
+const FAMILY_HISTORY = [
+  "Diabetes",
+  "Hipertensión",
+  "Obesidad",
+  "Cáncer",
+  "Enfermedad Cardíaca",
+  "Dislipidemia",
+  "Hipotiroidismo"
+];
+
 type FormValues = z.infer<typeof formSchema>;
 
 export default function NuevoPacientePage() {
@@ -110,8 +162,11 @@ export default function NuevoPacientePage() {
       sexo: "masculino",
       email: "",
       telefono: "",
+      motivoConsulta: "",
       peso: 70.0,
       talla: 170.0,
+      circunferenciaCintura: undefined,
+      circunferenciaCadera: undefined,
       actividadFisica: "moderada",
       formulaGet: "mifflin",
       objetivoPeso: "mantenimiento",
@@ -119,6 +174,12 @@ export default function NuevoPacientePage() {
       proteinaRatio: 1.6,
       notas: "",
       patologias: [],
+      alergias: [],
+      medicamentos: [],
+      antecedentesFamiliares: [],
+      horasSueno: 7,
+      tabaquismo: false,
+      consumoAlcohol: "nunca",
     },
   });
 
@@ -185,12 +246,18 @@ export default function NuevoPacientePage() {
           sexo: data.sexo as "masculino" | "femenino",
         },
         historiaClinica: {
+          motivoConsulta: data.motivoConsulta || "",
           patologias: data.patologias || [],
-          alergias: [],
-          medicamentos: [],
-          antecedentesFamiliares: [],
+          alergias: data.alergias || [],
+          medicamentos: data.medicamentos || [],
+          antecedentesFamiliares: data.antecedentesFamiliares || [],
           objetivos: data.objetivoPeso,
           antecedentesPersonales: data.notas || "",
+          estiloVida: {
+            fuma: data.tabaquismo,
+            alcohol: data.consumoAlcohol,
+            suenoHoras: data.horasSueno || 7,
+          },
           bioquimicaReciente: {
             glucosa: data.glucosa,
             hemoglobina: data.hemoglobina,
@@ -215,6 +282,10 @@ export default function NuevoPacientePage() {
         edad: edadFinal,
         sexo: data.sexo as "masculino" | "femenino",
         protocolo: "basic",
+        perimetros: {
+          cintura: data.circunferenciaCintura,
+          cadera: data.circunferenciaCadera,
+        },
         createdAt: now,
         updatedAt: now,
       };
@@ -372,7 +443,41 @@ export default function NuevoPacientePage() {
               </CardContent>
             </Card>
 
-            {/* 2. Antropometría Base (GREEN THEME) */}
+            {/* 2. Motivo de Consulta (PURPLE THEME - PROMINENT) */}
+            <Card className="border-none shadow-md bg-white dark:bg-[#1e293b] dark:border dark:border-[#334155] overflow-hidden border-l-4 border-l-purple-500">
+              <CardHeader className="bg-purple-50/50 dark:bg-purple-900/20 border-b border-purple-100 dark:border-purple-900/30 pb-4">
+                <CardTitle className="flex items-center gap-3 text-lg text-slate-800 dark:text-white">
+                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 shadow-sm">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  Motivo de Consulta
+                  <Badge variant="outline" className="ml-2 text-purple-600 border-purple-300">Importante</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <FormField
+                  control={form.control}
+                  name="motivoConsulta"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-600">¿Qué lo trae hoy a consulta?</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Ej: Referido por médico por prediabetes, quiere bajar de peso para operación, mejorar rendimiento deportivo..."
+                          className="min-h-[100px] bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-purple-500 focus:ring-purple-500/20 transition-all resize-none dark:text-white"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">
+                        Este es el primer paso de una buena anamnesis. Describe el motivo principal de la visita.
+                      </FormDescription>
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            {/* 3. Antropometría Base (GREEN THEME) */}
             <Card className="border-none shadow-md bg-white dark:bg-[#1e293b] dark:border dark:border-[#334155] overflow-hidden">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-[#334155] pb-4">
                 <CardTitle className="flex items-center gap-3 text-lg text-slate-800 dark:text-white">
@@ -412,6 +517,38 @@ export default function NuevoPacientePage() {
                         </div>
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="circunferenciaCintura"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-600">Perímetro Cintura (cm)</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input type="number" step="0.1" placeholder="Ej: 85" {...field} className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-green-500 focus:ring-green-500/20 transition-all pr-8 dark:text-white" />
+                          <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium">cm</span>
+                        </div>
+                      </FormControl>
+                      <FormDescription className="text-xs">Riesgo CV: H &gt;102cm, M &gt;88cm</FormDescription>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="circunferenciaCadera"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-600">Perímetro Cadera (cm)</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input type="number" step="0.1" placeholder="Ej: 95" {...field} className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-green-500 focus:ring-green-500/20 transition-all pr-8 dark:text-white" />
+                          <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium">cm</span>
+                        </div>
+                      </FormControl>
+                      <FormDescription className="text-xs">Para índice cintura/cadera</FormDescription>
                     </FormItem>
                   )}
                 />
@@ -673,14 +810,239 @@ export default function NuevoPacientePage() {
               </CardContent>
             </Card>
 
-            {/* 6. Antecedentes Nutricionales (SLATE THEME) */}
+            {/* 7. Alergias Alimentarias (ORANGE THEME - SAFETY CRITICAL) */}
+            <Card className="border-none shadow-md bg-white dark:bg-[#1e293b] dark:border dark:border-[#334155] overflow-hidden border-l-4 border-l-orange-500">
+              <CardHeader className="bg-orange-50/50 dark:bg-orange-900/20 border-b border-orange-100 dark:border-orange-900/30 pb-4">
+                <CardTitle className="flex items-center gap-3 text-lg text-slate-800 dark:text-white">
+                  <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 shadow-sm">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  Alergias Alimentarias
+                  <Badge variant="destructive" className="ml-2">Seguridad</Badge>
+                </CardTitle>
+                <CardDescription>
+                  Crítico para generar dietas seguras. Selecciona todas las alergias conocidas.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <FormField
+                  control={form.control}
+                  name="alergias"
+                  render={({ field }) => {
+                    const toggle = (item: string) => {
+                      const current = field.value || [];
+                      if (current.includes(item)) {
+                        field.onChange(current.filter((p: string) => p !== item));
+                      } else {
+                        field.onChange([...current, item]);
+                      }
+                    };
+                    return (
+                      <FormItem>
+                        <div className="flex flex-wrap gap-2">
+                          {COMMON_ALLERGIES.map(item => (
+                            <Badge
+                              key={item}
+                              variant={(field.value || []).includes(item) ? "default" : "outline"}
+                              className={`cursor-pointer transition-all ${(field.value || []).includes(item)
+                                ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                                : 'hover:bg-orange-50 text-slate-600 border-slate-300'}`}
+                              onClick={() => toggle(item)}
+                            >
+                              {(field.value || []).includes(item) && <Check className="w-3 h-3 mr-1" />}
+                              {item}
+                            </Badge>
+                          ))}
+                        </div>
+                      </FormItem>
+                    );
+                  }}
+                />
+              </CardContent>
+            </Card>
+
+            {/* 8. Medicamentos (CYAN THEME) */}
+            <Card className="border-none shadow-md bg-white dark:bg-[#1e293b] dark:border dark:border-[#334155] overflow-hidden">
+              <CardHeader className="bg-cyan-50/50 dark:bg-cyan-900/20 border-b border-cyan-100 dark:border-cyan-900/30 pb-4">
+                <CardTitle className="flex items-center gap-3 text-lg text-slate-800 dark:text-white">
+                  <div className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-600 shadow-sm">
+                    <Plus className="w-4 h-4" />
+                  </div>
+                  Medicamentos Actuales
+                </CardTitle>
+                <CardDescription>
+                  Selecciona los medicamentos que el paciente está tomando actualmente.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <FormField
+                  control={form.control}
+                  name="medicamentos"
+                  render={({ field }) => {
+                    const toggle = (item: string) => {
+                      const current = field.value || [];
+                      if (current.includes(item)) {
+                        field.onChange(current.filter((p: string) => p !== item));
+                      } else {
+                        field.onChange([...current, item]);
+                      }
+                    };
+                    return (
+                      <FormItem>
+                        <div className="flex flex-wrap gap-2">
+                          {COMMON_MEDICATIONS.map(item => (
+                            <Badge
+                              key={item}
+                              variant={(field.value || []).includes(item) ? "default" : "outline"}
+                              className={`cursor-pointer transition-all ${(field.value || []).includes(item)
+                                ? 'bg-cyan-500 hover:bg-cyan-600 text-white'
+                                : 'hover:bg-cyan-50 text-slate-600 border-slate-300'}`}
+                              onClick={() => toggle(item)}
+                            >
+                              {(field.value || []).includes(item) && <Check className="w-3 h-3 mr-1" />}
+                              {item}
+                            </Badge>
+                          ))}
+                        </div>
+                        <FormDescription className="mt-3 text-xs">
+                          Importante: Warfarina requiere control de Vitamina K. Metformina puede afectar B12.
+                        </FormDescription>
+                      </FormItem>
+                    );
+                  }}
+                />
+              </CardContent>
+            </Card>
+
+            {/* 9. Antecedentes Familiares (INDIGO THEME) */}
+            <Card className="border-none shadow-md bg-white dark:bg-[#1e293b] dark:border dark:border-[#334155] overflow-hidden">
+              <CardHeader className="bg-indigo-50/50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-900/30 pb-4">
+                <CardTitle className="flex items-center gap-3 text-lg text-slate-800 dark:text-white">
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm">
+                    <User className="w-4 h-4" />
+                  </div>
+                  Antecedentes Familiares
+                </CardTitle>
+                <CardDescription>
+                  Historia familiar de enfermedades metabólicas o crónicas.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <FormField
+                  control={form.control}
+                  name="antecedentesFamiliares"
+                  render={({ field }) => {
+                    const toggle = (item: string) => {
+                      const current = field.value || [];
+                      if (current.includes(item)) {
+                        field.onChange(current.filter((p: string) => p !== item));
+                      } else {
+                        field.onChange([...current, item]);
+                      }
+                    };
+                    return (
+                      <FormItem>
+                        <div className="flex flex-wrap gap-2">
+                          {FAMILY_HISTORY.map(item => (
+                            <Badge
+                              key={item}
+                              variant={(field.value || []).includes(item) ? "default" : "outline"}
+                              className={`cursor-pointer transition-all ${(field.value || []).includes(item)
+                                ? 'bg-indigo-500 hover:bg-indigo-600 text-white'
+                                : 'hover:bg-indigo-50 text-slate-600 border-slate-300'}`}
+                              onClick={() => toggle(item)}
+                            >
+                              {(field.value || []).includes(item) && <Check className="w-3 h-3 mr-1" />}
+                              {item}
+                            </Badge>
+                          ))}
+                        </div>
+                      </FormItem>
+                    );
+                  }}
+                />
+              </CardContent>
+            </Card>
+
+            {/* 10. Estilo de Vida (EMERALD THEME) */}
+            <Card className="border-none shadow-md bg-white dark:bg-[#1e293b] dark:border dark:border-[#334155] overflow-hidden">
+              <CardHeader className="bg-emerald-50/50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-900/30 pb-4">
+                <CardTitle className="flex items-center gap-3 text-lg text-slate-800 dark:text-white">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  Estilo de Vida
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid md:grid-cols-3 gap-6 pt-6">
+                <FormField
+                  control={form.control}
+                  name="horasSueno"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-600">Horas de Sueño</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input type="number" min="0" max="24" step="0.5" {...field} className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-emerald-500 focus:ring-emerald-500/20 transition-all pr-10 dark:text-white" />
+                          <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium">hrs</span>
+                        </div>
+                      </FormControl>
+                      <FormDescription className="text-xs">Promedio por noche</FormDescription>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="tabaquismo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-600">Tabaquismo</FormLabel>
+                      <Select onValueChange={(v) => field.onChange(v === "true")} defaultValue={field.value ? "true" : "false"}>
+                        <FormControl>
+                          <SelectTrigger className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:ring-emerald-500/20 dark:text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="false">No fuma</SelectItem>
+                          <SelectItem value="true">Sí fuma</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="consumoAlcohol"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-600">Consumo de Alcohol</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:ring-emerald-500/20 dark:text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="nunca">Nunca</SelectItem>
+                          <SelectItem value="ocasional">Ocasional</SelectItem>
+                          <SelectItem value="frecuente">Frecuente</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            {/* 11. Notas Adicionales (SLATE THEME) */}
             <Card className="border-none shadow-md bg-white dark:bg-[#1e293b] dark:border dark:border-[#334155] overflow-hidden">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-[#334155] pb-4">
                 <CardTitle className="flex items-center gap-3 text-lg text-slate-800 dark:text-white">
                   <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-sm">
                     <Activity className="w-4 h-4" />
                   </div>
-                  Antecedentes Nutricionales
+                  Notas Adicionales
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
@@ -689,11 +1051,11 @@ export default function NuevoPacientePage() {
                   name="notas"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-slate-600">Antecedentes y Observaciones</FormLabel>
+                      <FormLabel className="text-slate-600">Observaciones del Nutricionista</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Alergias, lesiones previas, objetivos específicos..."
-                          className="min-h-[120px] bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-slate-500 focus:ring-slate-500/20 transition-all resize-none dark:text-white"
+                          placeholder="Cualquier otra información relevante: preferencias alimentarias, limitaciones físicas, objetivos específicos..."
+                          className="min-h-[100px] bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-slate-500 focus:ring-slate-500/20 transition-all resize-none dark:text-white"
                           {...field}
                         />
                       </FormControl>

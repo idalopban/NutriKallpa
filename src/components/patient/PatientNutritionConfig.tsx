@@ -327,27 +327,18 @@ export function PatientNutritionConfig({ editable = true, compact = false }: Pro
                 </CardHeader>
                 <CardContent className="pt-6">
                     <div className="grid md:grid-cols-3 gap-6">
-                        {/* Proteína % */}
+                        {/* Proteína % - READ-ONLY (calculated from g/kg) */}
                         <div className="space-y-2">
-                            <Label className="text-slate-600 dark:text-slate-400">Proteína (%)</Label>
-                            {isEditing ? (
-                                <div className="relative">
-                                    <Input
-                                        type="number"
-                                        min={5}
-                                        max={60}
-                                        step={5}
-                                        value={localConfig.macroProteina ?? 25}
-                                        onChange={(e) => setLocalConfig({ ...localConfig, macroProteina: parseInt(e.target.value) || 0 })}
-                                        className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] pr-8"
-                                    />
-                                    <span className="absolute right-3 top-2.5 text-xs text-slate-400">%</span>
-                                </div>
-                            ) : (
-                                <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md text-blue-700 dark:text-blue-300 font-medium">
-                                    {macroProteina}%
-                                </div>
-                            )}
+                            <Label className="text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                                Proteína (%)
+                                <span className="text-xs font-normal text-slate-400 dark:text-slate-500">• Calculado</span>
+                            </Label>
+                            <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md text-blue-700 dark:text-blue-300 font-medium border border-blue-200 dark:border-blue-800">
+                                {macroProteina}%
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Derivado del ratio {proteinaRatio} g/kg configurado
+                            </p>
                         </div>
 
                         {/* Carbohidratos % */}

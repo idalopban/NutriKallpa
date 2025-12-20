@@ -542,3 +542,134 @@ export function calculateFAOWHO(weight: number, age: number, sex: string): numbe
     return (10.5 * weight) + 596;
   }
 }
+
+/**
+ * Katch-McArdle (1975) - Best for athletes/individuals with known body composition
+ * Uses Fat-Free Mass (FFM) for more accurate prediction
+ * BMR = 370 + (21.6 × FFM)
+ * 
+ * @param weight - Body weight in kg
+ * @param fatPercentage - Body fat percentage (e.g., 15 for 15%)
+ * @returns BMR in kcal/day
+ */
+export function calculateKatchMcArdle(weight: number, fatPercentage: number): number {
+  if (weight <= 0 || fatPercentage < 0 || fatPercentage > 100) return 0;
+  const ffm = weight * (1 - fatPercentage / 100);
+  return 370 + (21.6 * ffm);
+}
+
+/**
+ * Cunningham (1980) - Alternative to Katch-McArdle
+ * BMR = 500 + (22 × FFM)
+ */
+export function calculateCunningham(weight: number, fatPercentage: number): number {
+  if (weight <= 0 || fatPercentage < 0 || fatPercentage > 100) return 0;
+  const ffm = weight * (1 - fatPercentage / 100);
+  return 500 + (22 * ffm);
+}
+
+/* -------------------------------------------------------------------------- */
+/* GASTO ENERGÉTICO TOTAL (GET) CON TEF                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Thermic Effect of Food (TEF) Factor
+ * Typically 10% of total energy expenditure
+ * Higher for protein-rich diets (~20-30% of protein calories)
+ */
+export const TEF_FACTOR = 0.10;
+
+export type BMRFormula = 'mifflin' | 'harris' | 'fao' | 'katch' | 'cunningham';
+
+export interface EnergyExpenditureParams {
+  weight: number;
+  height: number;
+  age: number;
+  sex: string;
+  activityLevel: ActivityLevel;
+  formula?: BMRFormula;
+  fatPercentage?: number; // Required for katch/cunningham
+  includeTEF?: boolean;
+}
+
+export interface EnergyExpenditureResult {
+  bmr: number;
+  activityFactor: number;
+  tef: number;
+  tdee: number; // Total Daily Energy Expenditure
+  formula: string;
+}
+
+/**
+ * Calculate Total Daily Energy Expenditure (TDEE)
+ * TDEE = BMR × Activity Factor + TEF
+ * 
+ * @param params - All parameters needed for calculation
+ * @returns Complete breakdown of energy expenditure
+ */
+export function calculateTDEE(params: EnergyExpenditureParams): EnergyExpenditureResult {
+  const {
+    weight,
+    height,
+    age,
+    sex,
+    activityLevel,
+    formula = 'mifflin',
+    fatPercentage,
+    includeTEF = true
+  } = params;
+
+  const activityFactor = ACTIVITY_FACTORS[activityLevel];
+
+  let bmr = 0;
+  let formulaName = '';
+
+  switch (formula) {
+    case 'mifflin':
+      bmr = calculateMifflinStJeor(weight, height, age, sex);
+      formulaName = 'Mifflin-St Jeor';
+      break;
+    case 'harris':
+      bmr = calculateHarrisBenedict(weight, height, age, sex);
+      formulaName = 'Harris-Benedict';
+      break;
+    case 'fao':
+      bmr = calculateFAOWHO(weight, age, sex);
+      formulaName = 'FAO/OMS';
+      break;
+    case 'katch':
+      if (fatPercentage === undefined) {
+        // Fallback to Mifflin if no body fat data
+        bmr = calculateMifflinStJeor(weight, height, age, sex);
+        formulaName = 'Mifflin-St Jeor (fallback)';
+      } else {
+        bmr = calculateKatchMcArdle(weight, fatPercentage);
+        formulaName = 'Katch-McArdle';
+      }
+      break;
+    case 'cunningham':
+      if (fatPercentage === undefined) {
+        bmr = calculateMifflinStJeor(weight, height, age, sex);
+        formulaName = 'Mifflin-St Jeor (fallback)';
+      } else {
+        bmr = calculateCunningham(weight, fatPercentage);
+        formulaName = 'Cunningham';
+      }
+      break;
+    default:
+      bmr = calculateMifflinStJeor(weight, height, age, sex);
+      formulaName = 'Mifflin-St Jeor';
+  }
+
+  const baseExpenditure = bmr * activityFactor;
+  const tef = includeTEF ? baseExpenditure * TEF_FACTOR : 0;
+  const tdee = baseExpenditure + tef;
+
+  return {
+    bmr: Math.round(bmr),
+    activityFactor,
+    tef: Math.round(tef),
+    tdee: Math.round(tdee),
+    formula: formulaName
+  };
+}

@@ -6,7 +6,19 @@
  */
 
 import { create } from 'zustand';
-import type { Paciente, MedidasAntropometricas, ConfiguracionNutricional } from '@/types';
+import type {
+    Paciente,
+    MedidasAntropometricas,
+    ConfiguracionNutricional,
+    PregnancyInfo,
+    CerebralPalsyInfo,
+    CardiometabolicRisk
+} from '@/types';
+import {
+    calculateCardiometabolicRisk,
+    estimateHeightStevenson,
+    isNutritionalRiskPC
+} from '@/utils/clinical-formulas';
 import {
     getPacienteById,
     getMedidasByPaciente,
@@ -42,10 +54,15 @@ interface PatientState {
     addMedidas: (medidas: MedidasAntropometricas) => void;
     clearPatient: () => void;
 
+    // Special populations actions
+    updatePregnancyInfo: (info: Partial<PregnancyInfo>) => void;
+    updateCerebralPalsyInfo: (info: Partial<CerebralPalsyInfo>) => void;
+
     // Getters
     getFullName: () => string;
     getAge: () => number | null;
     getConfiguracion: () => ConfiguracionNutricional;
+    getCardiometabolicRisk: () => CardiometabolicRisk | null;
 }
 
 // ============================================================================
@@ -287,6 +304,91 @@ export const usePatientStore = create<PatientState>((set, get) => ({
             macroProteina: patient?.configuracionNutricional?.macroProteina ?? 25,
             macroCarbohidratos: patient?.configuracionNutricional?.macroCarbohidratos ?? 50,
             macroGrasa: patient?.configuracionNutricional?.macroGrasa ?? 25
+        };
+    },
+
+    // Update pregnancy info (for Atalah and IOM goals)
+    updatePregnancyInfo: (info: Partial<PregnancyInfo>) => {
+        const { patient } = get();
+        if (!patient) return;
+
+        const updatedPatient = {
+            ...patient,
+            pregnancyInfo: {
+                isPregnant: false, // default
+                ...patient.pregnancyInfo,
+                ...info
+            },
+            updatedAt: new Date().toISOString()
+        };
+
+        saveToStorage(updatedPatient);
+        set({ patient: updatedPatient });
+    },
+
+    // Update cerebral palsy info (Stevenson height, GMFCS risk)
+    updateCerebralPalsyInfo: (info: Partial<CerebralPalsyInfo>) => {
+        const { patient } = get();
+        if (!patient) return;
+
+        // Auto-calculate estimated height if tibia length is provided
+        let estimatedHeight = info.estimatedHeight;
+        if (info.tibiaLength && !estimatedHeight) {
+            estimatedHeight = estimateHeightStevenson(info.tibiaLength);
+        }
+
+        // Auto-calculate nutritional risk if GMFCS level is provided
+        // Note: This requires weightForAgePercentile from external source
+        // For now, we just store the info and let the UI calculate risk
+
+        const updatedPatient = {
+            ...patient,
+            cerebralPalsyInfo: {
+                ...patient.cerebralPalsyInfo,
+                ...info,
+                estimatedHeight
+            },
+            updatedAt: new Date().toISOString()
+        };
+
+        saveToStorage(updatedPatient);
+        set({ patient: updatedPatient });
+    },
+
+    // Get cardiometabolic risk indicators from latest medidas
+    getCardiometabolicRisk: (): CardiometabolicRisk | null => {
+        const { latestMedidas, patient } = get();
+        if (!latestMedidas || !patient) return null;
+
+        const waist = latestMedidas.perimetros?.cintura;
+        const hip = latestMedidas.perimetros?.cadera;
+        const height = latestMedidas.talla;
+        const sexo = latestMedidas.sexo || patient.datosPersonales.sexo;
+        const age = latestMedidas.edad || calculateAge(patient.datosPersonales.fechaNacimiento);
+
+        // Need waist and height at minimum for ICT
+        if (!waist || !height) return null;
+
+        // Get numeric values from potential ISAKValue
+        const waistNum = typeof waist === 'number' ? waist : waist.final;
+        const hipNum = hip ? (typeof hip === 'number' ? hip : hip.final) : waistNum * 1.1; // Estimate if missing
+
+        if (!sexo || sexo === 'otro' || !age) return null;
+
+        const result = calculateCardiometabolicRisk(
+            waistNum,
+            hipNum,
+            height,
+            age,
+            sexo as 'masculino' | 'femenino'
+        );
+
+        return {
+            waistToHeightRatio: result.waistToHeight.ratio,
+            waistToHeightRisk: result.waistToHeight.risk,
+            hasAbdominalObesity: result.abdominalObesity,
+            waistHipRatio: result.waistHipRatio.ratio,
+            waistHipRisk: result.waistHipRatio.risk
         };
     }
 }));

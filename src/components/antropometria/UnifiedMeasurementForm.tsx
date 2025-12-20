@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, User, Layers, Circle, Maximize2, Info } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronDown, User, Layers, Circle, Maximize2, Info, UserRound } from "lucide-react";
 import { SKINFOLD_MAP } from "@/lib/skinfold-map";
+import { estimateWeightChumlea, estimateHeightFromKnee } from "@/lib/clinical-calculations";
 
 // Tipos de datos
 export interface BioData {
@@ -10,6 +11,12 @@ export interface BioData {
     talla: number;
     edad: number;
     genero: 'masculino' | 'femenino';
+    // Geriatric Estimation Fields (Chumlea)
+    usarEstimacion?: boolean;
+    alturaRodilla?: number;
+    circunferenciaPantorrilla?: number;
+    circunferenciaBrazo?: number;
+    pliegueSubescapular?: number;
 }
 
 export interface SkinfoldData {
@@ -225,48 +232,145 @@ export function UnifiedMeasurementForm({ data, onUpdate }: UnifiedFormProps) {
                     isOpen={openSection === 'bioData'}
                     onToggle={() => toggleSection('bioData')}
                 >
-                    <div className="grid grid-cols-2 gap-3">
-                        <InputField
-                            label="Peso"
-                            value={data.bioData.peso}
-                            onChange={(v) => onUpdate({ bioData: { ...data.bioData, peso: v } })}
-                            unit="kg"
-                        />
-                        <InputField
-                            label="Talla"
-                            value={data.bioData.talla}
-                            onChange={(v) => onUpdate({ bioData: { ...data.bioData, talla: v } })}
-                            unit="cm"
-                        />
-                        <InputField
-                            label="Edad"
-                            value={data.bioData.edad}
-                            onChange={(v) => onUpdate({ bioData: { ...data.bioData, edad: v } })}
-                            unit="años"
-                        />
-                        <div className="space-y-1">
-                            <label className="text-[11px] text-slate-500 font-medium">Género</label>
-                            <div className="grid grid-cols-2 gap-1">
-                                <button
-                                    onClick={() => onUpdate({ bioData: { ...data.bioData, genero: 'masculino' } })}
-                                    className={`py-2 rounded-lg text-xs font-bold transition-all ${data.bioData.genero === 'masculino'
-                                        ? 'bg-blue-500 text-white'
-                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                                        }`}
-                                >
-                                    ♂ M
-                                </button>
-                                <button
-                                    onClick={() => onUpdate({ bioData: { ...data.bioData, genero: 'femenino' } })}
-                                    className={`py-2 rounded-lg text-xs font-bold transition-all ${data.bioData.genero === 'femenino'
-                                        ? 'bg-rose-500 text-white'
-                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                                        }`}
-                                >
-                                    ♀ F
-                                </button>
+                    <div className="space-y-4">
+                        {/* Geriatric Estimation Toggle */}
+                        <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                            <div className="flex items-center gap-2">
+                                <UserRound className="w-4 h-4 text-amber-600" />
+                                <div>
+                                    <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                                        Estimación Geriátrica (Chumlea)
+                                    </span>
+                                    <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                                        Para pacientes que no pueden pesarse/medirse
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => onUpdate({ bioData: { ...data.bioData, usarEstimacion: !data.bioData.usarEstimacion } })}
+                                className={`relative w-11 h-6 rounded-full transition-colors ${data.bioData.usarEstimacion
+                                        ? 'bg-amber-500'
+                                        : 'bg-slate-300 dark:bg-slate-600'
+                                    }`}
+                            >
+                                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${data.bioData.usarEstimacion ? 'translate-x-5' : ''
+                                    }`} />
+                            </button>
+                        </div>
+
+                        {/* Main Fields */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <InputField
+                                label={data.bioData.usarEstimacion ? "Peso Estimado" : "Peso"}
+                                value={data.bioData.peso}
+                                onChange={(v) => onUpdate({ bioData: { ...data.bioData, peso: v } })}
+                                unit="kg"
+                            />
+                            <InputField
+                                label={data.bioData.usarEstimacion ? "Talla Estimada" : "Talla"}
+                                value={data.bioData.talla}
+                                onChange={(v) => onUpdate({ bioData: { ...data.bioData, talla: v } })}
+                                unit="cm"
+                            />
+                            <InputField
+                                label="Edad"
+                                value={data.bioData.edad}
+                                onChange={(v) => onUpdate({ bioData: { ...data.bioData, edad: v } })}
+                                unit="años"
+                            />
+                            <div className="space-y-1">
+                                <label className="text-[11px] text-slate-500 font-medium">Género</label>
+                                <div className="grid grid-cols-2 gap-1">
+                                    <button
+                                        onClick={() => onUpdate({ bioData: { ...data.bioData, genero: 'masculino' } })}
+                                        className={`py-2 rounded-lg text-xs font-bold transition-all ${data.bioData.genero === 'masculino'
+                                            ? 'bg-blue-500 text-white'
+                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                            }`}
+                                    >
+                                        ♂ M
+                                    </button>
+                                    <button
+                                        onClick={() => onUpdate({ bioData: { ...data.bioData, genero: 'femenino' } })}
+                                        className={`py-2 rounded-lg text-xs font-bold transition-all ${data.bioData.genero === 'femenino'
+                                            ? 'bg-rose-500 text-white'
+                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                            }`}
+                                    >
+                                        ♀ F
+                                    </button>
+                                </div>
                             </div>
                         </div>
+
+                        {/* Geriatric Estimation Fields (Chumlea) */}
+                        {data.bioData.usarEstimacion && (
+                            <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 animate-in slide-in-from-top-2 duration-300">
+                                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+                                    <Info className="w-3.5 h-3.5 text-amber-500" />
+                                    Medidas para Estimación
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <InputField
+                                        label="Altura Rodilla"
+                                        value={data.bioData.alturaRodilla || 0}
+                                        onChange={(v) => {
+                                            const newBioData = { ...data.bioData, alturaRodilla: v };
+                                            // Auto-calculate height if we have knee height
+                                            if (v > 0 && newBioData.edad > 0) {
+                                                const estimatedHeight = estimateHeightFromKnee(v, newBioData.edad, newBioData.genero);
+                                                newBioData.talla = Math.round(estimatedHeight * 10) / 10;
+                                            }
+                                            onUpdate({ bioData: newBioData });
+                                        }}
+                                        unit="cm"
+                                    />
+                                    <InputField
+                                        label="Circ. Pantorrilla"
+                                        value={data.bioData.circunferenciaPantorrilla || 0}
+                                        onChange={(v) => onUpdate({ bioData: { ...data.bioData, circunferenciaPantorrilla: v } })}
+                                        unit="cm"
+                                    />
+                                    <InputField
+                                        label="Circ. Brazo"
+                                        value={data.bioData.circunferenciaBrazo || 0}
+                                        onChange={(v) => onUpdate({ bioData: { ...data.bioData, circunferenciaBrazo: v } })}
+                                        unit="cm"
+                                    />
+                                    <InputField
+                                        label="Pliegue Subescapular"
+                                        value={data.bioData.pliegueSubescapular || 0}
+                                        onChange={(v) => onUpdate({ bioData: { ...data.bioData, pliegueSubescapular: v } })}
+                                        unit="mm"
+                                    />
+                                </div>
+
+                                {/* Auto-calculate Weight Button */}
+                                <button
+                                    onClick={() => {
+                                        const { alturaRodilla, circunferenciaPantorrilla, circunferenciaBrazo, pliegueSubescapular, edad, genero } = data.bioData;
+                                        if (alturaRodilla && circunferenciaPantorrilla && circunferenciaBrazo && pliegueSubescapular && edad) {
+                                            const estimatedWeight = estimateWeightChumlea({
+                                                circunferenciaPantorrilla,
+                                                alturaRodilla,
+                                                circunferenciaBrazo,
+                                                pliegueSubescapular,
+                                                edad,
+                                                sexo: genero
+                                            });
+                                            onUpdate({ bioData: { ...data.bioData, peso: Math.round(estimatedWeight * 10) / 10 } });
+                                        }
+                                    }}
+                                    disabled={!(data.bioData.alturaRodilla && data.bioData.circunferenciaPantorrilla && data.bioData.circunferenciaBrazo && data.bioData.pliegueSubescapular && data.bioData.edad)}
+                                    className="mt-3 w-full py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg transition-colors"
+                                >
+                                    Calcular Peso Estimado (Chumlea)
+                                </button>
+                                <p className="text-[10px] text-slate-500 mt-2 text-center">
+                                    Completa los 4 campos para estimar el peso
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </AccordionSection>
 

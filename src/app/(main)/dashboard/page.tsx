@@ -9,12 +9,13 @@ import {
     ScheduledEventsWidget,
     PlansDoneWidget
 } from "@/components/dashboard/DashboardWidgets";
+import { AtRiskPatientsWidget, WeeklyProgressWidget } from "@/components/dashboard/ClinicalWidgets";
 import { DraggableDashboard } from "@/components/dashboard/DraggableDashboard";
 import { SortableWidget } from "@/components/dashboard/SortableWidget";
 import { useAuthStore } from "@/store/useAuthStore";
-import { getPacientes, getCitas } from "@/lib/storage";
+import { getPacientes, getCitas, getAllMedidas } from "@/lib/storage";
 import { getUserDietHistory, type SavedPlan } from "@/lib/diet-service";
-import { Paciente, Cita } from "@/types";
+import { Paciente, Cita, MedidasAntropometricas } from "@/types";
 
 // Widget IDs for drag and drop
 const WIDGET_IDS = {
@@ -25,12 +26,15 @@ const WIDGET_IDS = {
     PLANS_DONE: "plans-done",
     PROFILE: "profile",
     CALENDAR: "calendar",
+    AT_RISK: "at-risk",
+    WEEKLY_PROGRESS: "weekly-progress",
 };
 
 export default function DashboardPage() {
     const { user } = useAuthStore();
     const [pacientes, setPacientes] = useState<Paciente[]>([]);
     const [citas, setCitas] = useState<Cita[]>([]);
+    const [medidas, setMedidas] = useState<MedidasAntropometricas[]>([]);
     const [savedPlans, setSavedPlans] = useState<SavedPlan[]>([]);
     const [mounted, setMounted] = useState(false);
 
@@ -38,6 +42,7 @@ export default function DashboardPage() {
         setMounted(true);
         setPacientes(getPacientes());
         setCitas(getCitas());
+        setMedidas(getAllMedidas());
 
         if (user?.id) {
             setSavedPlans(getUserDietHistory(user.id));
@@ -108,6 +113,19 @@ export default function DashboardPage() {
                     </SortableWidget>
                 </DraggableDashboard>
 
+                {/* Clinical Widgets Row - NEW */}
+                <DraggableDashboard
+                    defaultOrder={[WIDGET_IDS.AT_RISK, WIDGET_IDS.WEEKLY_PROGRESS]}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 lg:gap-6"
+                >
+                    <SortableWidget id={WIDGET_IDS.AT_RISK}>
+                        <AtRiskPatientsWidget pacientes={pacientes} medidas={medidas} />
+                    </SortableWidget>
+                    <SortableWidget id={WIDGET_IDS.WEEKLY_PROGRESS}>
+                        <WeeklyProgressWidget medidas={medidas} pacientes={pacientes} />
+                    </SortableWidget>
+                </DraggableDashboard>
+
                 {/* Charts Row - Draggable */}
                 <DraggableDashboard
                     defaultOrder={[WIDGET_IDS.SCHEDULED_EVENTS, WIDGET_IDS.PLANS_DONE]}
@@ -122,7 +140,6 @@ export default function DashboardPage() {
                 </DraggableDashboard>
             </div>
 
-            {/* Right Column - Draggable */}
             {/* Right Column */}
             <DraggableDashboard
                 defaultOrder={[WIDGET_IDS.PROFILE, WIDGET_IDS.CALENDAR]}
@@ -138,3 +155,4 @@ export default function DashboardPage() {
         </div>
     );
 }
+

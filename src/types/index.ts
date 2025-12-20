@@ -117,6 +117,62 @@ export interface Preferencias {
 }
 
 /* -------------------------------------------------------------------------- */
+/* CASOS CLÍNICOS ESPECIALES (UDD)                                           */
+/* -------------------------------------------------------------------------- */
+
+/** Tipos de amputación con porcentajes de peso corporal */
+export type AmputationType =
+  | 'mano_izq' | 'mano_der'
+  | 'antebrazo_izq' | 'antebrazo_der'
+  | 'brazo_izq' | 'brazo_der'
+  | 'pie_izq' | 'pie_der'
+  | 'pierna_bajo_rodilla_izq' | 'pierna_bajo_rodilla_der'
+  | 'pierna_completa_izq' | 'pierna_completa_der';
+
+/** Información de amputaciones del paciente */
+export interface AmputationInfo {
+  amputations: AmputationType[];
+  pesoCorregido?: number; // Peso si tuviera miembros completos
+  pesoIdealAjustado?: number; // Peso ideal ajustado
+}
+
+/** Estadío de Tanner (desarrollo puberal) */
+export type TannerStage = 1 | 2 | 3 | 4 | 5;
+
+/** Información pediátrica avanzada */
+export interface PediatricInfo {
+  semanasGestacion?: number; // <37 = prematuro
+  tannerStage?: TannerStage; // Para adolescentes 8-15 años
+  usarEdadBiologica?: boolean; // Calculado automáticamente
+  edadCorregidaMeses?: number; // Para prematuros <2 años
+}
+
+/** Antropometría geriátrica (Chumlea) */
+export interface GeriatricAnthropometry {
+  alturaRodilla?: number; // cm - para estimar talla
+  circunferenciaPantorrilla?: number; // cm
+  pesoEstimado?: number; // kg - calculado con Chumlea
+  tallaEstimada?: number; // cm - calculada desde altura rodilla
+  usarPesoEstimado?: boolean;
+}
+
+/** Evaluación MNA-SF para adultos mayores */
+export interface MNASFAssessment {
+  id: string;
+  pacienteId: string;
+  fecha: string | Date;
+  q1_ingesta: 0 | 1 | 2;
+  q2_perdidaPeso: 0 | 1 | 2 | 3;
+  q3_movilidad: 0 | 1 | 2;
+  q4_estres: 0 | 2;
+  q5_neuropsicologico: 0 | 1 | 2;
+  q6_imcOPantorrilla: 0 | 1 | 2 | 3;
+  puntajeTotal: number;
+  clasificacion: 'normal' | 'riesgo_desnutricion' | 'desnutricion';
+  createdAt?: string;
+}
+
+/* -------------------------------------------------------------------------- */
 /* ANTROPOMETRÍA (ISAK PROTOCOL COMPLIANT)                                   */
 /* -------------------------------------------------------------------------- */
 
@@ -361,6 +417,44 @@ export interface WithChildren {
 }
 
 /* -------------------------------------------------------------------------- */
+/* POBLACIONES ESPECIALES - EVALUACIÓN CLÍNICA AVANZADA                      */
+/* -------------------------------------------------------------------------- */
+
+/** Clasificación Atalah para embarazadas */
+export type AtalahClassification = 'Bajo Peso' | 'Normal' | 'Sobrepeso' | 'Obesidad';
+
+/** Información de embarazo para curva de Atalah y metas IOM */
+export interface PregnancyInfo {
+  isPregnant: boolean;
+  gestationalWeeks?: number;
+  prePregnancyWeight?: number;
+  isMultiplePregnancy?: boolean;
+}
+
+/** Niveles de GMFCS para Parálisis Cerebral */
+export type GMFCSLevel = 'I' | 'II' | 'III' | 'IV' | 'V';
+
+/** Información para pacientes con Parálisis Cerebral */
+export interface CerebralPalsyInfo {
+  gmfcsLevel?: GMFCSLevel;
+  tibiaLength?: number;
+  estimatedHeight?: number;
+  isNutritionalRisk?: boolean;
+}
+
+/** Niveles de riesgo cardiometabólico */
+export type CardiometabolicRiskLevel = 'minimo' | 'bajo' | 'moderado' | 'alto' | 'muy_alto';
+
+/** Indicadores de riesgo cardiometabólico calculados */
+export interface CardiometabolicRisk {
+  waistToHeightRatio?: number;
+  waistToHeightRisk?: CardiometabolicRiskLevel;
+  hasAbdominalObesity?: boolean;
+  waistHipRatio?: number;
+  waistHipRisk?: CardiometabolicRiskLevel;
+}
+
+/* -------------------------------------------------------------------------- */
 /* PACIENTE (ROOT AGGREGATE)                                                 */
 /* -------------------------------------------------------------------------- */
 
@@ -372,10 +466,20 @@ export interface Paciente {
   configuracionNutricional?: ConfiguracionNutricional;
   preferencias?: Preferencias;
 
+  // Casos clínicos especiales (UDD)
+  amputationInfo?: AmputationInfo;
+  pediatricInfo?: PediatricInfo;
+  geriatricAnthropometry?: GeriatricAnthropometry;
+
+  // Poblaciones especiales - Evaluación clínica avanzada
+  pregnancyInfo?: PregnancyInfo;
+  cerebralPalsyInfo?: CerebralPalsyInfo;
+
   // Relations
   medidas?: MedidasAntropometricas[];
   dietas?: Dieta[];
   citas?: Cita[];
+  mnaAssessments?: MNASFAssessment[];
 
   isActive?: boolean; // Virtual field
   lastVisit?: string | Date; // Virtual field
@@ -383,3 +487,4 @@ export interface Paciente {
   createdAt?: string | Date;
   updatedAt?: string | Date;
 }
+

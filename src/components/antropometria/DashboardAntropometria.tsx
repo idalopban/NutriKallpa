@@ -6,11 +6,13 @@ import { SomatotipoChart } from "./SomatotipoChart";
 import { CuadroDiagnosticoSomatotipo } from "./CuadroDiagnosticoSomatotipo";
 import { HistorialTable } from "./HistorialTable";
 import { ComposicionResumen } from "./ComposicionResumen";
+import { RiskCard, ClinicalEvaluationPanel } from "@/components/clinical";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Activity, User, PlusCircle, LayoutDashboard, History, ArrowLeft } from "lucide-react";
+import { Activity, User, PlusCircle, LayoutDashboard, History, ArrowLeft, Stethoscope } from "lucide-react";
 import { calcularComposicionCorporal, calcularTodasLasFormulas, seleccionarMejorFormula } from "@/lib/calculos-nutricionales";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { getAnthroNumber } from "@/types";
 
 // Types
 import type { MedidasAntropometricas, Paciente } from "@/types";
@@ -142,9 +144,10 @@ export function DashboardAntropometria({
             )}
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4 lg:w-[600px] mb-6">
+                <TabsList className="grid w-full grid-cols-5 lg:w-[750px] mb-6">
                     <TabsTrigger value="nuevo"><PlusCircle className="w-4 h-4 mr-2" /> Nueva</TabsTrigger>
                     <TabsTrigger value="composicion"><LayoutDashboard className="w-4 h-4 mr-2" /> Composición</TabsTrigger>
+                    <TabsTrigger value="clinico"><Stethoscope className="w-4 h-4 mr-2" /> Clínico</TabsTrigger>
                     <TabsTrigger value="somatocarta"><Activity className="w-4 h-4 mr-2" /> Somatocarta</TabsTrigger>
                     <TabsTrigger value="historial"><History className="w-4 h-4 mr-2" /> Historial</TabsTrigger>
                 </TabsList>
@@ -159,6 +162,21 @@ export function DashboardAntropometria({
                         onFormulaChange={setFormulaSeleccionada}
                         onNewEvaluation={() => setActiveTab("nuevo")}
                     />
+
+                    {/* Riesgo Cardiometabólico - mostrar si hay cintura y cadera */}
+                    {ultimaMedida &&
+                        ultimaMedida.perimetros?.cintura &&
+                        ultimaMedida.perimetros?.cadera &&
+                        ultimaMedida.talla &&
+                        ultimaMedida.sexo !== 'otro' && (
+                            <RiskCard
+                                waist={getAnthroNumber(ultimaMedida.perimetros.cintura)}
+                                hip={getAnthroNumber(ultimaMedida.perimetros.cadera)}
+                                height={ultimaMedida.talla}
+                                age={ultimaMedida.edad}
+                                sex={ultimaMedida.sexo as 'masculino' | 'femenino'}
+                            />
+                        )}
                 </TabsContent>
 
                 {/* --- TAB: NUEVA EVALUACIÓN --- */}
@@ -170,6 +188,52 @@ export function DashboardAntropometria({
                         </div>
                         <FormularioMedidas paciente={paciente} onSuccess={handleSuccess} />
                     </div>
+                </TabsContent>
+
+                {/* --- TAB: CLÍNICO (Evaluaciones Especiales) --- */}
+                <TabsContent value="clinico" className="space-y-6">
+                    {ultimaMedida ? (
+                        <ClinicalEvaluationPanel
+                            patientData={{
+                                sex: (ultimaMedida.sexo === 'masculino' || ultimaMedida.sexo === 'femenino')
+                                    ? ultimaMedida.sexo
+                                    : 'masculino',
+                                age: ultimaMedida.edad,
+                                weight: ultimaMedida.peso,
+                                height: ultimaMedida.talla,
+                                waist: ultimaMedida.perimetros?.cintura
+                                    ? getAnthroNumber(ultimaMedida.perimetros.cintura)
+                                    : undefined,
+                                hip: ultimaMedida.perimetros?.cadera
+                                    ? getAnthroNumber(ultimaMedida.perimetros.cadera)
+                                    : undefined,
+                                triceps: ultimaMedida.pliegues?.triceps
+                                    ? getAnthroNumber(ultimaMedida.pliegues.triceps)
+                                    : undefined,
+                                subscapular: ultimaMedida.pliegues?.subscapular
+                                    ? getAnthroNumber(ultimaMedida.pliegues.subscapular)
+                                    : undefined,
+                                biceps: ultimaMedida.pliegues?.biceps
+                                    ? getAnthroNumber(ultimaMedida.pliegues.biceps)
+                                    : undefined,
+                                suprailiac: ultimaMedida.pliegues?.supraspinale
+                                    ? getAnthroNumber(ultimaMedida.pliegues.supraspinale)
+                                    : undefined,
+                            }}
+                        />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed rounded-xl bg-muted/5">
+                            <Stethoscope className="w-12 h-12 text-muted-foreground/30 mb-4" />
+                            <h3 className="text-xl font-semibold text-muted-foreground">Sin datos antropométricos</h3>
+                            <p className="text-sm text-muted-foreground/80 max-w-md mt-2 mb-6">
+                                Realiza una evaluación antropométrica primero para acceder a las evaluaciones clínicas especiales.
+                            </p>
+                            <Button onClick={() => setActiveTab("nuevo")} variant="outline">
+                                <PlusCircle className="w-4 h-4 mr-2" />
+                                Nueva Evaluación
+                            </Button>
+                        </div>
+                    )}
                 </TabsContent>
 
                 {/* --- TAB: SOMATOCARTA --- */}
