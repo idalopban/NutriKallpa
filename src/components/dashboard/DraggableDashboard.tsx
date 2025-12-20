@@ -33,112 +33,112 @@ export function DraggableDashboard({
     className = "grid grid-cols-1 md:grid-cols-3 gap-6",
 }: DraggableDashboardProps) {
     const [items, setItems] = useState<string[]>(defaultOrder);
-    const [mounted, setMounted] = useState(false);
+    const [isReady, setIsReady] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // Detect mobile on mount
+    // Initial check for mobile and data loading - strictly client side
     useEffect(() => {
-        setMounted(true);
-
-        // Detect mobile device
+        // 1. Detect device type
         const checkMobile = () => {
-            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-            const isSmallScreen = window.innerWidth < 768;
-            setIsMobile(isTouchDevice && isSmallScreen);
+            // Robust mobile check
+            const userAgent = typeof navigator === 'undefined' ? '' : navigator.userAgent;
+            const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+            const isMobileDevice = mobileRegex.test(userAgent) || ('ontouchstart' in window) || (window.innerWidth < 768);
+
+            setIsMobile(isMobileDevice);
+            return isMobileDevice;
         };
 
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
+        const mobile = checkMobile();
 
-        // Load saved order from localStorage
-        try {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                const parsed = JSON.parse(saved) as string[];
-                const allExist = defaultOrder.every((id) => parsed.includes(id));
-                const noExtras = parsed.every((id) => defaultOrder.includes(id));
-                if (allExist && noExtras && parsed.length === defaultOrder.length) {
-                    setItems(parsed);
+        // 2. Load saved order only if not mobile (mobile always uses default or specific view)
+        if (!mobile) {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved) as string[];
+                    const allExist = defaultOrder.every((id) => parsed.includes(id));
+                    const noExtras = parsed.every((id) => defaultOrder.includes(id));
+                    if (allExist && noExtras && parsed.length === defaultOrder.length) {
+                        setItems(parsed);
+                    }
                 }
+            } catch (e) {
+                console.warn("Failed to load dashboard order", e);
             }
-        } catch (e) {
-            console.warn("Failed to load dashboard order from localStorage", e);
         }
 
-        return () => window.removeEventListener('resize', checkMobile);
-    }, [defaultOrder]);
+        // 3. Mark as ready to trigger re-render with client-specific structure
+        setIsReady(true);
 
-    // Save order to localStorage when it changes
+        const resizeHandler = () => checkMobile();
+        window.addEventListener('resize', resizeHandler);
+        return () => window.removeEventListener('resize', resizeHandler);
+    }, [defaultOrder]); // Dependency stable
+
+    // Save order effect
     useEffect(() => {
-        if (mounted && !isMobile) {
+        if (isReady && !isMobile) {
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
             } catch (e) {
-                console.warn("Failed to save dashboard order to localStorage", e);
+                console.warn("Failed to save order", e);
             }
         }
-    }, [items, mounted, isMobile]);
+    }, [items, isReady, isMobile]);
 
-    // Only use PointerSensor and KeyboardSensor (no TouchSensor to avoid mobile issues)
     const sensors = useSensors(
-        useSensor(PointerSensor, {
-            activationConstraint: {
-                distance: 10,
-            },
-        }),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
+        useSensor(PointerSensor, { activationConstraint: { distance: 10 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
     function handleDragEnd(event: DragEndEvent) {
         const { active, over } = event;
-
         if (over && active.id !== over.id) {
-            setItems((currentItems) => {
-                const oldIndex = currentItems.indexOf(active.id as string);
-                const newIndex = currentItems.indexOf(over.id as string);
-                return arrayMove(currentItems, oldIndex, newIndex);
+            setItems((current) => {
+                const oldIndex = current.indexOf(active.id as string);
+                const newIndex = current.indexOf(over.id as string);
+                return arrayMove(current, oldIndex, newIndex);
             });
         }
     }
 
-    // Map children by their id prop - always compute this to avoid hydration mismatch
+    // Helper: Map children
     const childrenArray = React.Children.toArray(children);
     const childrenById = new Map<string, React.ReactNode>();
-
     childrenArray.forEach((child) => {
         if (React.isValidElement<{ id: string }>(child) && child.props.id) {
             childrenById.set(child.props.id, child);
         }
     });
 
-    // Get ordered children based on current items order
-    const getOrderedChildren = () => {
-        return items
-            .map((id) => childrenById.get(id))
-            .filter(Boolean);
-    };
+    // Content logic
+    const getOrderedChildren = () => items.map((id) => childrenById.get(id)).filter(Boolean);
 
-    // Always render the same wrapper structure to avoid hydration issues
-    // Use suppressHydrationWarning on the container to handle client-only ordering
-    const content = mounted ? getOrderedChildren() : childrenArray;
-
-    // Before mount or on mobile: render without DnD to avoid errors
-    if (!mounted || isMobile) {
+    // SAFE RENDER STRATEGY:
+    // 1. Server/Hydration phase: Render ONLY default children in default order.
+    // This matches exactly what the server sends. No DndContext, no sorting.
+    if (!isReady) {
         return (
-            <div
-                ref={containerRef}
-                className={className}
-                suppressHydrationWarning
-            >
-                {content}
+            <div ref={containerRef} className={className}>
+                {childrenArray}
             </div>
         );
     }
 
-    // Desktop: render with full DnD support
+    // 2. Client Mobile phase: Render sorted (or default) children but NO Dnd wrappers.
+    // The structure remains a simple div, preventing "node removal" conflicts with DndContext.
+    if (isMobile) {
+        return (
+            <div ref={containerRef} className={className}>
+                {getOrderedChildren()}
+            </div>
+        );
+    }
+
+    // 3. Client Desktop phase: Render full DndContext suite.
+    // React handles the transition from plain div -> DndContext structure safely now that we are stable.
     return (
         <DndContext
             sensors={sensors}
@@ -146,11 +146,7 @@ export function DraggableDashboard({
             onDragEnd={handleDragEnd}
         >
             <SortableContext items={items} strategy={rectSortingStrategy}>
-                <div
-                    ref={containerRef}
-                    className={className}
-                    suppressHydrationWarning
-                >
+                <div ref={containerRef} className={className}>
                     {getOrderedChildren()}
                 </div>
             </SortableContext>
