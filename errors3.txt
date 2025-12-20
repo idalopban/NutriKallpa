@@ -1,0 +1,133 @@
+﻿src/app/(main)/antropometria/page.tsx(353,33): error TS2322: Type 'AnthroValue' is not assignable to type 'number | undefined'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/app/(main)/antropometria/page.tsx(354,33): error TS2322: Type 'AnthroValue' is not assignable to type 'number | undefined'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/app/(main)/dietas/page.tsx(171,21): error TS2345: Argument of type 'AnthroValue' is not assignable to parameter of type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/app/(main)/dietas/page.tsx(312,13): error TS2345: Argument of type 'Preferencias | undefined' is not assignable to parameter of type 'UserPreferences | undefined'.
+  Type 'Preferencias' is not assignable to type 'UserPreferences'.
+    Types of property 'likedFoods' are incompatible.
+      Type 'string[] | undefined' is not assignable to type 'string[]'.
+        Type 'undefined' is not assignable to type 'string[]'.
+src/app/(main)/dietas/page.tsx(324,13): error TS2345: Argument of type 'Preferencias | undefined' is not assignable to parameter of type 'UserPreferences | undefined'.
+  Type 'Preferencias' is not assignable to type 'UserPreferences'.
+    Types of property 'likedFoods' are incompatible.
+      Type 'string[] | undefined' is not assignable to type 'string[]'.
+        Type 'undefined' is not assignable to type 'string[]'.
+src/app/(main)/pacientes/[id]/page.tsx(148,48): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/app/(main)/pacientes/[id]/page.tsx(149,26): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/app/(main)/pacientes/[id]/page.tsx(254,102): error TS2322: Type 'AnthroValue' is not assignable to type 'ReactNode'.
+  Type 'ISAKValue' is not assignable to type 'ReactNode'.
+src/app/(main)/pacientes/[id]/page.tsx(259,102): error TS2322: Type 'AnthroValue' is not assignable to type 'ReactNode'.
+  Type 'ISAKValue' is not assignable to type 'ReactNode'.
+src/app/(main)/pacientes/[id]/page.tsx(338,106): error TS2322: Type 'AnthroValue' is not assignable to type 'ReactNode'.
+  Type 'ISAKValue' is not assignable to type 'ReactNode'.
+src/app/(main)/pacientes/[id]/page.tsx(415,99): error TS2322: Type 'AnthroValue' is not assignable to type 'ReactNode'.
+  Type 'ISAKValue' is not assignable to type 'ReactNode'.
+src/app/(main)/pacientes/[id]/page.tsx(518,80): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/app/(main)/pacientes/[id]/page.tsx(519,58): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/app/(main)/pacientes/[id]/page.tsx(529,53): error TS2365: Operator '+' cannot be applied to types 'import("C:/Users/Escritorio/Desktop/Proyectos/Codigo/Proyecto 1.0/src/types/index").AnthroValue' and 'import("C:/Users/Escritorio/Desktop/Proyectos/Codigo/Proyecto 1.0/src/types/index").AnthroValue'.
+src/app/(main)/pacientes/[id]/page.tsx(530,66): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/app/(main)/pacientes/[id]/page.tsx(538,50): error TS2365: Operator '>' cannot be applied to types 'AnthroValue' and 'number'.
+src/app/(main)/pacientes/[id]/page.tsx(538,85): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/app/(main)/pacientes/[id]/page.tsx(538,102): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/app/(main)/pacientes/[id]/page.tsx(538,118): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/app/(main)/pacientes/[id]/page.tsx(538,138): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/app/(main)/pacientes/[id]/page.tsx(538,160): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/app/(main)/pacientes/[id]/page.tsx(541,54): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/app/(main)/pacientes/[id]/page.tsx(541,71): error TS2345: Argument of type 'AnthroValue' is not assignable to parameter of type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/app/(main)/pacientes/[id]/page.tsx(589,126): error TS2322: Type 'AnthroValue' is not assignable to type 'ReactNode'.
+  Type 'ISAKValue' is not assignable to type 'ReactNode'.
+src/app/(main)/pacientes/[id]/page.tsx(593,126): error TS2322: Type 'AnthroValue' is not assignable to type 'ReactNode'.
+  Type 'ISAKValue' is not assignable to type 'ReactNode'.
+src/app/(main)/pacientes/[id]/page.tsx(727,133): error TS2322: Type 'AnthroValue' is not assignable to type 'ReactNode'.
+  Type 'ISAKValue' is not assignable to type 'ReactNode'.
+src/app/(main)/pacientes/[id]/page.tsx(898,129): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/app/(main)/pacientes/[id]/page.tsx(898,168): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/app/(main)/pacientes/[id]/page.tsx(910,93): error TS2345: Argument of type 'AnthroValue' is not assignable to parameter of type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/app/(main)/pacientes/[id]/page.tsx(921,89): error TS2345: Argument of type 'AnthroValue' is not assignable to parameter of type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/app/(main)/pacientes/[id]/page.tsx(924,85): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/app/(main)/pacientes/[id]/page.tsx(948,81): error TS2345: Argument of type 'AnthroValue' is not assignable to parameter of type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/components/antropometria/EvaluationHistory.tsx(85,41): error TS2322: Type 'string | AnthroValue' is not assignable to type 'ReactNode'.
+  Type 'ISAKValue' is not assignable to type 'ReactNode'.
+src/components/antropometria/EvaluationHistory.tsx(88,41): error TS2322: Type 'string | AnthroValue' is not assignable to type 'ReactNode'.
+  Type 'ISAKValue' is not assignable to type 'ReactNode'.
+src/components/antropometria/FormularioMedidas.tsx(169,11): error TS2365: Operator '>' cannot be applied to types 'AnthroValue' and 'number'.
+src/components/antropometria/FormularioMedidas.tsx(170,9): error TS2365: Operator '>' cannot be applied to types 'AnthroValue' and 'number'.
+src/components/antropometria/FormularioMedidas.tsx(171,9): error TS2365: Operator '>' cannot be applied to types 'AnthroValue' and 'number'.
+src/components/antropometria/FractionationResults.tsx(23,9): error TS2322: Type 'AnthroValue' is not assignable to type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/components/antropometria/FractionationResults.tsx(24,9): error TS2322: Type 'AnthroValue' is not assignable to type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/components/antropometria/FractionationResults.tsx(28,9): error TS2322: Type 'AnthroValue' is not assignable to type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/components/antropometria/FractionationResults.tsx(29,9): error TS2322: Type 'AnthroValue' is not assignable to type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/components/antropometria/FractionationResults.tsx(30,9): error TS2322: Type 'AnthroValue' is not assignable to type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/components/antropometria/FractionationResults.tsx(31,9): error TS2322: Type 'AnthroValue' is not assignable to type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/components/antropometria/FractionationResults.tsx(32,9): error TS2322: Type 'AnthroValue' is not assignable to type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/components/antropometria/FractionationResults.tsx(33,9): error TS2322: Type 'AnthroValue' is not assignable to type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/components/antropometria/FractionationResults.tsx(34,9): error TS2322: Type 'AnthroValue' is not assignable to type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/components/antropometria/FractionationResults.tsx(36,9): error TS2322: Type 'AnthroValue' is not assignable to type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/components/antropometria/FractionationResults.tsx(37,9): error TS2322: Type 'AnthroValue' is not assignable to type 'number | undefined'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/components/antropometria/FractionationResults.tsx(38,9): error TS2322: Type 'AnthroValue' is not assignable to type 'number | undefined'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/components/antropometria/FractionationResults.tsx(39,9): error TS2322: Type 'AnthroValue' is not assignable to type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/components/antropometria/FractionationResults.tsx(39,83): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/components/antropometria/FractionationResults.tsx(40,9): error TS2322: Type 'AnthroValue' is not assignable to type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/components/antropometria/FractionationResults.tsx(42,9): error TS2322: Type 'AnthroValue' is not assignable to type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/components/antropometria/FractionationResults.tsx(43,9): error TS2322: Type 'AnthroValue' is not assignable to type 'number'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/components/antropometria/HistorialTable.tsx(71,67): error TS2322: Type 'AnthroValue' is not assignable to type 'ReactNode'.
+  Type 'ISAKValue' is not assignable to type 'ReactNode'.
+src/components/antropometria/HistorialTable.tsx(72,67): error TS2322: Type 'AnthroValue' is not assignable to type 'ReactNode'.
+  Type 'ISAKValue' is not assignable to type 'ReactNode'.
+src/components/diet/DietReport.tsx(75,136): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/components/diet/DietReport.tsx(137,72): error TS2322: Type 'AnthroValue' is not assignable to type 'ReactNode'.
+  Type 'ISAKValue' is not assignable to type 'ReactNode'.
+src/components/diet/DietReport.tsx(141,72): error TS2322: Type 'AnthroValue' is not assignable to type 'ReactNode'.
+  Type 'ISAKValue' is not assignable to type 'ReactNode'.
+src/components/patient/PatientNutritionConfig.tsx(67,9): error TS2353: Object literal may only specify known properties, and 'intensa' does not exist in type 'Record<NivelActividad, string>'.
+src/components/patient/PatientNutritionConfig.tsx(71,11): error TS2739: Type '{ perder: string; mantenimiento: string; ganar: string; }' is missing the following properties from type 'Record<ObjetivoPeso, string>': perdida, ganancia
+src/components/patient/PatientNutritionConfig.tsx(77,11): error TS2741: Property 'katch' is missing in type '{ mifflin: string; harris: string; fao: string; }' but required in type 'Record<FormulaGET, string>'.
+src/lib/calculos-nutricionales.ts(302,7): error TS2322: Type 'AnthroValue | undefined' is not assignable to type 'number | undefined'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/lib/calculos-nutricionales.ts(303,7): error TS2322: Type 'AnthroValue | undefined' is not assignable to type 'number | undefined'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/lib/calculos-nutricionales.ts(304,7): error TS2322: Type 'AnthroValue | undefined' is not assignable to type 'number | undefined'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/lib/calculos-nutricionales.ts(305,7): error TS2322: Type 'AnthroValue | undefined' is not assignable to type 'number | undefined'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/lib/calculos-nutricionales.ts(306,7): error TS2322: Type 'AnthroValue | undefined' is not assignable to type 'number | undefined'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/lib/calculos-nutricionales.ts(307,7): error TS2322: Type 'AnthroValue | undefined' is not assignable to type 'number | undefined'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/lib/calculos-nutricionales.ts(326,7): error TS2322: Type 'AnthroValue | undefined' is not assignable to type 'number | undefined'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/lib/calculos-nutricionales.ts(327,7): error TS2322: Type 'AnthroValue | undefined' is not assignable to type 'number | undefined'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/lib/calculos-nutricionales.ts(328,7): error TS2322: Type 'AnthroValue | undefined' is not assignable to type 'number | undefined'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/lib/calculos-nutricionales.ts(329,7): error TS2322: Type 'AnthroValue | undefined' is not assignable to type 'number | undefined'.
+  Type 'ISAKValue' is not assignable to type 'number'.
+src/scripts/verify_calculations.ts(67,34): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/scripts/verify_calculations.ts(69,14): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/store/usePatientStore.ts(79,33): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/store/usePatientStore.ts(79,49): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/store/usePatientStore.ts(81,33): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/store/usePatientStore.ts(81,49): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/tests/verify_calculations.test.ts(48,27): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.

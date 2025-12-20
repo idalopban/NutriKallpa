@@ -50,95 +50,148 @@ export interface DatosPersonales {
   avatarUrl?: string; // URL de foto o identificador de icono (ej: "icon-1", "icon-2", o una URL de imagen)
 }
 
-export interface HistoriaClinica {
-  antecedentesPersonales?: string;
-  antecedentesFamiliares?: string;
-  alergias?: string;
-  medicamentos?: string;
-  diagnosticos?: string;
-  objetivos?: string;
+export interface BiochemistryRecord {
+  id: string;
+  pacienteId: string;
+  fecha: string | Date;
+  glucosa?: number;
+  hba1c?: number; // Hemoglobina Glicosilada
+  colesterolTotal?: number;
+  trigliceridos?: number;
+  hdl?: number;
+  ldl?: number;
+  hemoglobina?: number;
+  ferritina?: number;
+  observaciones?: string;
+  createdAt?: string;
 }
 
-export type NivelActividad = 'sedentario' | 'ligera' | 'moderada' | 'intensa' | 'muy_intensa';
-export type ObjetivoPeso = 'perder' | 'mantenimiento' | 'ganar';
-export type FormulaGET = 'mifflin' | 'harris' | 'fao';
+export type Pathologies = 'diabetes_t1' | 'diabetes_t2' | 'hipertension' | 'dislipidemia' | 'obesidad' | 'hipotiroidismo' | 'hipertiroidismo' | 'sop' | 'gastritis' | 'reflujo' | 'renal_cr' | 'anemia' | 'celiaquia' | string;
+
+export interface HistoriaClinica {
+  // Anamnesis Estructurada (Medical Grade)
+  motivoConsulta?: string;
+  patologias?: Pathologies[]; // Typed Array
+  alergias?: string[];
+  medicamentos?: string[];
+  antecedentesFamiliares?: string[];
+  estiloVida?: {
+    fuma: boolean;
+    alcohol: 'nunca' | 'ocasional' | 'frecuente';
+    suenoHoras: number;
+    actividadFisicaTipo?: string;
+  };
+  // Legacy fields (kept for migration)
+  antecedentesPersonales?: string;
+  diagnosticos?: string;
+  objetivos?: string;
+  // Bioquímica is now a separate relation or array, but we keep a summary here if needed
+  bioquimicaReciente?: Partial<BiochemistryRecord>;
+}
+
+/* -------------------------------------------------------------------------- */
+/* CONFIGURACIÓN NUTRICIONAL                                                 */
+/* -------------------------------------------------------------------------- */
+
+export type NivelActividad = 'sedentaria' | 'sedentario' | 'ligera' | 'moderada' | 'activa' | 'muy_activa' | 'intensa' | 'muy_intensa';
+export type ObjetivoPeso = 'perdida' | 'perder' | 'mantenimiento' | 'ganar' | 'ganancia';
+export type FormulaGET = 'harris' | 'mifflin' | 'katch' | 'fao';
 
 export interface ConfiguracionNutricional {
   nivelActividad?: NivelActividad;
   objetivoPeso?: ObjetivoPeso;
   formulaGET?: FormulaGET;
-  proteinaRatio?: number;  // g/kg
-  kcalAjuste?: number;     // +/- kcal
-  // Distribución de macronutrientes (deben sumar 100%)
-  macroProteina?: number;      // % de calorías de proteína (default: 25)
-  macroCarbohidratos?: number; // % de calorías de carbohidratos (default: 50)
-  macroGrasa?: number;         // % de calorías de grasa (default: 25)
+  proteinaRatio?: number;
+  kcalAjuste?: number;
+  macroProteina?: number;
+  macroCarbohidratos?: number;
+  macroGrasa?: number;
 }
 
-export interface Paciente {
-  id: string;
-  usuarioId: string;
-  datosPersonales: DatosPersonales;
-  historiaClinica?: HistoriaClinica;
-  configuracionNutricional?: ConfiguracionNutricional;
-  preferencias?: {
-    likedFoods: string[];
-    dislikedFoods: string[];
-  };
-  createdAt?: Date | string;
-  updatedAt?: Date | string;
+export interface Preferencias {
+  restricciones?: string[];
+  gustos?: string[];
+  alergias?: string[];
+  likedFoods?: string[];
+  dislikedFoods?: string[];
 }
 
 /* -------------------------------------------------------------------------- */
-/* ANTROPOMETRÍA (Corregido y Alineado)                                      */
+/* ANTROPOMETRÍA (ISAK PROTOCOL COMPLIANT)                                   */
 /* -------------------------------------------------------------------------- */
+
+export interface ISAKValue {
+  val1: number;
+  val2: number;
+  val3?: number; // Requiere tercera toma si |val1 - val2| > tolerancia
+  final: number; // Mediana o Promedio
+}
+
+// Helper for backward compatibility (union type)
+export type AnthroValue = number | ISAKValue;
+
+/**
+ * Helper function to extract numeric value from AnthroValue.
+ * If the value is an ISAKValue object, returns the 'final' property.
+ * If undefined, returns the defaultValue (default: 0).
+ */
+export function getAnthroNumber(value: AnthroValue | undefined, defaultValue: number = 0): number {
+  if (value === undefined || value === null) return defaultValue;
+  if (typeof value === 'number') return value;
+  return value.final ?? defaultValue;
+}
 
 export interface PlieguesCutaneos {
-  triceps?: number;
-  subscapular?: number;
-  biceps?: number;
-  iliac_crest?: number; // ISAK: Cresta Ilíaca
-  supraspinale?: number; // ISAK: Supraespinal
-  abdominal?: number;
-  thigh?: number; // ISAK: Muslo Frontal
-  calf?: number; // ISAK: Pantorrilla Medial
+  triceps?: AnthroValue;
+  subscapular?: AnthroValue;
+  biceps?: AnthroValue;
+  iliac_crest?: AnthroValue;
+  supraspinale?: AnthroValue;
+  abdominal?: AnthroValue;
+  thigh?: AnthroValue;
+  calf?: AnthroValue;
 }
 
 export interface Perimetros {
-  cintura?: number;
-  cadera?: number;
-  brazoRelax?: number;
-  brazoFlex?: number;
-  brazoRelajado?: number;
-  musloMedio?: number;
-  pantorrilla?: number;
-  cuello?: number;
+  cintura?: AnthroValue;
+  cadera?: AnthroValue;
+  brazoRelax?: AnthroValue;
+  brazoRelajado?: AnthroValue; // Alias for backward compatibility
+  brazoFlex?: AnthroValue;
+  musloMedio?: AnthroValue;
+  pantorrilla?: AnthroValue;
+  cuello?: AnthroValue;
 }
 
 export interface Diametros {
-  biestiloideo?: number;
-  humero?: number; // CORREGIDO: 'humero'
-  femur?: number; // CORREGIDO: 'femur'
-  biacromial?: number;
-  bitrocantéreo?: number;
-  biiliocristal?: number; // Added for Kerr
+  humero?: AnthroValue;
+  femur?: AnthroValue;
+  biestiloideo?: AnthroValue;
+  biacromial?: AnthroValue;
+  biiliocristal?: AnthroValue;
 }
 
 export interface MedidasAntropometricas {
   id: string;
   pacienteId: string;
   fecha: string | Date;
-  peso?: number;
-  talla?: number;
+
+  // Basic
+  peso: number;
+  talla: number;
+
+  // Detailed
   pliegues?: PlieguesCutaneos;
   perimetros?: Perimetros;
   diametros?: Diametros;
-  imc?: number;
 
-  // AÑADIDO: Propiedades necesarias para los cálculos
+  imc?: number; // Calculated result
+
+  // Metadata
   edad: number;
   sexo: "masculino" | "femenino" | "otro";
-  tipoPaciente?: "general" | "control" | "fitness" | "atleta" | "rapida"; // Nuevo campo para persistir el perfil
+  protocolo?: "isak_l1" | "isak_l2" | "basic";
+  tipoPaciente?: "adulto" | "pediatrico" | "adulto_mayor" | "general" | "atleta" | "fitness" | "control" | "rapida";
 
   createdAt?: Date | string;
   updatedAt?: Date | string;
@@ -305,4 +358,28 @@ export interface Cita {
  */
 export interface WithChildren {
   children: ReactNode;
+}
+
+/* -------------------------------------------------------------------------- */
+/* PACIENTE (ROOT AGGREGATE)                                                 */
+/* -------------------------------------------------------------------------- */
+
+export interface Paciente {
+  id: string;
+  usuarioId: string; // Nutritionist / Owner ID
+  datosPersonales: DatosPersonales;
+  historiaClinica?: HistoriaClinica;
+  configuracionNutricional?: ConfiguracionNutricional;
+  preferencias?: Preferencias;
+
+  // Relations
+  medidas?: MedidasAntropometricas[];
+  dietas?: Dieta[];
+  citas?: Cita[];
+
+  isActive?: boolean; // Virtual field
+  lastVisit?: string | Date; // Virtual field
+
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 }

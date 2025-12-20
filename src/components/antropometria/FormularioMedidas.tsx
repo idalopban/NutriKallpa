@@ -16,6 +16,7 @@ import {
 } from "@/lib/calculos-nutricionales"
 import { saveMedidas } from "@/lib/storage"
 import type { MedidasAntropometricas, Somatotipo, Paciente, ResultadoFormula } from "@/types"
+import { getAnthroNumber } from "@/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -166,9 +167,9 @@ export function FormularioMedidas({ paciente, onSuccess }: FormularioMedidasProp
 
     let somato: Somatotipo | null = null
     try {
-      if ((medidasParciales.pliegues?.triceps ?? 0) > 0 &&
-        (medidasParciales.diametros?.humero ?? 0) > 0 &&
-        (medidasParciales.diametros?.femur ?? 0) > 0) {
+      if (getAnthroNumber(medidasParciales.pliegues?.triceps) > 0 &&
+        getAnthroNumber(medidasParciales.diametros?.humero) > 0 &&
+        getAnthroNumber(medidasParciales.diametros?.femur) > 0) {
         somato = calculateSomatotype(medidasParciales)
       }
     } catch (e) {

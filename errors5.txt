@@ -1,0 +1,19 @@
+﻿src/app/(main)/dietas/page.tsx(312,13): error TS2345: Argument of type 'Preferencias | undefined' is not assignable to parameter of type 'UserPreferences | undefined'.
+  Type 'Preferencias' is not assignable to type 'UserPreferences'.
+    Types of property 'likedFoods' are incompatible.
+      Type 'string[] | undefined' is not assignable to type 'string[]'.
+        Type 'undefined' is not assignable to type 'string[]'.
+src/app/(main)/dietas/page.tsx(324,13): error TS2345: Argument of type 'Preferencias | undefined' is not assignable to parameter of type 'UserPreferences | undefined'.
+  Type 'Preferencias' is not assignable to type 'UserPreferences'.
+    Types of property 'likedFoods' are incompatible.
+      Type 'string[] | undefined' is not assignable to type 'string[]'.
+        Type 'undefined' is not assignable to type 'string[]'.
+src/app/(main)/pacientes/[id]/page.tsx(529,53): error TS2365: Operator '+' cannot be applied to types 'import("C:/Users/Escritorio/Desktop/Proyectos/Codigo/Proyecto 1.0/src/types/index").AnthroValue' and 'import("C:/Users/Escritorio/Desktop/Proyectos/Codigo/Proyecto 1.0/src/types/index").AnthroValue'.
+src/app/(main)/pacientes/[id]/page.tsx(538,50): error TS2365: Operator '>' cannot be applied to types 'AnthroValue' and 'number'.
+src/app/(main)/pacientes/[id]/page.tsx(538,85): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/app/(main)/pacientes/[id]/page.tsx(538,102): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/app/(main)/pacientes/[id]/page.tsx(538,118): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/app/(main)/pacientes/[id]/page.tsx(538,138): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/components/antropometria/FormularioMedidas.tsx(169,11): error TS2365: Operator '>' cannot be applied to types 'AnthroValue' and 'number'.
+src/components/antropometria/FormularioMedidas.tsx(170,9): error TS2365: Operator '>' cannot be applied to types 'AnthroValue' and 'number'.
+src/components/antropometria/FormularioMedidas.tsx(171,9): error TS2365: Operator '>' cannot be applied to types 'AnthroValue' and 'number'.

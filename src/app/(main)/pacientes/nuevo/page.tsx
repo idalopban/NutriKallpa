@@ -12,7 +12,10 @@ import {
   Scale,
   Utensils,
   Calculator,
-  CheckCircle2
+  CheckCircle2,
+  AlertTriangle,
+  Check,
+  Plus
 } from "lucide-react";
 
 // Components
@@ -49,7 +52,7 @@ import type { Paciente, MedidasAntropometricas } from "@/types";
 const formSchema = z.object({
   nombreCompleto: z.string().min(2, "Nombre requerido"),
   fechaNacimiento: z.string().min(1, "Fecha de nacimiento requerida"),
-  sexo: z.enum(["masculino", "femenino", "otro"]),
+  sexo: z.enum(["masculino", "femenino"]),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   telefono: z.string().optional(),
 
@@ -66,7 +69,32 @@ const formSchema = z.object({
 
   // Extra
   notas: z.string().optional(),
+  patologias: z.array(z.string()).default([]),
+
+  // Bioquímica (Opcional)
+  glucosa: z.coerce.number().optional(),
+  hemoglobina: z.coerce.number().optional(),
+  colesterolTotal: z.coerce.number().optional(),
+  trigliceridos: z.coerce.number().optional(),
+  hdl: z.coerce.number().optional(),
+  ldl: z.coerce.number().optional(),
 });
+
+// Defined locally, will sync with the main list
+const COMMON_PATHOLOGIES = [
+  "Diabetes Tipo 1",
+  "Diabetes Tipo 2",
+  "Hipertensión Arterial",
+  "Dislipidemia",
+  "Obesidad",
+  "Celiaquía",
+  "Enfermedad Renal Crónica",
+  "Hipotiroidismo",
+  "Gastritis",
+  "Reflujo GE",
+  "SOP",
+  "Anemia"
+];
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -90,6 +118,7 @@ export default function NuevoPacientePage() {
       kcalAjuste: 0,
       proteinaRatio: 1.6,
       notas: "",
+      patologias: [],
     },
   });
 
@@ -153,11 +182,23 @@ export default function NuevoPacientePage() {
           email: data.email || "",
           telefono: data.telefono || "",
           fechaNacimiento: new Date(data.fechaNacimiento).toISOString(),
-          sexo: data.sexo as "masculino" | "femenino" | "otro",
+          sexo: data.sexo as "masculino" | "femenino",
         },
         historiaClinica: {
+          patologias: data.patologias || [],
+          alergias: [],
+          medicamentos: [],
+          antecedentesFamiliares: [],
           objetivos: data.objetivoPeso,
-          antecedentesPersonales: data.notas || ""
+          antecedentesPersonales: data.notas || "",
+          bioquimicaReciente: {
+            glucosa: data.glucosa,
+            hemoglobina: data.hemoglobina,
+            colesterolTotal: data.colesterolTotal,
+            trigliceridos: data.trigliceridos,
+            hdl: data.hdl,
+            ldl: data.ldl
+          }
         },
         createdAt: now,
         updatedAt: now,
@@ -172,7 +213,8 @@ export default function NuevoPacientePage() {
         talla: data.talla,
         imc: parseFloat(imc),
         edad: edadFinal,
-        sexo: data.sexo as "masculino" | "femenino" | "otro",
+        sexo: data.sexo as "masculino" | "femenino",
+        protocolo: "basic",
         createdAt: now,
         updatedAt: now,
       };
@@ -297,7 +339,6 @@ export default function NuevoPacientePage() {
                         <SelectContent>
                           <SelectItem value="masculino">Masculino</SelectItem>
                           <SelectItem value="femenino">Femenino</SelectItem>
-                          <SelectItem value="otro">Otro</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -488,7 +529,151 @@ export default function NuevoPacientePage() {
               </CardContent>
             </Card>
 
-            {/* 4. Notas (SLATE THEME) */}
+            {/* 4. Exámenes de Laboratorio (BLUE THEME) */}
+            <Card className="border-none shadow-md bg-white dark:bg-[#1e293b] dark:border dark:border-[#334155] overflow-hidden">
+              <CardHeader className="bg-blue-50/50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-900/30 pb-4">
+                <CardTitle className="flex items-center gap-3 text-lg text-slate-800 dark:text-white">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shadow-sm">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  Exámenes de Laboratorio
+                </CardTitle>
+                <CardDescription>
+                  Valores bioquímicos recientes (opcional, para seguimiento metabólico).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="glucosa"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-slate-600 text-xs">Glucosa (mg/dL)</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="70-100" {...field} className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-blue-500 dark:text-white" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="hemoglobina"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-slate-600 text-xs">Hemoglobina (g/dL)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.1" placeholder="12-17" {...field} className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-blue-500 dark:text-white" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="colesterolTotal"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-slate-600 text-xs">Colesterol Total (mg/dL)</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="<200" {...field} className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-blue-500 dark:text-white" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="trigliceridos"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-slate-600 text-xs">Triglicéridos (mg/dL)</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="<150" {...field} className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-blue-500 dark:text-white" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="hdl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-slate-600 text-xs">HDL (mg/dL)</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder=">40" {...field} className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-blue-500 dark:text-white" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="ldl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-slate-600 text-xs">LDL (mg/dL)</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="<100" {...field} className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] focus:border-blue-500 dark:text-white" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 5. Patologías y Condiciones (RED THEME) */}
+            <Card className="border-none shadow-md bg-white dark:bg-[#1e293b] dark:border dark:border-[#334155] overflow-hidden">
+              <CardHeader className="bg-red-50/50 dark:bg-red-900/20 border-b border-red-100 dark:border-red-900/30 pb-4">
+                <CardTitle className="flex items-center gap-3 text-lg text-slate-800 dark:text-white">
+                  <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 shadow-sm">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  Patologías y Condiciones
+                </CardTitle>
+                <CardDescription>
+                  Selecciona las condiciones que afectan la prescripción dietética.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <FormField
+                  control={form.control}
+                  name="patologias"
+                  render={({ field }) => {
+                    const togglePathology = (patho: string) => {
+                      const current = field.value || [];
+                      if (current.includes(patho)) {
+                        field.onChange(current.filter((p: string) => p !== patho));
+                      } else {
+                        field.onChange([...current, patho]);
+                      }
+                    };
+                    return (
+                      <FormItem>
+                        <div className="flex flex-wrap gap-2">
+                          {COMMON_PATHOLOGIES.map(patho => (
+                            <Badge
+                              key={patho}
+                              variant={(field.value || []).includes(patho) ? "default" : "outline"}
+                              className={`cursor-pointer transition-all ${(field.value || []).includes(patho)
+                                ? 'bg-red-500 hover:bg-red-600 text-white'
+                                : 'hover:bg-red-50 text-slate-600 border-slate-300'}`}
+                              onClick={() => togglePathology(patho)}
+                            >
+                              {(field.value || []).includes(patho) && <Check className="w-3 h-3 mr-1" />}
+                              {patho}
+                            </Badge>
+                          ))}
+                        </div>
+                        <FormDescription className="mt-3 text-xs">
+                          Haz clic en las condiciones que apliquen al paciente. Esto permite generar dietas seguras.
+                        </FormDescription>
+                      </FormItem>
+                    );
+                  }}
+                />
+              </CardContent>
+            </Card>
+
+            {/* 6. Antecedentes Nutricionales (SLATE THEME) */}
             <Card className="border-none shadow-md bg-white dark:bg-[#1e293b] dark:border dark:border-[#334155] overflow-hidden">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-[#334155] pb-4">
                 <CardTitle className="flex items-center gap-3 text-lg text-slate-800 dark:text-white">

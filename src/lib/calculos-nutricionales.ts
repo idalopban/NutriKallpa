@@ -6,6 +6,7 @@ import type {
   ImcResultado,
   ResultadoFormula
 } from "@/types";
+import { getAnthroNumber } from "@/types";
 
 /* -------------------------------------------------------------------------- */
 /* CONSTANTES & PHANTOM (Ross & Wilson 1974)                                  */
@@ -299,12 +300,12 @@ export function calculateKerrMasses(data: MedidasAntropometricas) {
 
   // 2. MASA ADIPOSA (Adipose)
   const zAdipose = getMeanZ([
-    { val: pliegues.triceps, p: PHANTOM.triceps.p, s: PHANTOM.triceps.s },
-    { val: pliegues.subscapular, p: PHANTOM.subscapular.p, s: PHANTOM.subscapular.s },
-    { val: pliegues.supraspinale, p: PHANTOM.supraspinale.p, s: PHANTOM.supraspinale.s }, // ISAK AUDIT: Uses Supraspinale
-    { val: pliegues.abdominal, p: PHANTOM.abdominal.p, s: PHANTOM.abdominal.s },
-    { val: pliegues.thigh, p: PHANTOM.thigh.p, s: PHANTOM.thigh.s },
-    { val: pliegues.calf, p: PHANTOM.calf.p, s: PHANTOM.calf.s }
+    { val: getAnthroNumber(pliegues.triceps), p: PHANTOM.triceps.p, s: PHANTOM.triceps.s },
+    { val: getAnthroNumber(pliegues.subscapular), p: PHANTOM.subscapular.p, s: PHANTOM.subscapular.s },
+    { val: getAnthroNumber(pliegues.supraspinale), p: PHANTOM.supraspinale.p, s: PHANTOM.supraspinale.s }, // ISAK AUDIT: Uses Supraspinale
+    { val: getAnthroNumber(pliegues.abdominal), p: PHANTOM.abdominal.p, s: PHANTOM.abdominal.s },
+    { val: getAnthroNumber(pliegues.thigh), p: PHANTOM.thigh.p, s: PHANTOM.thigh.s },
+    { val: getAnthroNumber(pliegues.calf), p: PHANTOM.calf.p, s: PHANTOM.calf.s }
   ]);
   const masaAdiposaRaw = Math.max(0, (zAdipose * PHANTOM.masaGrasa.s + PHANTOM.masaGrasa.p) / Math.pow(170.18 / H, 3));
 
@@ -323,10 +324,10 @@ export function calculateKerrMasses(data: MedidasAntropometricas) {
 
   // 4. MASA ÓSEA (Bone)
   const zBone = getMeanZ([
-    { val: diametros.biacromial, p: PHANTOM.biacromial.p, s: PHANTOM.biacromial.s },
-    { val: diametros.biiliocristal, p: PHANTOM.biiliocristal.p, s: PHANTOM.biiliocristal.s },
-    { val: diametros.humero, p: PHANTOM.humero.p, s: PHANTOM.humero.s },
-    { val: diametros.femur, p: PHANTOM.femur.p, s: PHANTOM.femur.s }
+    { val: getAnthroNumber(diametros.biacromial), p: PHANTOM.biacromial.p, s: PHANTOM.biacromial.s },
+    { val: getAnthroNumber(diametros.biiliocristal), p: PHANTOM.biiliocristal.p, s: PHANTOM.biiliocristal.s },
+    { val: getAnthroNumber(diametros.humero), p: PHANTOM.humero.p, s: PHANTOM.humero.s },
+    { val: getAnthroNumber(diametros.femur), p: PHANTOM.femur.p, s: PHANTOM.femur.s }
   ]);
   const masaOseaRaw = Math.max(0, (zBone * PHANTOM.masaOsea.s + PHANTOM.masaOsea.p) / Math.pow(170.18 / H, 3));
 

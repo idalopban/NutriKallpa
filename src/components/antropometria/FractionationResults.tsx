@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { MedidasAntropometricas } from "@/types";
+import { MedidasAntropometricas, getAnthroNumber } from "@/types";
 import {
     FiveComponentInput,
     calculateFiveComponentFractionation,
@@ -25,22 +25,22 @@ function convertToFiveComponentInput(data: MedidasAntropometricas): FiveComponen
         age: data.edad || 0,
         gender: data.sexo === 'masculino' ? 'male' : 'female',
 
-        triceps: data.pliegues?.triceps || 0,
-        subscapular: data.pliegues?.subscapular || 0,
-        biceps: data.pliegues?.biceps || 0,
-        suprailiac: data.pliegues?.supraspinale || 0,
-        abdominal: data.pliegues?.abdominal || 0,
-        thigh: data.pliegues?.thigh || 0,
-        calf: data.pliegues?.calf || 0,
+        triceps: getAnthroNumber(data.pliegues?.triceps),
+        subscapular: getAnthroNumber(data.pliegues?.subscapular),
+        biceps: getAnthroNumber(data.pliegues?.biceps),
+        suprailiac: getAnthroNumber(data.pliegues?.supraspinale),
+        abdominal: getAnthroNumber(data.pliegues?.abdominal),
+        thigh: getAnthroNumber(data.pliegues?.thigh),
+        calf: getAnthroNumber(data.pliegues?.calf),
 
-        armRelaxedGirth: data.perimetros?.brazoRelajado || data.perimetros?.brazoRelax || 0,
-        armFlexedGirth: data.perimetros?.brazoFlex || 0,
-        waistGirth: data.perimetros?.cintura || 0,
-        thighGirth: (data.perimetros?.musloMedio || (data.perimetros?.brazoFlex ? data.perimetros.brazoFlex * 2 : 0)) || 0,
-        calfGirth: data.perimetros?.pantorrilla || 0,
+        armRelaxedGirth: getAnthroNumber(data.perimetros?.brazoRelajado) || getAnthroNumber(data.perimetros?.brazoRelax),
+        armFlexedGirth: getAnthroNumber(data.perimetros?.brazoFlex),
+        waistGirth: getAnthroNumber(data.perimetros?.cintura),
+        thighGirth: getAnthroNumber(data.perimetros?.musloMedio) || (getAnthroNumber(data.perimetros?.brazoFlex) * 2),
+        calfGirth: getAnthroNumber(data.perimetros?.pantorrilla),
 
-        humerusBreadth: data.diametros?.humero || 0,
-        femurBreadth: data.diametros?.femur || 0
+        humerusBreadth: getAnthroNumber(data.diametros?.humero),
+        femurBreadth: getAnthroNumber(data.diametros?.femur)
     };
 }
 

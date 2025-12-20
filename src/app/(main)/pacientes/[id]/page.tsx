@@ -19,12 +19,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EvolutionSummary } from "@/components/patients/EvolutionSummary";
+import { ClinicalHistoryTab } from "@/components/patients/ClinicalHistoryTab";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Logic
 import { usePatientStore } from "@/store/usePatientStore";
 import { getPatientDietHistory, deleteSavedPlan, type SavedPlan } from "@/lib/diet-service";
 import type { Paciente, MedidasAntropometricas } from "@/types";
+import { getAnthroNumber } from "@/types";
 import {
     calculateMifflinStJeor,
     ACTIVITY_FACTORS,
@@ -36,7 +38,7 @@ export default function DetallePacientePage() {
     const params = useParams();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const activeTab = searchParams.get('tab') || 'resumen';
+    const activeTab = searchParams.get('tab') || 'clinica';
 
     // Use centralized patient store
     const {
@@ -478,18 +480,23 @@ export default function DetallePacientePage() {
                         </div>
 
                         {/* --- TABS --- */}
-                        <Tabs defaultValue="antropometria" className="w-full space-y-6">
+                        <Tabs defaultValue={activeTab} className="w-full space-y-6">
                             <TabsList className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg w-fit gap-1">
-                                {['Antropometria', 'Cálculos', 'Dietas', 'Avance'].map(tab => (
+                                {['Clínica', 'Antropometria', 'Cálculos', 'Dietas', 'Avance'].map(tab => (
                                     <TabsTrigger
                                         key={tab}
-                                        value={tab.toLowerCase().replace('é', 'e').replace('á', 'a')}
+                                        value={tab.toLowerCase().replace('é', 'e').replace('á', 'a').replace('í', 'i')}
                                         className="px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-400 transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-[#ff8508] dark:data-[state=active]:text-[#6cba00] data-[state=active]:shadow-sm hover:text-slate-900 dark:hover:text-slate-200"
                                     >
                                         {tab}
                                     </TabsTrigger>
                                 ))}
                             </TabsList>
+
+                            {/* Clínica */}
+                            <TabsContent value="clinica" className="space-y-6 focus-visible:outline-none">
+                                <ClinicalHistoryTab patient={paciente} />
+                            </TabsContent>
 
                             {/* Antropometría - Resumen Completo */}
                             <TabsContent value="antropometria" className="space-y-6 focus-visible:outline-none">
@@ -515,9 +522,9 @@ export default function DetallePacientePage() {
                                     // Estimate somatotype (simplified Heath-Carter)
                                     const talla = selectedMedida.talla || 170;
                                     const peso = selectedMedida.peso || 70;
-                                    const triceps = selectedMedida.pliegues?.triceps || 0;
-                                    const subscapular = selectedMedida.pliegues?.subscapular || 0;
-                                    const supraspinale = selectedMedida.pliegues?.supraspinale || 0;
+                                    const triceps = getAnthroNumber(selectedMedida.pliegues?.triceps);
+                                    const subscapular = getAnthroNumber(selectedMedida.pliegues?.subscapular);
+                                    const supraspinale = getAnthroNumber(selectedMedida.pliegues?.supraspinale);
 
                                     // Endomorphy
                                     const sumTres = triceps + subscapular + supraspinale;
@@ -525,10 +532,10 @@ export default function DetallePacientePage() {
                                     const endo = sumTres > 0 ? Math.max(0.5, -0.7182 + 0.1451 * (sumTres * correccion) - 0.00068 * Math.pow(sumTres * correccion, 2) + 0.0000014 * Math.pow(sumTres * correccion, 3)) : 0;
 
                                     // Mesomorphy (simplified)
-                                    const humero = selectedMedida.diametros?.humero || 7;
-                                    const femur = selectedMedida.diametros?.femur || 10;
-                                    const brazoFlex = selectedMedida.perimetros?.brazoFlex || 30;
-                                    const pantorrilla = selectedMedida.perimetros?.pantorrilla || 35;
+                                    const humero = getAnthroNumber(selectedMedida.diametros?.humero, 7);
+                                    const femur = getAnthroNumber(selectedMedida.diametros?.femur, 10);
+                                    const brazoFlex = getAnthroNumber(selectedMedida.perimetros?.brazoFlex, 30);
+                                    const pantorrilla = getAnthroNumber(selectedMedida.perimetros?.pantorrilla, 35);
                                     const meso = humero > 0 ? Math.max(0.5, 0.858 * humero + 0.601 * femur + 0.188 * brazoFlex + 0.161 * pantorrilla - 0.131 * talla + 4.5) : 0;
 
                                     // Ectomorphy

@@ -60,24 +60,30 @@ export function PatientNutritionConfig({ editable = true, compact = false }: Pro
         setIsEditing(false);
     };
 
-    const activityLabels: Record<NivelActividad, string> = {
+    const activityLabels: Partial<Record<NivelActividad, string>> = {
         sedentario: "Sedentario",
+        sedentaria: "Sedentaria",
         ligera: "Ligera (1-3 días/sem)",
         moderada: "Moderada (3-5 días/sem)",
+        activa: "Activa (5-6 días/sem)",
+        muy_activa: "Muy Activa (Atleta)",
         intensa: "Intensa (6-7 días/sem)",
         muy_intensa: "Muy Intensa (Doble sesión)"
     };
 
-    const goalLabels: Record<ObjetivoPeso, string> = {
+    const goalLabels: Partial<Record<ObjetivoPeso, string>> = {
+        perdida: "Perder Peso",
         perder: "Perder Grasa",
         mantenimiento: "Mantenimiento",
-        ganar: "Ganar Músculo"
+        ganar: "Ganar Músculo",
+        ganancia: "Ganancia de Peso"
     };
 
-    const formulaLabels: Record<FormulaGET, string> = {
+    const formulaLabels: Partial<Record<FormulaGET, string>> = {
         mifflin: "Mifflin-St Jeor",
         harris: "Harris-Benedict",
-        fao: "FAO/OMS"
+        fao: "FAO/OMS",
+        katch: "Katch-McArdle"
     };
 
     // Compact view (just displays values)

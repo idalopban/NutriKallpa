@@ -1,5 +1,6 @@
 import { Alimento } from "./csv-parser";
 import { PERUVIAN_RECIPES, PeruvianRecipe, RecipeComponent, MealType, Category, FITNESS_DESSERT_RECIPES } from "./peruvian-recipes";
+import { Pathologies } from "@/types";
 
 // --- TYPES ---
 
@@ -55,12 +56,27 @@ export interface DailyPlan {
     meals: Meal[];
     stats: DailyStats;
     goals: NutritionalGoals;
+    safetyWarnings?: string[]; // Audit Fix: Warn about potential conflicts
 }
 
 export interface UserPreferences {
     likedFoods: string[];
     dislikedFoods: string[];
+    pathologies?: string[]; // Audit Fix: Medical Constraints
 }
+
+// --- SAFETY CONSTANTS ---
+const SAFETY_FILTERS: Record<string, string[]> = {
+    'Diabetes Tipo 1': ['azucar', 'miel', 'chancaca', 'panela', 'rubia', 'refinada', 'jarabe', 'dulce', 'mermelada', 'gaseosa', 'bebida', 'nectar', 'frugos', 'frutado', 'reposteria'],
+    'Diabetes Tipo 2': ['azucar', 'miel', 'chancaca', 'panela', 'rubia', 'refinada', 'jarabe', 'dulce', 'mermelada', 'gaseosa', 'bebida', 'nectar', 'frugos', 'frutado'],
+    'Hipertensión Arterial': ['sal', 'sodio', 'siyau', 'sillao', 'soya', 'conserva', 'enlatado', 'embutido', 'hot dog', 'chorizo', 'salchicha', 'jamon', 'tocino', 'caldo', 'cubito'],
+    'Enfermedad Renal Crónica': ['plátano', 'platano', 'naranja', 'tomate', 'espinaca', 'acelga', 'palta', 'frutos secos', 'pecana', 'nuez', 'almendra', 'mani', 'chocolate', 'cacao', 'integral', 'salvado'],
+    'Celiaquía': ['trigo', 'avena', 'cebada', 'centeno', 'pan', 'fideo', 'tallarin', 'harina', 'galleta', 'semola', 'cuscus', 'cerveza', 'maltha'],
+    'Dislipidemia': ['mantequilla', 'manteca', 'tocino', 'cerdo', 'chancho', 'chicharrón', 'piel', 'entera', 'queso mantecoso', 'fritura', 'frito', 'aceite de palma', 'coco'],
+    'Obesidad': ['azucar', 'miel', 'fritura', 'frito', 'gaseosa', 'galleta', 'golosina', 'chocolates'],
+    'Gastritis': ['aj', 'rocoto', 'pimienta', 'comino', 'limon', 'cafe', 'alcohol', 'cerveza', 'vino', 'gaseosa', 'chocolate', 'fritura', 'grasa', 'citrico', 'naranja'],
+    'Reflujo GE': ['aj', 'rocoto', 'pimienta', 'comino', 'limon', 'cafe', 'alcohol', 'cerveza', 'vino', 'gaseosa', 'chocolate', 'menta', 'tomate', 'citrico']
+};
 
 // --- CONSTANTS ---
 
@@ -350,13 +366,34 @@ export function generateSmartDailyPlan(
             };
         }
 
-        // 1. Filter Foods based on Preferences (Disliked)
+        // 1. Filter Foods based on Preferences & SAFETY (Pathologies)
         let filteredFoods = [...availableFoods];
+        const safetyWarnings: string[] = [];
 
+        // A. FILTER: Disliked Foods
         if (preferences?.dislikedFoods && preferences.dislikedFoods.length > 0) {
             filteredFoods = filteredFoods.filter(f =>
                 !preferences.dislikedFoods.some(dislike => f.nombre.toLowerCase().includes(dislike.toLowerCase()))
             );
+        }
+
+        // B. FILTER: MEDICAL SAFETY (Critical Audit Fix)
+        if (preferences?.pathologies && preferences.pathologies.length > 0) {
+            preferences.pathologies.forEach(pathology => {
+                const forbiddenTerms = SAFETY_FILTERS[pathology];
+                if (forbiddenTerms) {
+                    const initialCount = filteredFoods.length;
+                    filteredFoods = filteredFoods.filter(f => {
+                        const name = f.nombre.toLowerCase();
+                        // Strict check: if name includes any forbidden term, exclude it
+                        return !forbiddenTerms.some(term => name.includes(term.toLowerCase()));
+                    });
+                    const removedCount = initialCount - filteredFoods.length;
+                    if (removedCount > 0) {
+                        safetyWarnings.push(`⚠️ Protocolo ${pathology.toUpperCase()}: ${removedCount} alimentos excluidos (riesgo clínico).`);
+                    }
+                }
+            });
         }
 
         // 2. Define Meal Structure & Targets
@@ -481,7 +518,8 @@ export function generateSmartDailyPlan(
             day: dayName,
             meals,
             stats,
-            goals
+            goals,
+            safetyWarnings
         };
     } catch (error) {
         console.error("Error generating daily plan:", error);

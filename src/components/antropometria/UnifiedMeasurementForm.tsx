@@ -93,7 +93,9 @@ function AccordionSection({
     );
 }
 
-// Input Field Component
+import { processMeasurement } from "@/lib/anthropometry-utils";
+
+// Input Field Component with ISAK Support
 function InputField({
     label,
     value,
@@ -111,22 +113,52 @@ function InputField({
     description?: string;
     foldType?: string;
 }) {
+    const [isakMode, setIsakMode] = useState(false);
+    const [series, setSeries] = useState<[string, string, string]>(["", "", ""]);
+
+    const handleSeriesChange = (index: 0 | 1 | 2, val: string) => {
+        const newSeries = [...series] as [string, string, string];
+        newSeries[index] = val;
+        setSeries(newSeries);
+
+        // Process Series
+        const numbers = newSeries.map(s => parseFloat(s)).filter(n => !isNaN(n));
+        if (numbers.length > 0) {
+            const result = processMeasurement(numbers);
+            onChange(result); // Update parent with calculated value
+        } else {
+            onChange(0);
+        }
+    };
+
     const hasValue = value > 0;
+
     return (
         <div className="space-y-1">
-            <div className="flex items-center gap-1.5">
-                <label className="text-[11px] text-slate-500 font-medium">{label}</label>
-                {description && (
-                    <div className="group relative">
-                        <Info className="w-3 h-3 text-slate-400 cursor-help" />
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
-                            <div className="font-bold text-[#6cba00] mb-0.5">{foldType}</div>
-                            {description}
-                            <div className="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-slate-800"></div>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                    <label className="text-[11px] text-slate-500 font-medium">{label}</label>
+                    {description && (
+                        <div className="group relative">
+                            <Info className="w-3 h-3 text-slate-400 cursor-help" />
+                            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                                <div className="font-bold text-[#6cba00] mb-0.5">{foldType}</div>
+                                {description}
+                                <div className="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-slate-800"></div>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
+                {/* ISAK Toggle */}
+                <button
+                    onClick={() => setIsakMode(!isakMode)}
+                    className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${isakMode ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-400 border-transparent hover:bg-slate-50'}`}
+                    title="Modo Serie (3 tomas)"
+                >
+                    {isakMode ? 'Serie' : 'Simple'}
+                </button>
             </div>
+
             <div className="relative">
                 <input
                     type="number"
@@ -135,13 +167,31 @@ function InputField({
                     value={value || ""}
                     onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
                     placeholder={placeholder}
+                    readOnly={isakMode} // Read-only in ISAK mode (calculated)
                     className={`w-full text-sm font-semibold text-center py-2.5 px-3 rounded-lg border-2 transition-all outline-none ${hasValue
                         ? 'bg-[#6cba00]/5 border-[#6cba00]/30 text-[#6cba00]'
                         : 'bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200'
-                        } focus:ring-2 focus:ring-[#6cba00]/30 focus:border-[#6cba00]`}
+                        } focus:ring-2 focus:ring-[#6cba00]/30 focus:border-[#6cba00] ${isakMode ? 'opacity-80 cursor-not-allowed' : ''}`}
                 />
                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">{unit}</span>
             </div>
+
+            {/* ISAK Series Input */}
+            {isakMode && (
+                <div className="grid grid-cols-3 gap-1 mt-1 animate-in slide-in-from-top-1 duration-200">
+                    {[0, 1, 2].map((i) => (
+                        <div key={i} className="relative">
+                            <input
+                                type="number"
+                                placeholder={`#${i + 1}`}
+                                value={series[i]}
+                                onChange={(e) => handleSeriesChange(i as 0 | 1 | 2, e.target.value)}
+                                className="w-full text-[10px] text-center py-1 rounded border border-slate-200 focus:border-indigo-400 outline-none bg-slate-50 focus:bg-white"
+                            />
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
