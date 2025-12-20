@@ -30,8 +30,16 @@ export function useInactivityLogout(timeoutMs: number = INACTIVITY_TIMEOUT_MS) {
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
     const lastActivityRef = useRef<number>(Date.now());
 
-    const handleLogout = useCallback(() => {
+    const handleLogout = useCallback(async () => {
         console.log("[Security] Auto-logout due to inactivity");
+
+        // Call server-side logout to ensure cookie is cleared
+        try {
+            await fetch('/api/auth/logout', { method: 'POST' });
+        } catch (e) {
+            console.error('Server logout failed:', e);
+        }
+
         logout();
         router.push("/login?reason=inactivity");
     }, [logout, router]);
