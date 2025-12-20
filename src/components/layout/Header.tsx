@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -38,6 +38,12 @@ export function Header() {
     const [searchTerm, setSearchTerm] = useState("");
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+    // FIX: Prevent Radix Portal from rendering before hydration to avoid removeChild errors
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     // Desactivado - ya no se muestra el buscador en el header
     const showSearch = false;
 
@@ -73,79 +79,86 @@ export function Header() {
 
     return (
         <header className="flex items-center justify-between py-3 px-4 md:px-8 mb-2">
-            {/* Mobile Menu Button */}
+            {/* Mobile Menu Button - Only render Sheet after mount to prevent Portal DOM errors */}
             <div className="md:hidden">
-                <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                    <SheetTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-10 w-10">
-                            <Menu className="h-6 w-6" />
-                        </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-[280px] p-0" style={{ backgroundColor: SIDEBAR_GREEN }}>
-                        <SheetHeader className="p-4 border-b border-white/10">
-                            <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm cursor-pointer transition-transform duration-300 hover:scale-110">
-                                    <Image
-                                        src="/logo.svg"
-                                        alt="NutriKallpa"
-                                        width={32}
-                                        height={32}
-                                        className="w-8 h-8"
-                                        priority
-                                    />
-                                </div>
-                                <SheetTitle className="text-white text-xl font-bold">NutriKallpa</SheetTitle>
-                            </div>
-                        </SheetHeader>
-
-                        {/* Navigation */}
-                        <nav className="flex-1 py-4">
-                            {navItems.map((item) => {
-                                if (item.adminOnly && user?.rol !== 'admin') return null;
-                                const active = isActive(item.href);
-                                const Icon = item.icon;
-
-                                return (
-                                    <Link
-                                        key={item.href}
-                                        href={item.href}
-                                        onClick={() => setMobileMenuOpen(false)}
-                                        className={cn(
-                                            "flex items-center gap-4 px-6 py-4 transition-all",
-                                            active
-                                                ? "bg-white text-[#6cba00] font-semibold"
-                                                : "text-white/80 hover:text-white hover:bg-white/10"
-                                        )}
-                                    >
-                                        <Icon className="w-5 h-5" />
-                                        <span className="text-base">{item.name}</span>
-                                    </Link>
-                                );
-                            })}
-                        </nav>
-
-                        {/* User Info & Logout */}
-                        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-                            <div className="flex items-center gap-3 mb-4 px-2">
-                                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold">
-                                    {user?.nombre ? user.nombre.charAt(0).toUpperCase() : "U"}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-white font-medium truncate text-sm">{user?.nombre || "Usuario"}</p>
-                                    <p className="text-white/60 text-xs truncate">{user?.especialidad || "Especialista"}</p>
-                                </div>
-                            </div>
-                            <Button
-                                variant="ghost"
-                                onClick={handleLogout}
-                                className="w-full justify-start gap-3 text-white/80 hover:text-white hover:bg-white/10"
-                            >
-                                <LogOut className="w-5 h-5" />
-                                Cerrar Sesión
+                {mounted ? (
+                    <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                        <SheetTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-10 w-10">
+                                <Menu className="h-6 w-6" />
                             </Button>
-                        </div>
-                    </SheetContent>
-                </Sheet>
+                        </SheetTrigger>
+                        <SheetContent side="left" className="w-[280px] p-0" style={{ backgroundColor: SIDEBAR_GREEN }}>
+                            <SheetHeader className="p-4 border-b border-white/10">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm cursor-pointer transition-transform duration-300 hover:scale-110">
+                                        <Image
+                                            src="/logo.svg"
+                                            alt="NutriKallpa"
+                                            width={32}
+                                            height={32}
+                                            className="w-8 h-8"
+                                            priority
+                                        />
+                                    </div>
+                                    <SheetTitle className="text-white text-xl font-bold">NutriKallpa</SheetTitle>
+                                </div>
+                            </SheetHeader>
+
+                            {/* Navigation */}
+                            <nav className="flex-1 py-4">
+                                {navItems.map((item) => {
+                                    if (item.adminOnly && user?.rol !== 'admin') return null;
+                                    const active = isActive(item.href);
+                                    const Icon = item.icon;
+
+                                    return (
+                                        <Link
+                                            key={item.href}
+                                            href={item.href}
+                                            onClick={() => setMobileMenuOpen(false)}
+                                            className={cn(
+                                                "flex items-center gap-4 px-6 py-4 transition-all",
+                                                active
+                                                    ? "bg-white text-[#6cba00] font-semibold"
+                                                    : "text-white/80 hover:text-white hover:bg-white/10"
+                                            )}
+                                        >
+                                            <Icon className="w-5 h-5" />
+                                            <span className="text-base">{item.name}</span>
+                                        </Link>
+                                    );
+                                })}
+                            </nav>
+
+                            {/* User Info & Logout */}
+                            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
+                                <div className="flex items-center gap-3 mb-4 px-2">
+                                    <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold">
+                                        {user?.nombre ? user.nombre.charAt(0).toUpperCase() : "U"}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-white font-medium truncate text-sm">{user?.nombre || "Usuario"}</p>
+                                        <p className="text-white/60 text-xs truncate">{user?.especialidad || "Especialista"}</p>
+                                    </div>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    onClick={handleLogout}
+                                    className="w-full justify-start gap-3 text-white/80 hover:text-white hover:bg-white/10"
+                                >
+                                    <LogOut className="w-5 h-5" />
+                                    Cerrar Sesión
+                                </Button>
+                            </div>
+                        </SheetContent>
+                    </Sheet>
+                ) : (
+                    // Fallback button before Sheet mounts to prevent hydration mismatch
+                    <Button variant="ghost" size="icon" className="h-10 w-10">
+                        <Menu className="h-6 w-6" />
+                    </Button>
+                )}
             </div>
 
             {/* Search (hidden by default) */}
