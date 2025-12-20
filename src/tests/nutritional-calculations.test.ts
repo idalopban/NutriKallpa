@@ -25,9 +25,9 @@ describe('Harris-Benedict BMR Calculations', () => {
     });
 
     it('should calculate female BMR correctly', () => {
-        // Female: 447.593 + (9.247 × 60) + (3.098 × 165) - (4.330 × 28) ≈ 1416
+        // Female: 447.593 + (9.247 × 60) + (3.098 × 165) - (4.330 × 28) ≈ 1392
         const result = calculateHarrisBenedict(60, 165, 28, 'F');
-        expect(result).toBeCloseTo(1416, -1);
+        expect(result).toBeCloseTo(1392, -1);
     });
 
     it('should return higher BMR for heavier individuals', () => {
@@ -55,9 +55,9 @@ describe('Mifflin-St Jeor BMR Calculations', () => {
     });
 
     it('should calculate female BMR correctly', () => {
-        // Female: (10 × 60) + (6.25 × 165) - (5 × 28) - 161 = 1371
+        // Female: (10 × 60) + (6.25 × 165) - (5 × 28) - 161 = 1330.25
         const result = calculateMifflinStJeor(60, 165, 28, 'F');
-        expect(result).toBeCloseTo(1371, -1);
+        expect(result).toBeCloseTo(1330, -1);
     });
 
     it('should give lower values for females than Harris-Benedict', () => {

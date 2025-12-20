@@ -32,10 +32,10 @@ const REFERENCE_IMC_CASES = [
 const HARRIS_BENEDICT_REFERENCE = [
     // Male: BMR = 88.362 + (13.397 × weight) + (4.799 × height) - (5.677 × age)
     { weight: 70, height: 175, age: 30, gender: 'M', expectedBMR: 1696 },
-    { weight: 80, height: 180, age: 25, gender: 'M', expectedBMR: 1877 },
+    { weight: 80, height: 180, age: 25, gender: 'M', expectedBMR: 1882 },
     // Female: BMR = 447.593 + (9.247 × weight) + (3.098 × height) - (4.330 × age)
-    { weight: 60, height: 165, age: 28, gender: 'F', expectedBMR: 1416 },
-    { weight: 55, height: 160, age: 35, gender: 'F', expectedBMR: 1318 },
+    { weight: 60, height: 165, age: 28, gender: 'F', expectedBMR: 1392 },
+    { weight: 55, height: 160, age: 35, gender: 'F', expectedBMR: 1300 },
 ];
 
 // ============================================================================
@@ -69,7 +69,7 @@ describe('IMC (Body Mass Index) Calculations', () => {
 
         it('should classify normal weight correctly', () => {
             const result = calcularIMC(70, 175);
-            expect(result.diagnostico.toLowerCase()).toContain('normal');
+            expect(result.diagnostico.toLowerCase()).toMatch(/normal|normopeso/);
         });
 
         it('should classify overweight correctly', () => {
@@ -127,9 +127,9 @@ describe('Basal Metabolic Rate (BMR) Calculations', () => {
         });
 
         it('should calculate female BMR correctly', () => {
-            // Female: (10 × 60) + (6.25 × 165) - (5 × 28) - 161 = 1371
+            // Female: (10 × 60) + (6.25 × 165) - (5 × 28) - 161 = 1330.25 (actual implementation)
             const result = calculateMifflinStJeor(60, 165, 28, 'F');
-            expect(result).toBeCloseTo(1371, -1);
+            expect(result).toBeCloseTo(1330, -1);
         });
     });
 });
