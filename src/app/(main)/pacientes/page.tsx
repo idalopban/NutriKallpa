@@ -13,20 +13,26 @@ import { es } from "date-fns/locale";
 
 // Helper function to determine patient status
 type PatientStatus = "activo" | "pendiente" | "inactivo";
-const INACTIVITY_THRESHOLD_DAYS = 60;
+const INACTIVITY_THRESHOLD_DAYS = 8; // Inactivo después de 8 días sin evaluación
 
 function getPatientStatus(medidas: MedidasAntropometricas[], dietas: Dieta[], pacienteId: string): PatientStatus {
   const hasMedidas = medidas.length > 0;
-  const hasDietas = dietas.length > 0;
 
   // Pendiente: Sin ninguna evaluación antropométrica
   if (!hasMedidas) return "pendiente";
 
-  // Activo: Tiene al menos un plan de alimentación
-  if (hasDietas) return "activo";
+  // Tiene medidas - verificar fecha de última evaluación
+  const sortedMedidas = [...medidas].sort((a, b) =>
+    new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
+  );
+  const lastEvalDate = new Date(sortedMedidas[0].fecha);
+  const daysSinceLastEval = differenceInDays(new Date(), lastEvalDate);
 
-  // Inactivo: Tiene evaluación pero no tiene plan de alimentación
-  return "inactivo";
+  // Inactivo: Última evaluación hace más de 8 días
+  if (daysSinceLastEval > INACTIVITY_THRESHOLD_DAYS) return "inactivo";
+
+  // Activo: Tiene evaluación y está dentro de los 8 días
+  return "activo";
 }
 
 // UI Components
@@ -112,10 +118,33 @@ function PatientRow({
       <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-6">
         {/* Avatar & Name */}
         <div className="flex items-center gap-3 md:gap-4 flex-1 md:min-w-[280px]">
-          <Avatar className="h-10 w-10 md:h-12 md:w-12 border-2 border-slate-100 dark:border-slate-700 group-hover:border-[#ff8508] transition-colors flex-shrink-0">
-            <AvatarFallback className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-sm group-hover:text-[#ff8508] transition-colors">
-              {initials}
-            </AvatarFallback>
+          <Avatar className="h-10 w-10 md:h-12 md:w-12 border-2 border-slate-100 dark:border-slate-700 group-hover:border-[#ff8508] transition-colors flex-shrink-0 overflow-hidden">
+            {paciente.datosPersonales.avatarUrl ? (
+              paciente.datosPersonales.avatarUrl.startsWith('avatar-') ? (
+                <AvatarFallback className="bg-gradient-to-br from-[#6cba00] to-[#4a8c00] text-white font-bold text-lg">
+                  {paciente.datosPersonales.avatarUrl === 'avatar-1' && '👤'}
+                  {paciente.datosPersonales.avatarUrl === 'avatar-2' && '👨'}
+                  {paciente.datosPersonales.avatarUrl === 'avatar-3' && '👩'}
+                  {paciente.datosPersonales.avatarUrl === 'avatar-4' && '👴'}
+                  {paciente.datosPersonales.avatarUrl === 'avatar-5' && '👵'}
+                  {paciente.datosPersonales.avatarUrl === 'avatar-6' && '🧑‍⚕️'}
+                  {paciente.datosPersonales.avatarUrl === 'avatar-7' && '🏃'}
+                  {paciente.datosPersonales.avatarUrl === 'avatar-8' && '🏋️'}
+                  {paciente.datosPersonales.avatarUrl === 'avatar-9' && '🧘'}
+                  {paciente.datosPersonales.avatarUrl === 'avatar-10' && '🚴'}
+                </AvatarFallback>
+              ) : (
+                <img
+                  src={paciente.datosPersonales.avatarUrl}
+                  alt={`${paciente.datosPersonales.nombre} ${paciente.datosPersonales.apellido}`}
+                  className="w-full h-full object-cover"
+                />
+              )
+            ) : (
+              <AvatarFallback className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-sm group-hover:text-[#ff8508] transition-colors">
+                {initials}
+              </AvatarFallback>
+            )}
           </Avatar>
           <div>
             <h3 className="font-semibold text-slate-800 dark:text-white group-hover:text-[#ff8508] transition-colors">

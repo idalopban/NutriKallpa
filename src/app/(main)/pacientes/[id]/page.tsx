@@ -159,7 +159,7 @@ export default function DetallePacientePage() {
             <div className="flex h-full">
 
                 {/* SIDEBAR IZQUIERDO - Información del Paciente */}
-                <aside className="hidden lg:flex flex-col w-[320px] min-h-screen bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 p-6">
+                <aside className="hidden lg:flex flex-col w-[380px] min-h-screen bg-white dark:bg-slate-900 p-5 shrink-0 ml-8">
                     {/* Back Button */}
                     <button
                         onClick={() => router.push('/pacientes')}
@@ -212,62 +212,111 @@ export default function DetallePacientePage() {
 
                     <Separator className="my-4" />
 
-                    {/* Information Section */}
-                    <div className="flex-1 overflow-y-auto">
-                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4">Información:</h3>
+                    {/* Information Section - Improved Design */}
+                    <div className="flex-1 overflow-y-auto space-y-4">
 
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-slate-500">Sexo:</span>
-                                <span className="text-sm font-medium text-slate-800 dark:text-white capitalize">{paciente.datosPersonales.sexo}</span>
+                        {/* Métricas Principales - Cards */}
+                        <div className="grid grid-cols-2 gap-2">
+                            {/* IMC */}
+                            <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-50 to-yellow-100/50 dark:from-yellow-900/20 dark:to-yellow-900/10 border border-yellow-200/50 dark:border-yellow-800/30">
+                                <p className="text-[10px] uppercase tracking-wider text-yellow-600 dark:text-yellow-400 font-medium">IMC</p>
+                                <p className={`text-xl font-bold ${getImcColor(imc)}`}>{imc.toFixed(1)}</p>
+                                <p className="text-[10px] text-slate-400">kg/m²</p>
+                            </div>
+                            {/* % Grasa */}
+                            <div className="p-3 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-900/20 dark:to-orange-900/10 border border-orange-200/50 dark:border-orange-800/30">
+                                <p className="text-[10px] uppercase tracking-wider text-orange-600 dark:text-orange-400 font-medium">% Grasa</p>
+                                <p className="text-xl font-bold text-orange-600 dark:text-orange-400">{bodyFatPercent > 0 ? bodyFatPercent.toFixed(1) : '--'}</p>
+                                <p className="text-[10px] text-slate-400">corporal</p>
+                            </div>
+                            {/* Peso */}
+                            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-900/10 border border-blue-200/50 dark:border-blue-800/30">
+                                <p className="text-[10px] uppercase tracking-wider text-blue-600 dark:text-blue-400 font-medium">Peso</p>
+                                <p className="text-xl font-bold text-slate-800 dark:text-white">{pesoActual}</p>
+                                <p className="text-[10px] text-slate-400">kg</p>
+                            </div>
+                            {/* Talla */}
+                            <div className="p-3 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-900/10 border border-purple-200/50 dark:border-purple-800/30">
+                                <p className="text-[10px] uppercase tracking-wider text-purple-600 dark:text-purple-400 font-medium">Talla</p>
+                                <p className="text-xl font-bold text-slate-800 dark:text-white">{tallaActual}</p>
+                                <p className="text-[10px] text-slate-400">cm</p>
+                            </div>
+                        </div>
+
+                        {/* Somatotipo */}
+                        {masaMuscular > 0 && (
+                            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                                <p className="text-[10px] uppercase tracking-wider text-slate-500 font-medium mb-2">Somatotipo</p>
+                                <div className="flex items-center gap-1">
+                                    <span className="px-2 py-1 rounded-md bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs font-medium">
+                                        Endo {bodyFatPercent > 20 ? (bodyFatPercent > 30 ? '↑↑' : '↑') : '○'}
+                                    </span>
+                                    <span className="px-2 py-1 rounded-md bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium">
+                                        Meso {masaMuscular > 50 ? (masaMuscular > 60 ? '↑↑' : '↑') : '○'}
+                                    </span>
+                                    <span className="px-2 py-1 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium">
+                                        Ecto {pesoActual < 60 ? '↑' : '○'}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Patologías */}
+                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-medium mb-2">Patologías</p>
+                            {paciente.historiaClinica?.patologias && paciente.historiaClinica.patologias.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                    {paciente.historiaClinica.patologias.map((patologia, index) => (
+                                        <span key={index} className="px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[10px] font-medium">
+                                            {patologia}
+                                        </span>
+                                    ))}
+                                </div>
+                            ) : (
+                                <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                                    ✓ Sin patologías registradas
+                                </span>
+                            )}
+                        </div>
+
+                        <Separator className="my-2" />
+
+                        {/* Datos de Contacto */}
+                        <div className="space-y-3">
+                            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">Contacto</p>
+
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-slate-400">Sexo</span>
+                                <span className="font-medium text-slate-700 dark:text-slate-200 capitalize">{paciente.datosPersonales.sexo}</span>
                             </div>
 
                             {paciente.datosPersonales.email && (
-                                <div className="flex justify-between items-start gap-2">
-                                    <span className="text-sm text-slate-500 shrink-0">Email:</span>
-                                    <span className="text-sm font-medium text-slate-800 dark:text-white text-right break-all">{paciente.datosPersonales.email}</span>
+                                <div className="flex justify-between items-start gap-2 text-sm">
+                                    <span className="text-slate-400 shrink-0">Email</span>
+                                    <span className="font-medium text-slate-700 dark:text-slate-200 text-right text-xs break-all">{paciente.datosPersonales.email}</span>
                                 </div>
                             )}
 
                             {paciente.datosPersonales.telefono && (
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-slate-500">Teléfono:</span>
-                                    <span className="text-sm font-medium text-slate-800 dark:text-white">{paciente.datosPersonales.telefono}</span>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-slate-400">Teléfono</span>
+                                    <span className="font-medium text-slate-700 dark:text-slate-200">{paciente.datosPersonales.telefono}</span>
                                 </div>
                             )}
 
-                            <div className="flex justify-between items-start gap-2">
-                                <span className="text-sm text-slate-500 shrink-0">Objetivo:</span>
-                                <span className="text-sm font-medium text-slate-800 dark:text-white text-right">{paciente.historiaClinica?.objetivos || "Sin definir"}</span>
+                            <div className="flex justify-between items-start gap-2 text-sm">
+                                <span className="text-slate-400 shrink-0">Objetivo</span>
+                                <span className="font-medium text-slate-700 dark:text-slate-200 text-right text-xs">{paciente.historiaClinica?.objetivos || "Sin definir"}</span>
                             </div>
 
-                            {paciente.historiaClinica?.antecedentesPersonales && (
-                                <div className="flex justify-between items-start gap-2">
-                                    <span className="text-sm text-slate-500 shrink-0">Antecedentes:</span>
-                                    <span className="text-sm font-medium text-slate-800 dark:text-white text-right line-clamp-2">{paciente.historiaClinica.antecedentesPersonales}</span>
-                                </div>
-                            )}
-
-                            <Separator className="my-2" />
-
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-slate-500">Talla:</span>
-                                <span className="text-sm font-medium text-slate-800 dark:text-white">{tallaActual} cm</span>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-slate-400">ID</span>
+                                <span className="font-mono text-xs text-slate-500">{paciente.id.slice(0, 8).toUpperCase()}</span>
                             </div>
 
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-slate-500">Peso:</span>
-                                <span className="text-sm font-medium text-slate-800 dark:text-white">{pesoActual} kg</span>
-                            </div>
-
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-slate-500">ID Paciente:</span>
-                                <span className="text-sm font-mono text-slate-600 dark:text-slate-400">{paciente.id.slice(0, 8).toUpperCase()}</span>
-                            </div>
-
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-slate-500">Última visita:</span>
-                                <span className="text-sm font-medium text-slate-800 dark:text-white">{lastVisit}</span>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-slate-400">Última visita</span>
+                                <span className="font-medium text-slate-700 dark:text-slate-200 text-xs">{lastVisit}</span>
                             </div>
                         </div>
                     </div>
@@ -284,7 +333,7 @@ export default function DetallePacientePage() {
                         </Button>
                         <Button
                             className="w-full gap-2 justify-start bg-[#6cba00] hover:bg-[#5aa300]"
-                            onClick={() => router.push(`/pacientes/${paciente.id}/consulta`)}
+                            onClick={() => router.push(`/pacientes/nuevo?patientId=${paciente.id}`)}
                         >
                             <FileText className="w-4 h-4" />
                             Nueva Consulta
@@ -294,7 +343,7 @@ export default function DetallePacientePage() {
 
                 {/* CONTENIDO PRINCIPAL */}
                 <main className="flex-1 overflow-y-auto">
-                    <div className="container mx-auto p-4 md:p-8 space-y-6 max-w-[1200px]">
+                    <div className="p-4 md:p-6 lg:pr-8 space-y-6 w-full">
 
                         {/* Mobile Header - Only visible on small screens */}
                         <div className="lg:hidden flex flex-col gap-4">
@@ -326,158 +375,6 @@ export default function DetallePacientePage() {
                             <p className="text-sm text-slate-500">Resumen clínico y seguimiento nutricional</p>
                         </div>
 
-                        {/* METRIC CARDS - Top Row */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {/* Peso */}
-                            <Card className="bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
-                                <CardContent className="p-4 flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                                        <Scale className="w-6 h-6 text-red-500" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-slate-500 mb-0.5">Peso</p>
-                                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{pesoActual}<span className="text-sm font-normal text-slate-400 ml-1">kg</span></p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* IMC */}
-                            <Card className="bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
-                                <CardContent className="p-4 flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                                        <Activity className="w-6 h-6 text-yellow-600" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-slate-500 mb-0.5">IMC</p>
-                                        <p className={`text-2xl font-bold ${getImcColor(imc)}`}>{imc.toFixed(1)}<span className="text-sm font-normal text-slate-400 ml-1">kg/m²</span></p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* % Grasa */}
-                            <Card className="bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
-                                <CardContent className="p-4 flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                                        <TrendingDown className="w-6 h-6 text-orange-500" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-slate-500 mb-0.5">% Grasa</p>
-                                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{bodyFatPercent > 0 ? bodyFatPercent.toFixed(1) : '--'}<span className="text-sm font-normal text-slate-400 ml-1">%</span></p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* Masa Muscular */}
-                            <Card className="bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
-                                <CardContent className="p-4 flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                        <TrendingUp className="w-6 h-6 text-green-500" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-slate-500 mb-0.5">Masa Muscular</p>
-                                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{masaMuscular > 0 ? masaMuscular.toFixed(1) : '--'}<span className="text-sm font-normal text-slate-400 ml-1">kg</span></p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        {/* Evaluaciones Recientes & Dietas Section */}
-                        <div className="grid md:grid-cols-2 gap-6">
-                            {/* Evaluaciones */}
-                            <Card className="bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 shadow-sm rounded-xl">
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="text-base font-semibold text-slate-800 dark:text-white flex items-center gap-2">
-                                        <History className="w-4 h-4 text-slate-400" />
-                                        Evaluaciones Recientes
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-2">
-                                    {medidas.length === 0 ? (
-                                        <p className="text-sm text-slate-400 text-center py-4">Sin evaluaciones registradas</p>
-                                    ) : (
-                                        <>
-                                            {medidas.slice(0, 3).map((medida, index) => (
-                                                <div
-                                                    key={medida.id || index}
-                                                    className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                                                    onClick={() => {
-                                                        setSelectedEvaluationIndex(index);
-                                                        router.push(`/pacientes/${paciente.id}?tab=antropometria`);
-                                                    }}
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${index === 0 ? 'bg-[#6cba00]/20 text-[#6cba00]' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'}`}>
-                                                            <Scale className="w-4 h-4" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-medium text-slate-800 dark:text-white">
-                                                                {medida.fecha ? new Date(medida.fecha).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha'}
-                                                            </p>
-                                                            <p className="text-xs text-slate-400">{medida.peso} kg • IMC {(medida.imc || 0).toFixed(1)}</p>
-                                                        </div>
-                                                    </div>
-                                                    <ChevronRight className="w-4 h-4 text-slate-300" />
-                                                </div>
-                                            ))}
-                                            <Button
-                                                variant="ghost"
-                                                className="w-full text-xs text-[#6cba00] hover:text-[#5aa300] hover:bg-[#6cba00]/10"
-                                                onClick={() => router.push(`/antropometria?id=${paciente.id}`)}
-                                            >
-                                                + Nueva Evaluación
-                                            </Button>
-                                        </>
-                                    )}
-                                </CardContent>
-                            </Card>
-
-                            {/* Dietas */}
-                            <Card className="bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 shadow-sm rounded-xl">
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="text-base font-semibold text-slate-800 dark:text-white flex items-center gap-2">
-                                        <Utensils className="w-4 h-4 text-slate-400" />
-                                        Planes Nutricionales
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-2">
-                                    {dietHistory.length === 0 ? (
-                                        <p className="text-sm text-slate-400 text-center py-4">Sin planes registrados</p>
-                                    ) : (
-                                        <>
-                                            {dietHistory.slice(0, 3).map((plan) => (
-                                                <div
-                                                    key={plan.id}
-                                                    className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                                                    onClick={() => router.push(`/dietas?patientId=${paciente.id}&planId=${plan.id}`)}
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${plan.status === 'active' ? 'bg-[#ff8508]/20 text-[#ff8508]' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'}`}>
-                                                            <Utensils className="w-4 h-4" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-medium text-slate-800 dark:text-white">{plan.name}</p>
-                                                            <p className="text-xs text-slate-400">
-                                                                {new Date(plan.createdAt).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <Badge variant="secondary" className={`text-[10px] ${plan.status === 'active' ? 'bg-green-100 text-green-700' : ''}`}>
-                                                        {plan.status === 'active' ? 'Activo' : 'Archivado'}
-                                                    </Badge>
-                                                </div>
-                                            ))}
-                                            <Button
-                                                variant="ghost"
-                                                className="w-full text-xs text-[#ff8508] hover:text-[#e67600] hover:bg-[#ff8508]/10"
-                                                onClick={() => router.push(`/dietas?patientId=${paciente.id}`)}
-                                            >
-                                                + Nueva Dieta
-                                            </Button>
-                                        </>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </div>
 
                         {/* --- TABS --- */}
                         <Tabs defaultValue={activeTab} className="w-full space-y-6">

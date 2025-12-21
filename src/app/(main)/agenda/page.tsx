@@ -285,10 +285,10 @@ export default function AgendaView() {
   const monthDays = eachDayOfInterval({ start: startOfWeek(monthStart, { weekStartsOn: 1 }), end: endOfWeek(monthEnd, { weekStartsOn: 1 }) });
 
   return (
-    <div className="flex h-full bg-slate-50 dark:bg-[#0f172a] rounded-3xl overflow-hidden gap-6 p-6 md:p-0">
+    <div className="flex h-full bg-slate-50 dark:bg-[#0f172a] rounded-3xl overflow-hidden gap-4 p-4 md:p-0">
 
       {/* LEFT SIDEBAR (Inner) */}
-      <div className="hidden xl:flex flex-col w-[280px] bg-white dark:bg-[#0f172a] border-r border-slate-100 dark:border-slate-800 p-6 gap-8">
+      <div className="hidden xl:flex flex-col w-[220px] bg-white dark:bg-[#0f172a] border border-slate-100 dark:border-slate-800 rounded-3xl p-4 gap-6 ml-8">
         {/* Date Nav */}
         <div className="flex items-center justify-between mb-2">
           <span className="text-lg font-bold capitalize text-slate-800 dark:text-slate-100">
@@ -346,23 +346,10 @@ export default function AgendaView() {
             </div>
           </div>
         </div>
-
-        {/* User Profile */}
-        <div className="mt-auto flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-          <Avatar className="h-10 w-10 border border-slate-200 dark:border-slate-700">
-            <AvatarFallback className="bg-white dark:bg-slate-900 text-[#6cba00] font-bold">
-              {user?.nombre?.charAt(0) || "D"}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col">
-            <span className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate max-w-[140px]">{user?.nombre || "Usuario"}</span>
-            <span className="text-xs text-slate-500 truncate max-w-[140px]">{user?.email || "doctor@nutrikallpa.com"}</span>
-          </div>
-        </div>
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="flex-1 flex flex-col bg-white dark:bg-[#0f172a] rounded-3xl shadow-sm overflow-hidden border border-slate-100 dark:border-slate-800">
+      <div className="flex-1 flex flex-col bg-white dark:bg-[#0f172a] rounded-3xl shadow-sm overflow-hidden border border-slate-100 dark:border-slate-800 mx-4">
 
         <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-4">
@@ -398,12 +385,12 @@ export default function AgendaView() {
           {/* WEEK VIEW */}
           {viewMode === 'week' && (
             <div className="min-w-[800px] h-full flex flex-col">
-              <div className="grid grid-cols-[60px_repeat(7,1fr)] bg-white dark:bg-[#0f172a] sticky top-0 z-20 border-b border-slate-100 dark:border-slate-800">
-                <div className="p-4 border-r border-slate-100 dark:border-slate-800 op-50 text-xs text-slate-400 font-medium pt-8">GMT-5</div>
+              <div className="grid grid-cols-[50px_repeat(7,1fr)] bg-white dark:bg-[#0f172a] sticky top-0 z-20 border-b border-slate-100 dark:border-slate-800">
+                <div className="p-2 border-r border-slate-100 dark:border-slate-800 op-50 text-xs text-slate-400 font-medium pt-6">GMT-5</div>
                 {weekDays.map((day) => (
-                  <div key={day.toISOString()} className={cn("p-4 text-center border-r border-slate-100 dark:border-slate-800 relative group", isToday(day) ? "bg-slate-50/50" : "")}>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">{format(day, "EEE", { locale: es })}</span>
-                    <div className={cn("w-8 h-8 rounded-full flex items-center justify-center mx-auto text-lg font-bold transition-all", isToday(day) ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-lg" : "text-slate-700 dark:text-slate-300 group-hover:bg-slate-100 dark:group-hover:bg-slate-800")}>{format(day, "d")}</div>
+                  <div key={day.toISOString()} className={cn("p-2 text-center border-r border-slate-100 dark:border-slate-800 relative group", isToday(day) ? "bg-slate-50/50" : "")}>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">{format(day, "EEE", { locale: es })}</span>
+                    <div className={cn("w-7 h-7 rounded-full flex items-center justify-center mx-auto text-sm font-bold transition-all", isToday(day) ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-lg" : "text-slate-700 dark:text-slate-300 group-hover:bg-slate-100 dark:group-hover:bg-slate-800")}>{format(day, "d")}</div>
                   </div>
                 ))}
               </div>
@@ -416,7 +403,7 @@ export default function AgendaView() {
                   // Each hour row is 120px high, hours start at 8 (index 0)
                   // Calculate position: (hour - 8) * 120 + (minutes / 60) * 120
                   const startHour = 8;
-                  const hourHeight = 120;
+                  const hourHeight = 80;
                   if (currentHour >= startHour && currentHour < 19) {
                     const topPosition = (currentHour - startHour) * hourHeight + (currentMinutes / 60) * hourHeight;
                     return (
@@ -434,16 +421,16 @@ export default function AgendaView() {
                 })()}
 
                 {hours.map((hour) => (
-                  <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] min-h-[120px]">
-                    <div className="p-2 text-xs font-medium text-slate-400 text-right pr-4 pt-0 -mt-2.5 relative">{hour === 8 ? '' : `${hour} AM`}</div>
+                  <div key={hour} className="grid grid-cols-[50px_repeat(7,1fr)] min-h-[80px]">
+                    <div className="p-1 text-[10px] font-medium text-slate-400 text-right pr-2 pt-0 -mt-2 relative">{hour === 8 ? '' : `${hour} AM`}</div>
                     {weekDays.map((day) => {
                       const dayAppointments = filteredCitas.filter(apt => isSameDay(parseISO(apt.fecha), day) && parseInt(apt.hora.split(":")[0]) === hour);
                       return (
-                        <div key={`${day.toISOString()}-${hour}`} className="border-r border-b border-slate-50 dark:border-slate-800/80 p-1 relative hover:bg-slate-50/80 dark:hover:bg-slate-900/30 transition-colors group" onClick={() => openNewDialog(day, hour)}>
+                        <div key={`${day.toISOString()}-${hour}`} className="border-r border-b border-slate-50 dark:border-slate-800/80 p-0.5 relative hover:bg-slate-50/80 dark:hover:bg-slate-900/30 transition-colors group" onClick={() => openNewDialog(day, hour)}>
                           {dayAppointments.map((apt) => (
-                            <div key={apt.id} onClick={(e) => { e.stopPropagation(); openEditDialog(apt); }} className={cn("p-3 mb-1 rounded-l-lg rounded-r-md text-sm border-l-4 shadow-sm cursor-pointer hover:shadow-md transition-all relative z-10", getEventStyle(apt))}>
-                              <p className="font-bold truncate text-xs mb-0.5">{apt.motivo}</p>
-                              <p className="opacity-80 text-[10px] flex items-center gap-1"><Clock className="w-3 h-3" /> {apt.hora}</p>
+                            <div key={apt.id} onClick={(e) => { e.stopPropagation(); openEditDialog(apt); }} className={cn("p-2 mb-0.5 mx-0.5 rounded-l-md rounded-r-sm text-xs border-l-3 shadow-sm cursor-pointer hover:shadow-md transition-all relative z-10", getEventStyle(apt))}>
+                              <p className="font-bold truncate text-[10px] mb-0">{apt.motivo}</p>
+                              <p className="opacity-80 text-[9px] flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" /> {apt.hora}</p>
                             </div>
                           ))}
                         </div>

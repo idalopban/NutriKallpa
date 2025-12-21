@@ -1,9 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Save,
@@ -153,6 +154,10 @@ type FormValues = z.infer<typeof formSchema>;
 export default function NuevoPacientePage() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const searchParams = useSearchParams();
+  const patientId = searchParams.get('patientId');
+  const [existingPatient, setExistingPatient] = useState<Paciente | null>(null);
+  const [isLoadingPatient, setIsLoadingPatient] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -182,6 +187,64 @@ export default function NuevoPacientePage() {
       consumoAlcohol: "nunca",
     },
   });
+
+  // Load existing patient data if patientId is provided
+  useEffect(() => {
+    if (patientId && user) {
+      setIsLoadingPatient(true);
+      // Import storage function dynamically to avoid issues
+      import('@/lib/storage').then(({ getPacientes, getMedidasByPaciente }) => {
+        const pacientes = getPacientes(user.id);
+        const patient = pacientes.find(p => p.id === patientId);
+
+        if (patient) {
+          setExistingPatient(patient);
+          const medidas = getMedidasByPaciente(patientId);
+          const ultimaMedida = medidas.length > 0 ? medidas[medidas.length - 1] : null;
+
+          // Pre-fill form with existing patient data
+          const fechaNac = typeof patient.datosPersonales.fechaNacimiento === 'string'
+            ? patient.datosPersonales.fechaNacimiento.split('T')[0]
+            : new Date(patient.datosPersonales.fechaNacimiento).toISOString().split('T')[0];
+
+          form.reset({
+            nombreCompleto: `${patient.datosPersonales.nombre} ${patient.datosPersonales.apellido}`,
+            fechaNacimiento: fechaNac,
+            sexo: (patient.datosPersonales.sexo === "masculino" || patient.datosPersonales.sexo === "femenino")
+              ? patient.datosPersonales.sexo
+              : "masculino",
+            email: patient.datosPersonales.email || "",
+            telefono: patient.datosPersonales.telefono || "",
+            motivoConsulta: patient.historiaClinica?.motivoConsulta || "",
+            peso: ultimaMedida?.peso || 70.0,
+            talla: ultimaMedida?.talla || 170.0,
+            circunferenciaCintura: undefined,
+            circunferenciaCadera: undefined,
+            actividadFisica: "moderada",
+            formulaGet: "mifflin",
+            objetivoPeso: patient.historiaClinica?.objetivos || "mantenimiento",
+            kcalAjuste: 0,
+            proteinaRatio: 1.6,
+            notas: patient.historiaClinica?.antecedentesPersonales || "",
+            patologias: patient.historiaClinica?.patologias || [],
+            alergias: patient.historiaClinica?.alergias || [],
+            medicamentos: patient.historiaClinica?.medicamentos || [],
+            antecedentesFamiliares: patient.historiaClinica?.antecedentesFamiliares || [],
+            horasSueno: patient.historiaClinica?.estiloVida?.suenoHoras || 7,
+            tabaquismo: patient.historiaClinica?.estiloVida?.fuma || false,
+            consumoAlcohol: patient.historiaClinica?.estiloVida?.alcohol || "nunca",
+            glucosa: undefined,
+            hemoglobina: undefined,
+            colesterolTotal: undefined,
+            trigliceridos: undefined,
+            hdl: undefined,
+            ldl: undefined,
+          });
+        }
+        setIsLoadingPatient(false);
+      });
+    }
+  }, [patientId, user, form]);
 
   // --- Real-time Calculations ---
   const peso = form.watch("peso");
@@ -325,13 +388,19 @@ export default function NuevoPacientePage() {
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1 font-medium">
             <span onClick={() => router.back()} className="cursor-pointer hover:text-green-600 transition-colors flex items-center gap-1">
-              <ArrowLeft className="w-3 h-3" /> Pacientes
+              <ArrowLeft className="w-3 h-3" /> {existingPatient ? 'Expediente' : 'Pacientes'}
             </span>
             <span className="text-slate-300">/</span>
-            <span className="text-slate-900 dark:text-white">Nuevo Registro</span>
+            <span className="text-slate-900 dark:text-white">{existingPatient ? 'Consulta de Seguimiento' : 'Nuevo Registro'}</span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Crear Expediente</h1>
-          <p className="text-slate-500 dark:text-slate-400">Ingresa los datos iniciales para comenzar el seguimiento clínico.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+            {existingPatient ? 'Consulta de Seguimiento' : 'Crear Expediente'}
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400">
+            {existingPatient
+              ? `Actualiza los datos de ${existingPatient.datosPersonales.nombre} ${existingPatient.datosPersonales.apellido}`
+              : 'Ingresa los datos iniciales para comenzar el seguimiento clínico.'}
+          </p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
           <Button variant="outline" onClick={() => router.back()} className="border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900">

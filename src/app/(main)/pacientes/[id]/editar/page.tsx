@@ -260,13 +260,13 @@ export default function EditarPacientePage() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="text-slate-500"
+                className={customPhotoPreview ? "text-red-500 hover:text-red-600 hover:bg-red-50" : "text-slate-500"}
                 onClick={() => {
                   setSelectedAvatar("");
                   setCustomPhotoPreview(null);
                 }}
               >
-                Usar iniciales por defecto
+                {customPhotoPreview ? "🗑️ Eliminar foto" : "Usar iniciales por defecto"}
               </Button>
             </div>
           )}

@@ -75,7 +75,12 @@ const SAFETY_FILTERS: Record<string, string[]> = {
     'Dislipidemia': ['mantequilla', 'manteca', 'tocino', 'cerdo', 'chancho', 'chicharrón', 'piel', 'entera', 'queso mantecoso', 'fritura', 'frito', 'aceite de palma', 'coco'],
     'Obesidad': ['azucar', 'miel', 'fritura', 'frito', 'gaseosa', 'galleta', 'golosina', 'chocolates'],
     'Gastritis': ['aj', 'rocoto', 'pimienta', 'comino', 'limon', 'cafe', 'alcohol', 'cerveza', 'vino', 'gaseosa', 'chocolate', 'fritura', 'grasa', 'citrico', 'naranja'],
-    'Reflujo GE': ['aj', 'rocoto', 'pimienta', 'comino', 'limon', 'cafe', 'alcohol', 'cerveza', 'vino', 'gaseosa', 'chocolate', 'menta', 'tomate', 'citrico']
+    'Reflujo GE': ['aj', 'rocoto', 'pimienta', 'comino', 'limon', 'cafe', 'alcohol', 'cerveza', 'vino', 'gaseosa', 'chocolate', 'menta', 'tomate', 'citrico'],
+    // Nuevas patologías agregadas
+    'Hipotiroidismo': ['soya', 'soja', 'tofu', 'edamame', 'leche de soya', 'miso', 'tempeh', 'col cruda', 'brocoli crudo', 'coliflor cruda', 'repollo crudo', 'nabo', 'rabano', 'mani crudo', 'linaza', 'yuca cruda'],
+    'Hipertiroidismo': ['alga', 'nori', 'kombu', 'wakame', 'kelp', 'marisco', 'camaron', 'langostino', 'cangrejo', 'langosta', 'mejillon', 'almeja', 'pulpo', 'calamar', 'cafe', 'te negro', 'bebida energizante', 'chocolate', 'cacao'],
+    'SOP': ['azucar', 'miel', 'chancaca', 'panela', 'jarabe', 'dulce', 'gaseosa', 'galleta', 'golosina', 'pan blanco', 'arroz blanco', 'fideo refinado', 'leche entera', 'queso mantecoso', 'crema de leche', 'helado', 'fritura', 'frito'],
+    'Anemia': ['cafe', 'te', 'te negro', 'te verde', 'leche con comida', 'calcio', 'coca cola', 'gaseosa', 'chocolate', 'salvado', 'fibra']
 };
 
 // --- CONSTANTS ---

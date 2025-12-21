@@ -286,10 +286,33 @@ function AntropometriaContent() {
                                             onClick={() => handlePacienteChange(p.id)}
                                         >
                                             <div className="flex items-center gap-4">
-                                                <div className="h-12 w-12 rounded-full bg-[#ff8508]/10 flex items-center justify-center">
-                                                    <span className="text-[#ff8508] font-bold text-lg">
-                                                        {p.datosPersonales.nombre[0]}{p.datosPersonales.apellido[0]}
-                                                    </span>
+                                                <div className="h-12 w-12 rounded-full bg-[#ff8508]/10 flex items-center justify-center overflow-hidden border-2 border-slate-100 dark:border-slate-600 group-hover:border-[#ff8508]/20">
+                                                    {p.datosPersonales.avatarUrl ? (
+                                                        p.datosPersonales.avatarUrl.startsWith('avatar-') ? (
+                                                            <span className="text-lg">
+                                                                {p.datosPersonales.avatarUrl === 'avatar-1' && '👤'}
+                                                                {p.datosPersonales.avatarUrl === 'avatar-2' && '👨'}
+                                                                {p.datosPersonales.avatarUrl === 'avatar-3' && '👩'}
+                                                                {p.datosPersonales.avatarUrl === 'avatar-4' && '👴'}
+                                                                {p.datosPersonales.avatarUrl === 'avatar-5' && '👵'}
+                                                                {p.datosPersonales.avatarUrl === 'avatar-6' && '🧑‍⚕️'}
+                                                                {p.datosPersonales.avatarUrl === 'avatar-7' && '🏃'}
+                                                                {p.datosPersonales.avatarUrl === 'avatar-8' && '🏋️'}
+                                                                {p.datosPersonales.avatarUrl === 'avatar-9' && '🧘'}
+                                                                {p.datosPersonales.avatarUrl === 'avatar-10' && '🚴'}
+                                                            </span>
+                                                        ) : (
+                                                            <img
+                                                                src={p.datosPersonales.avatarUrl}
+                                                                alt={`${p.datosPersonales.nombre} ${p.datosPersonales.apellido}`}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        )
+                                                    ) : (
+                                                        <span className="text-[#ff8508] font-bold text-lg">
+                                                            {p.datosPersonales.nombre[0]}{p.datosPersonales.apellido[0]}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <h3 className="font-semibold text-slate-800 dark:text-white group-hover:text-[#ff8508] transition-colors">

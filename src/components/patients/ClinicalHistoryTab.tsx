@@ -277,9 +277,9 @@ export function ClinicalHistoryTab({ patient }: ClinicalHistoryTabProps) {
                 </Button>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-                {/* Patologías */}
-                <Card className="border-red-100 dark:border-red-900/20 bg-white dark:bg-slate-800 overflow-hidden">
+            <div className="grid md:grid-cols-12 gap-6">
+                {/* Patologías - 5/12 del espacio */}
+                <Card className="md:col-span-5 border-red-100 dark:border-red-900/20 bg-white dark:bg-slate-800 overflow-hidden">
                     <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/10 dark:to-orange-900/10 border-b border-red-100 dark:border-red-900/20">
                         <CardTitle className="flex items-center gap-2 text-red-600">
                             <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
@@ -404,8 +404,8 @@ export function ClinicalHistoryTab({ patient }: ClinicalHistoryTabProps) {
                     </CardContent>
                 </Card>
 
-                {/* Bioquímica */}
-                <Card className="border-blue-100 dark:border-blue-900/20 bg-white dark:bg-slate-800">
+                {/* Bioquímica - 7/12 del espacio */}
+                <Card className="md:col-span-7 border-blue-100 dark:border-blue-900/20 bg-white dark:bg-slate-800">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-blue-600">
                             <TestTube className="w-5 h-5" />
