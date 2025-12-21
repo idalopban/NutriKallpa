@@ -4,7 +4,7 @@
  * Inactivity Auto-Logout Hook
  * 
  * Monitors user activity and automatically logs out after a period of inactivity.
- * Default: 8 minutes (480000ms)
+ * Default: 30 minutes (1800000ms)
  */
 
 import { useEffect, useCallback, useRef } from "react";
