@@ -14,7 +14,7 @@ interface InactivityGuardProps {
     timeoutMinutes?: number;
 }
 
-export function InactivityGuard({ children, timeoutMinutes = 8 }: InactivityGuardProps) {
+export function InactivityGuard({ children, timeoutMinutes = 30 }: InactivityGuardProps) {
     // Use the inactivity logout hook
     useInactivityLogout(timeoutMinutes * 60 * 1000);
 
