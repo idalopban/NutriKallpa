@@ -197,11 +197,10 @@ export function LoginBackground() {
             if (!canvasRef.current) return;
 
             try {
-                const module = await import(
-                    /* webpackIgnore: true */
-                    "https://cdn.jsdelivr.net/npm/threejs-components@0.0.19/build/cursors/tubes1.min.js"
-                );
-
+                // Use Function constructor to create dynamic import - bypasses TypeScript module resolution
+                const cdnUrl = "https://cdn.jsdelivr.net/npm/threejs-components@0.0.19/build/cursors/tubes1.min.js";
+                const dynamicImport = new Function('url', 'return import(url)');
+                const module = await dynamicImport(cdnUrl) as { default: (canvas: HTMLCanvasElement, config: unknown) => { dispose?: () => void } };
                 const TubesCursor = module.default;
 
                 const config = {
