@@ -131,17 +131,17 @@ Mujeres: DC = 1.20953 – 0.08294(log10 X)`,
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Sección 1: Tabla de Selección */}
-            <Card className="w-full shadow-md border-slate-200 overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-blue-50 to-white border-b border-blue-100/50 pb-6">
+            <Card className="w-full shadow-md border-slate-200 dark:border-slate-700 dark:bg-slate-800 overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-white dark:from-slate-800 dark:to-slate-800 border-b border-blue-100/50 dark:border-slate-700 pb-6">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 text-blue-600 rounded-xl">
+                        <div className="p-2 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl">
                             <Info className="w-5 h-5" />
                         </div>
                         <div>
-                            <CardTitle className="text-xl text-slate-800">
+                            <CardTitle className="text-xl text-slate-800 dark:text-white">
                                 ¿Qué fórmula debo usar?
                             </CardTitle>
-                            <CardDescription className="text-slate-500 mt-1">
+                            <CardDescription className="text-slate-500 dark:text-slate-400 mt-1">
                                 Guía rápida para seleccionar la ecuación más adecuada según el perfil del paciente.
                             </CardDescription>
                         </div>
@@ -150,11 +150,11 @@ Mujeres: DC = 1.20953 – 0.08294(log10 X)`,
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-slate-50/50 hover:bg-slate-50/50">
-                                <TableHead className="w-[40%] pl-6 py-4 font-semibold text-slate-700">
+                            <TableRow className="bg-slate-50/50 dark:bg-slate-700/50 hover:bg-slate-50/50 dark:hover:bg-slate-700/50">
+                                <TableHead className="w-[40%] pl-6 py-4 font-semibold text-slate-700 dark:text-slate-300">
                                     Tipo de Paciente
                                 </TableHead>
-                                <TableHead className="w-[60%] py-4 font-semibold text-slate-700">
+                                <TableHead className="w-[60%] py-4 font-semibold text-slate-700 dark:text-slate-300">
                                     Mejor Fórmula
                                 </TableHead>
                             </TableRow>
@@ -163,14 +163,14 @@ Mujeres: DC = 1.20953 – 0.08294(log10 X)`,
                             {formulas.map((item, index) => (
                                 <TableRow
                                     key={index}
-                                    className="hover:bg-blue-50/30 transition-colors border-b border-slate-100 last:border-0"
+                                    className="hover:bg-blue-50/30 dark:hover:bg-blue-900/20 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0"
                                 >
-                                    <TableCell className="pl-6 py-4 font-medium text-slate-700">
+                                    <TableCell className="pl-6 py-4 font-medium text-slate-700 dark:text-slate-300">
                                         {item.tipo}
                                     </TableCell>
                                     <TableCell className="py-4">
                                         <div className="flex flex-col gap-1">
-                                            <span className="font-semibold text-blue-700">
+                                            <span className="font-semibold text-blue-700 dark:text-blue-400">
                                                 {item.formula}
                                             </span>
                                         </div>
@@ -185,14 +185,14 @@ Mujeres: DC = 1.20953 – 0.08294(log10 X)`,
             {/* Sección 2: Detalle de Fórmulas */}
             <div className="grid gap-6 md:grid-cols-2">
                 {detailedFormulas.map((formula) => (
-                    <Card key={formula.id} className="shadow-sm hover:shadow-md transition-all duration-300 border-slate-200">
+                    <Card key={formula.id} className="shadow-sm hover:shadow-md transition-all duration-300 border-slate-200 dark:border-slate-700 dark:bg-slate-800">
                         <CardHeader className="pb-3">
                             <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className={cn("p-2 rounded-lg", formula.bg, formula.color)}>
                                         <formula.icon className="w-5 h-5" />
                                     </div>
-                                    <CardTitle className="text-lg font-bold text-slate-800 leading-tight">
+                                    <CardTitle className="text-lg font-bold text-slate-800 dark:text-white leading-tight">
                                         {formula.title}
                                     </CardTitle>
                                 </div>
@@ -201,28 +201,28 @@ Mujeres: DC = 1.20953 – 0.08294(log10 X)`,
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div>
-                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Uso Recomendado</span>
-                                    <p className="text-slate-700 font-medium">{formula.uso}</p>
+                                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">Uso Recomendado</span>
+                                    <p className="text-slate-700 dark:text-slate-300 font-medium">{formula.uso}</p>
                                 </div>
                                 <div>
-                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">SEE (Error Est.)</span>
-                                    <Badge variant="secondary" className="bg-slate-100 text-slate-700 hover:bg-slate-100">
+                                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">SEE (Error Est.)</span>
+                                    <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
                                         {formula.see}
                                     </Badge>
                                 </div>
                             </div>
 
                             <div>
-                                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Ventajas</span>
-                                <div className="flex items-start gap-2 text-sm text-slate-600 bg-slate-50 p-2 rounded-md border border-slate-100">
+                                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">Ventajas</span>
+                                <div className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-700/50 p-2 rounded-md border border-slate-100 dark:border-slate-600">
                                     <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
                                     {formula.ventajas}
                                 </div>
                             </div>
 
                             <div>
-                                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Pliegues Utilizados</span>
-                                <p className="text-sm text-slate-600 leading-relaxed">
+                                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">Pliegues Utilizados</span>
+                                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                                     {formula.pliegues}
                                 </p>
                             </div>

@@ -424,13 +424,21 @@ function PacientesContent() {
           </div>
         </div>
 
-        {/* Table Header */}
-        <div className="hidden md:flex items-center gap-6 px-6 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-          <div className="min-w-[280px]">PACIENTE</div>
-          <div className="min-w-[140px]">CONTACTO</div>
+        {/* Table Header - Matches PatientRow structure exactly */}
+        <div className="hidden md:flex items-center gap-6 px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          {/* Avatar + Name column */}
+          <div className="flex items-center gap-4 flex-1 min-w-[280px]">
+            <div className="w-10 md:w-12 shrink-0"></div>
+            <span>PACIENTE</span>
+          </div>
+          {/* Phone column */}
+          <div className="hidden md:flex min-w-[140px]">CONTACTO</div>
+          {/* Status column */}
           <div className="min-w-[100px]">ESTADO</div>
+          {/* Last visit column */}
           <div className="flex-1 min-w-[120px]">ÚLTIMA VISITA</div>
-          <div className="w-20"></div>
+          {/* Actions + Chevron */}
+          <div className="w-14"></div>
         </div>
 
         {/* Patient List */}
