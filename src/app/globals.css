@@ -244,21 +244,22 @@
     @apply shadow-lg dark:shadow-black/50 dark:border dark:border-[#334155];
   }
 
-  /* Sidebar curve shadows - use white for light (matches page bg), slate-900 for dark */
+  /* Sidebar curve shadows - use zero offset and high spread for perfect concave holes */
   .sidebar-curve-top {
-    box-shadow: 5px 5px 0 5px #ffffff;
+    box-shadow: 0 0 0 20px var(--background);
   }
 
   .sidebar-curve-bottom {
-    box-shadow: 5px -5px 0 5px #ffffff;
+    box-shadow: 0 0 0 20px var(--background);
   }
 
+  /* No overrides needed for dark mode as var(--background) handles it */
   .dark .sidebar-curve-top {
-    box-shadow: 5px 5px 0 5px #0f172a;
+    box-shadow: 0 0 0 20px var(--background);
   }
 
   .dark .sidebar-curve-bottom {
-    box-shadow: 5px -5px 0 5px #0f172a;
+    box-shadow: 0 0 0 20px var(--background);
   }
 
   /* ============================================
@@ -278,7 +279,10 @@
   /* Hide scrollbar but allow scroll */
   .scrollbar-hide {
     -ms-overflow-style: none;
-    scrollbar-width: none;
+
+    @supports (scrollbar-width: none) {
+      scrollbar-width: none;
+    }
   }
 
   .scrollbar-hide::-webkit-scrollbar {
@@ -325,10 +329,6 @@
 /* iOS Safari specific fixes */
 @supports (-webkit-touch-callout: none) {
 
-  /* Fix iOS momentum scrolling */
-  .overflow-auto {
-    -webkit-overflow-scrolling: touch;
-  }
 
   /* Prevent iOS zoom on input focus */
   input[type="text"],

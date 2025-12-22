@@ -179,9 +179,9 @@ function AntropometriaContent() {
     }
 
     return (
-        <div className="min-h-screen bg-white dark:bg-[#0f172a]">
+        <div className="min-h-screen bg-background">
             {/* HEADER */}
-            <div className="border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-30">
+            <div className="border-b border-slate-100 dark:border-slate-800 bg-background sticky top-0 z-30">
                 <div className="container mx-auto px-4 md:px-6 py-4 md:py-0 md:h-20 flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-[1600px]">
                     <div className="flex flex-col">
                         <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">

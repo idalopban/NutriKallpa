@@ -86,12 +86,28 @@ export default function AgendaView() {
   const [citas, setCitas] = useState<Cita[]>([]);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const timeLineRef = useRef<HTMLDivElement>(null);
 
   // Update current time every minute
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000); // Update every minute
+    const update = () => {
+      const now = new Date();
+      setCurrentTime(now);
+
+      if (timeLineRef.current) {
+        const currentHour = now.getHours();
+        const currentMinutes = now.getMinutes();
+        const startHour = 7;
+        const hourHeight = 80;
+        if (currentHour >= startHour && currentHour <= 22) {
+          const topPosition = (currentHour - startHour) * hourHeight + (currentMinutes / 60) * hourHeight;
+          timeLineRef.current.style.top = `${topPosition}px`;
+        }
+      }
+    };
+
+    update();
+    const interval = setInterval(update, 60000); // Update every minute
     return () => clearInterval(interval);
   }, []);
 
@@ -288,10 +304,10 @@ export default function AgendaView() {
   const monthDays = eachDayOfInterval({ start: startOfWeek(monthStart, { weekStartsOn: 1 }), end: endOfWeek(monthEnd, { weekStartsOn: 1 }) });
 
   return (
-    <div className="flex h-full bg-slate-50 dark:bg-[#0f172a] rounded-3xl overflow-hidden gap-4 p-4 md:p-0">
+    <div className="flex h-full bg-background rounded-3xl overflow-hidden gap-4 p-4 md:p-0">
 
       {/* LEFT SIDEBAR (Inner) */}
-      <div className="hidden xl:flex flex-col w-[220px] bg-white dark:bg-[#0f172a] border border-slate-100 dark:border-slate-800 rounded-3xl p-4 gap-6 ml-8">
+      <div className="hidden xl:flex flex-col w-[220px] bg-background border border-slate-100 dark:border-slate-800 rounded-3xl p-4 gap-6 ml-8">
         {/* Date Nav */}
         <div className="flex items-center justify-between mb-2">
           <span className="text-lg font-bold capitalize text-slate-800 dark:text-slate-100">
@@ -411,8 +427,8 @@ export default function AgendaView() {
                     const topPosition = (currentHour - startHour) * hourHeight + (currentMinutes / 60) * hourHeight;
                     return (
                       <div
+                        ref={timeLineRef}
                         className="absolute left-[60px] right-0 z-10 pointer-events-none flex items-center transition-all duration-1000"
-                        style={{ top: `${topPosition}px` }}
                       >
                         <div className="w-3 h-3 rounded-full bg-red-500 -ml-1.5 ring-2 ring-white dark:ring-slate-900 shadow-lg" />
                         <div className="h-[2px] bg-red-500 flex-1 opacity-60" />

@@ -64,8 +64,7 @@ export function Sidebar() {
 
     return (
         <aside
-            className="hidden md:flex w-[90px] h-screen sticky top-0 flex-col items-center py-6 text-white transition-all duration-300 z-50"
-            style={{ backgroundColor: SIDEBAR_GREEN }}
+            className="hidden md:flex w-[90px] h-screen sticky top-0 flex-col items-center py-6 text-white transition-all duration-300 z-50 bg-sidebar"
         >
             {/* ========== LOGO (Icon Only) ========== */}
             <div className="mb-8 flex flex-col items-center">
@@ -104,8 +103,8 @@ export function Sidebar() {
 
                                     active
                                         ? [
-                                            // ACTIVE STATE - use white to match page backgrounds
-                                            "bg-white dark:bg-[#0f172a]",
+                                            // ACTIVE STATE - use semantic background to match page backgrounds
+                                            "bg-background",
                                             // Text color
                                             "text-[#6cba00]",
                                             // Shape: Rounded left, Flat right
@@ -125,12 +124,12 @@ export function Sidebar() {
                             {active && (
                                 <>
                                     {/* Top Curve */}
-                                    <div className="absolute right-0 -top-5 w-5 h-5 z-0 pointer-events-none overflow-hidden">
+                                    <div className="absolute right-[-3px] -top-5 w-5 h-5 z-0 pointer-events-none overflow-hidden">
                                         <div className="w-full h-full bg-transparent rounded-br-full sidebar-curve-top" />
                                     </div>
 
                                     {/* Bottom Curve */}
-                                    <div className="absolute right-0 -bottom-5 w-5 h-5 z-0 pointer-events-none overflow-hidden">
+                                    <div className="absolute right-[-3px] -bottom-5 w-5 h-5 z-0 pointer-events-none overflow-hidden">
                                         <div className="w-full h-full bg-transparent rounded-tr-full sidebar-curve-bottom" />
                                     </div>
                                 </>
@@ -150,7 +149,7 @@ export function Sidebar() {
                         className={cn(
                             "flex items-center justify-center w-full h-[56px] transition-all relative z-10",
                             isActive("/settings")
-                                ? "bg-white dark:bg-[#0f172a] text-[#6cba00] rounded-l-[20px] ml-3"
+                                ? "bg-background text-[#6cba00] rounded-l-[20px] ml-3"
                                 : "text-white/70 hover:text-white"
                         )}
                     >
@@ -158,10 +157,10 @@ export function Sidebar() {
                     </Link>
                     {isActive("/settings") && (
                         <>
-                            <div className="absolute right-0 -top-5 w-5 h-5 z-0 pointer-events-none overflow-hidden">
+                            <div className="absolute right-[-3px] -top-5 w-5 h-5 z-0 pointer-events-none overflow-hidden">
                                 <div className="w-full h-full bg-transparent rounded-br-full sidebar-curve-top" />
                             </div>
-                            <div className="absolute right-0 -bottom-5 w-5 h-5 z-0 pointer-events-none overflow-hidden">
+                            <div className="absolute right-[-3px] -bottom-5 w-5 h-5 z-0 pointer-events-none overflow-hidden">
                                 <div className="w-full h-full bg-transparent rounded-tr-full sidebar-curve-bottom" />
                             </div>
                         </>

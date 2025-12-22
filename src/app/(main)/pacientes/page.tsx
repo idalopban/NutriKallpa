@@ -286,7 +286,7 @@ function PacientesContent() {
   const pacientesInactivos = pacientes.filter(p => getPatientStatus(getMedidasByPaciente(p.id), allDietas, p.id) === "inactivo").length;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0f172a]">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8 max-w-[1400px] animate-in fade-in duration-500">
 
         {/* Header */}
