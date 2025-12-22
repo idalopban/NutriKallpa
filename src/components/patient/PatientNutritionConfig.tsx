@@ -107,34 +107,34 @@ export function PatientNutritionConfig({ editable = true, compact = false }: Pro
                         </div>
 
                         {/* Right: Macro Distribution Visual */}
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4">
                             <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
                                 <PieChart className="w-4 h-4" />
                                 <span className="font-semibold">Macros:</span>
                             </div>
 
-                            {/* Visual Macro Bars */}
-                            <div className="flex items-center gap-0.5 h-9 bg-slate-200/60 dark:bg-slate-700/60 rounded-xl p-1 overflow-hidden min-w-[200px]">
+                            {/* Visual Macro Bars - Improved Design */}
+                            <div className="flex items-center gap-1 h-8 bg-slate-100 dark:bg-slate-700/60 rounded-full p-1 overflow-hidden min-w-[280px]">
                                 {/* Protein */}
                                 <div
-                                    className="h-full bg-[#3b82f6] rounded-lg flex items-center justify-center transition-all shadow-sm"
-                                    style={{ width: `${macroProteina}%` }}
+                                    className="h-full bg-[#3b82f6] rounded-full flex items-center justify-center transition-all shadow-sm"
+                                    style={{ width: `${macroProteina}%`, minWidth: macroProteina > 0 ? '48px' : '0' }}
                                 >
-                                    <span className="text-[10px] font-bold text-white drop-shadow-sm">P {macroProteina}%</span>
+                                    <span className="text-[11px] font-bold text-white drop-shadow-sm whitespace-nowrap px-1">P {macroProteina}%</span>
                                 </div>
                                 {/* Carbs */}
                                 <div
-                                    className="h-full bg-[#22c55e] rounded-lg flex items-center justify-center transition-all shadow-sm"
-                                    style={{ width: `${macroCarbohidratos}%` }}
+                                    className="h-full bg-[#22c55e] rounded-full flex items-center justify-center transition-all shadow-sm"
+                                    style={{ width: `${macroCarbohidratos}%`, minWidth: macroCarbohidratos > 0 ? '48px' : '0' }}
                                 >
-                                    <span className="text-[10px] font-bold text-white drop-shadow-sm">C {macroCarbohidratos}%</span>
+                                    <span className="text-[11px] font-bold text-white drop-shadow-sm whitespace-nowrap px-1">C {macroCarbohidratos}%</span>
                                 </div>
                                 {/* Fat */}
                                 <div
-                                    className="h-full bg-[#f59e0b] rounded-lg flex items-center justify-center transition-all shadow-sm"
-                                    style={{ width: `${macroGrasa}%` }}
+                                    className="h-full bg-[#f59e0b] rounded-full flex items-center justify-center transition-all shadow-sm"
+                                    style={{ width: `${macroGrasa}%`, minWidth: macroGrasa > 0 ? '48px' : '0' }}
                                 >
-                                    <span className="text-[10px] font-bold text-white drop-shadow-sm">G {macroGrasa}%</span>
+                                    <span className="text-[11px] font-bold text-white drop-shadow-sm whitespace-nowrap px-1">G {macroGrasa}%</span>
                                 </div>
                             </div>
 
@@ -144,7 +144,7 @@ export function PatientNutritionConfig({ editable = true, compact = false }: Pro
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => setIsEditing(true)}
-                                    className="h-9 w-9 p-0 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full border border-slate-200 dark:border-slate-600"
+                                    className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full border border-slate-200 dark:border-slate-600"
                                 >
                                     <Edit2 className="w-4 h-4 text-slate-600 dark:text-slate-300" />
                                 </Button>
@@ -341,18 +341,18 @@ export function PatientNutritionConfig({ editable = true, compact = false }: Pro
                             </p>
                         </div>
 
-                        {/* Carbohidratos % */}
+                        {/* Carbohidratos % - EDITABLE */}
                         <div className="space-y-2">
                             <Label className="text-slate-600 dark:text-slate-400">Carbohidratos (%)</Label>
                             {isEditing ? (
                                 <div className="relative">
                                     <Input
                                         type="number"
-                                        min={10}
-                                        max={70}
+                                        min={20}
+                                        max={65}
                                         step={5}
                                         value={localConfig.macroCarbohidratos ?? 50}
-                                        onChange={(e) => setLocalConfig({ ...localConfig, macroCarbohidratos: parseInt(e.target.value) || 0 })}
+                                        onChange={(e) => setLocalConfig({ ...localConfig, macroCarbohidratos: parseInt(e.target.value) || 50 })}
                                         className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] pr-8"
                                     />
                                     <span className="absolute right-3 top-2.5 text-xs text-slate-400">%</span>
@@ -362,46 +362,33 @@ export function PatientNutritionConfig({ editable = true, compact = false }: Pro
                                     {macroCarbohidratos}%
                                 </div>
                             )}
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Edita para ajustar la distribución
+                            </p>
                         </div>
 
-                        {/* Grasa % */}
+                        {/* Grasa % - READ-ONLY (auto-calculated to make 100%) */}
                         <div className="space-y-2">
-                            <Label className="text-slate-600 dark:text-slate-400">Grasa (%)</Label>
-                            {isEditing ? (
-                                <div className="relative">
-                                    <Input
-                                        type="number"
-                                        min={10}
-                                        max={50}
-                                        step={5}
-                                        value={localConfig.macroGrasa ?? 25}
-                                        onChange={(e) => setLocalConfig({ ...localConfig, macroGrasa: parseInt(e.target.value) || 0 })}
-                                        className="bg-white dark:bg-[#0f172a] border-slate-200 dark:border-[#334155] pr-8"
-                                    />
-                                    <span className="absolute right-3 top-2.5 text-xs text-slate-400">%</span>
-                                </div>
-                            ) : (
-                                <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-md text-yellow-700 dark:text-yellow-300 font-medium">
-                                    {macroGrasa}%
-                                </div>
-                            )}
+                            <Label className="text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                                Grasa (%)
+                                <span className="text-xs font-normal text-slate-400 dark:text-slate-500">• Calculado</span>
+                            </Label>
+                            <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-md text-yellow-700 dark:text-yellow-300 font-medium border border-yellow-200 dark:border-yellow-800">
+                                {macroGrasa}%
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                100% - Proteína - Carbohidratos
+                            </p>
                         </div>
                     </div>
 
-                    {/* Validation message */}
-                    {isEditing && (
-                        <div className={`mt-4 p-3 rounded-md text-sm flex items-center gap-2 ${((localConfig.macroProteina ?? 25) + (localConfig.macroCarbohidratos ?? 50) + (localConfig.macroGrasa ?? 25)) === 100
-                            ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
-                            : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
-                            }`}>
-                            <span className="font-medium">
-                                Total: {(localConfig.macroProteina ?? 25) + (localConfig.macroCarbohidratos ?? 50) + (localConfig.macroGrasa ?? 25)}%
-                            </span>
-                            {((localConfig.macroProteina ?? 25) + (localConfig.macroCarbohidratos ?? 50) + (localConfig.macroGrasa ?? 25)) === 100
-                                ? '✓ Los porcentajes suman 100%'
-                                : '⚠ Los porcentajes deben sumar 100%'}
-                        </div>
-                    )}
+                    {/* Total confirmation - always shows 100% now */}
+                    <div className="mt-4 p-3 rounded-md text-sm flex items-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300">
+                        <span className="font-medium">
+                            Total: {macroProteina + macroCarbohidratos + macroGrasa}%
+                        </span>
+                        ✓ Distribución balanceada
+                    </div>
                 </CardContent>
             </Card>
 

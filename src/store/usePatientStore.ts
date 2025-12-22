@@ -426,9 +426,42 @@ export const usePatientCalculations = () => {
 
 // Hook for nutritional configuration
 export const usePatientNutrition = () => {
-    const { patient, updateConfiguracionNutricional } = usePatientStore();
+    const { patient, latestMedidas, calculatedCalories, updateConfiguracionNutricional } = usePatientStore();
     const getConfiguracion = usePatientStore(state => state.getConfiguracion);
     const config = getConfiguracion();
+
+    // Get patient weight from latest medidas or datos personales
+    const peso = latestMedidas?.peso || patient?.datosPersonales?.peso || 70;
+
+    // Calculate total daily calories (with activity factor and adjustment)
+    const activityFactors: Record<string, number> = {
+        sedentario: 1.2,
+        sedentaria: 1.2,
+        ligera: 1.375,
+        moderada: 1.55,
+        activa: 1.725,
+        muy_activa: 1.9,
+        intensa: 1.725,
+        muy_intensa: 1.9
+    };
+    const activityFactor = activityFactors[config.nivelActividad || 'moderada'] || 1.55;
+    const baseCalories = calculatedCalories || 2000;
+    const totalCalories = Math.round(baseCalories * activityFactor + (config.kcalAjuste || 0));
+
+    // Auto-calculate protein % from grams: proteinaRatio (g/kg) × peso × 4 kcal / totalCalories
+    const proteinaGramos = (config.proteinaRatio || 1.6) * peso;
+    const proteinaKcal = proteinaGramos * 4;
+    const calculatedProteinaPercent = Math.round((proteinaKcal / totalCalories) * 100);
+    // Clamp protein % between 10% and 40%
+    const macroProteina = Math.min(40, Math.max(10, calculatedProteinaPercent));
+
+    // Carbs % is set by nutritionist (from config), default 50%
+    const macroCarbohidratos = config.macroCarbohidratos ?? 50;
+
+    // Fat % is auto-calculated to make total = 100%
+    const calculatedGrasa = 100 - macroProteina - macroCarbohidratos;
+    // Clamp fat between 15% and 40%, adjust carbs if needed
+    const macroGrasa = Math.min(40, Math.max(15, calculatedGrasa));
 
     return {
         patient,
@@ -440,9 +473,12 @@ export const usePatientNutrition = () => {
         formulaGET: config.formulaGET,
         proteinaRatio: config.proteinaRatio,
         kcalAjuste: config.kcalAjuste,
-        // Macros distribution
-        macroProteina: config.macroProteina,
-        macroCarbohidratos: config.macroCarbohidratos,
-        macroGrasa: config.macroGrasa
+        // Calculated macros distribution (always sums to 100%)
+        macroProteina,
+        macroCarbohidratos,
+        macroGrasa,
+        // Extra info for display
+        proteinaGramos: Math.round(proteinaGramos),
+        totalCalories
     };
 };

@@ -119,7 +119,10 @@ export default function AgendaView() {
 
     const todasLasCitas = getCitas();
     const misCitas = todasLasCitas.filter(cita =>
-      misPacientes.some(p => p.id === cita.pacienteId)
+      // Include citas for my patients OR personal notes (no pacienteId)
+      misPacientes.some(p => p.id === cita.pacienteId) ||
+      cita.categoria === 'personal' ||
+      !cita.pacienteId
     );
     setCitas(misCitas);
   };
@@ -167,8 +170,8 @@ export default function AgendaView() {
 
   // CRUD Operations
   const handleCreateCita = () => {
-    // Para notas personales no se requiere paciente
-    const requiresPatient = formData.categoria !== 'personal';
+    // Para notas personales y urgentes, el paciente es opcional
+    const requiresPatient = formData.categoria === 'trabajo';
     if ((requiresPatient && !formData.pacienteId) || !formData.fecha || !formData.hora) {
       toast.error("Complete los campos requeridos");
       return;
@@ -260,25 +263,25 @@ export default function AgendaView() {
     setIsEditDialogOpen(true);
   };
 
-  // Pastel Colors with Categories support
+  // Event styles with top border color bar (matching reference design)
   const getEventStyle = (cita: Cita) => {
     // Priority to specific Category if present
-    if (cita.categoria === "trabajo") return "bg-emerald-100 text-emerald-700 border-l-4 border-emerald-500 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-600";
-    if (cita.categoria === "personal") return "bg-purple-100 text-purple-700 border-l-4 border-purple-500 hover:bg-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-600";
-    if (cita.categoria === "urgente") return "bg-orange-100 text-orange-700 border-l-4 border-orange-500 hover:bg-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-600";
+    if (cita.categoria === "trabajo") return "bg-emerald-100 dark:bg-emerald-900/40 border-t-4 border-emerald-500 text-slate-700 dark:text-slate-200 hover:shadow-md";
+    if (cita.categoria === "personal") return "bg-purple-100 dark:bg-purple-900/40 border-t-4 border-purple-500 text-slate-700 dark:text-slate-200 hover:shadow-md";
+    if (cita.categoria === "urgente") return "bg-orange-100 dark:bg-orange-900/40 border-t-4 border-orange-500 text-slate-700 dark:text-slate-200 hover:shadow-md";
 
     // Fallback to Motive Logic if no category
     const m = cita.motivo.toLowerCase();
-    if (m.includes("antropometr")) return "bg-orange-100 text-orange-700 border-l-4 border-orange-500 hover:bg-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-600";
-    if (m.includes("control")) return "bg-blue-100 text-blue-700 border-l-4 border-blue-500 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-600";
+    if (m.includes("antropometr")) return "bg-orange-100 dark:bg-orange-900/40 border-t-4 border-orange-500 text-slate-700 dark:text-slate-200 hover:shadow-md";
+    if (m.includes("control")) return "bg-blue-100 dark:bg-blue-900/40 border-t-4 border-blue-500 text-slate-700 dark:text-slate-200 hover:shadow-md";
 
-    return "bg-slate-100 text-slate-700 border-l-4 border-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600";
+    return "bg-slate-100 dark:bg-slate-800/60 border-t-4 border-slate-400 text-slate-700 dark:text-slate-200 hover:shadow-md";
   };
 
   // Grid Helpers
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const hours = Array.from({ length: 11 }, (_, i) => i + 8);
+  const hours = Array.from({ length: 16 }, (_, i) => i + 7); // 7 AM to 10 PM
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -402,9 +405,9 @@ export default function AgendaView() {
                   const currentMinutes = currentTime.getMinutes();
                   // Each hour row is 120px high, hours start at 8 (index 0)
                   // Calculate position: (hour - 8) * 120 + (minutes / 60) * 120
-                  const startHour = 8;
+                  const startHour = 7;
                   const hourHeight = 80;
-                  if (currentHour >= startHour && currentHour < 19) {
+                  if (currentHour >= startHour && currentHour <= 22) {
                     const topPosition = (currentHour - startHour) * hourHeight + (currentMinutes / 60) * hourHeight;
                     return (
                       <div
@@ -422,17 +425,50 @@ export default function AgendaView() {
 
                 {hours.map((hour) => (
                   <div key={hour} className="grid grid-cols-[50px_repeat(7,1fr)] min-h-[80px]">
-                    <div className="p-1 text-[10px] font-medium text-slate-400 text-right pr-2 pt-0 -mt-2 relative">{hour === 8 ? '' : `${hour} AM`}</div>
+                    <div className="p-1 text-[10px] font-medium text-slate-400 text-right pr-2 pt-0 -mt-2 relative">{hour === 7 ? '' : hour === 12 ? '12 PM' : hour > 12 ? `${hour - 12} PM` : `${hour} AM`}</div>
                     {weekDays.map((day) => {
                       const dayAppointments = filteredCitas.filter(apt => isSameDay(parseISO(apt.fecha), day) && parseInt(apt.hora.split(":")[0]) === hour);
                       return (
                         <div key={`${day.toISOString()}-${hour}`} className="border-r border-b border-slate-50 dark:border-slate-800/80 p-0.5 relative hover:bg-slate-50/80 dark:hover:bg-slate-900/30 transition-colors group" onClick={() => openNewDialog(day, hour)}>
-                          {dayAppointments.map((apt) => (
-                            <div key={apt.id} onClick={(e) => { e.stopPropagation(); openEditDialog(apt); }} className={cn("p-2 mb-0.5 mx-0.5 rounded-l-md rounded-r-sm text-xs border-l-3 shadow-sm cursor-pointer hover:shadow-md transition-all relative z-10", getEventStyle(apt))}>
-                              <p className="font-bold truncate text-[10px] mb-0">{apt.motivo}</p>
-                              <p className="opacity-80 text-[9px] flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" /> {apt.hora}</p>
-                            </div>
-                          ))}
+                          {dayAppointments.map((apt) => {
+                            // Get patient initials for avatar
+                            const paciente = pacientes.find(p => p.id === apt.pacienteId);
+                            const initials = paciente
+                              ? `${paciente.datosPersonales.nombre.charAt(0)}${paciente.datosPersonales.apellido.charAt(0)}`.toUpperCase()
+                              : '';
+
+                            // Determine type label
+                            const getTypeLabel = () => {
+                              if (apt.categoria === "personal") return "Personal";
+                              if (apt.categoria === "urgente") return "Urgente";
+                              const m = apt.motivo.toLowerCase();
+                              if (m.includes("consulta")) return "Consulta";
+                              if (m.includes("control")) return "Control";
+                              if (m.includes("antropometr")) return "Antropometría";
+                              return "Nota";
+                            };
+
+                            return (
+                              <div
+                                key={apt.id}
+                                onClick={(e) => { e.stopPropagation(); openEditDialog(apt); }}
+                                className={cn(
+                                  "p-2.5 mb-1 mx-0.5 text-xs shadow-sm cursor-pointer transition-all relative z-10 min-h-[60px] flex flex-col",
+                                  getEventStyle(apt)
+                                )}
+                              >
+                                <span className="text-[9px] font-semibold opacity-60 uppercase tracking-wide">{getTypeLabel()}</span>
+                                <p className="font-bold truncate text-[12px] mt-0.5">{apt.motivo}</p>
+                                {paciente && (
+                                  <div className="absolute bottom-2 right-2">
+                                    <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-600 shadow-sm flex items-center justify-center">
+                                      <span className="text-[8px] font-bold text-slate-600 dark:text-slate-200">{initials}</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       );
                     })}
@@ -506,10 +542,21 @@ export default function AgendaView() {
               </div>
             </div>
 
-            {/* Patient Selector - ONLY if NOT personal */}
-            {formData.categoria !== 'personal' && (
-              <div className="space-y-2"><Label>Paciente</Label><Select value={formData.pacienteId} onValueChange={(value) => setFormData({ ...formData, pacienteId: value })}><SelectTrigger><SelectValue placeholder="Seleccionar paciente" /></SelectTrigger><SelectContent>{pacientes.map(p => <SelectItem key={p.id} value={p.id}>{p.datosPersonales.nombre} {p.datosPersonales.apellido}</SelectItem>)}</SelectContent></Select></div>
-            )}
+            {/* Patient Selector - Optional for personal/urgente, required for trabajo */}
+            <div className="space-y-2">
+              <Label>
+                Paciente
+                {formData.categoria !== 'trabajo' && <span className="text-xs text-slate-400 ml-1">(opcional)</span>}
+              </Label>
+              <Select value={formData.pacienteId} onValueChange={(value) => setFormData({ ...formData, pacienteId: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder={formData.categoria === 'trabajo' ? 'Seleccionar paciente' : 'Sin paciente (opcional)'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {pacientes.map(p => <SelectItem key={p.id} value={p.id}>{p.datosPersonales.nombre} {p.datosPersonales.apellido}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label>Fecha</Label><Input type="date" value={formData.fecha} onChange={e => setFormData({ ...formData, fecha: e.target.value })} /></div>

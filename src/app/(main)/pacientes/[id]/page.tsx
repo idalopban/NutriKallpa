@@ -321,24 +321,6 @@ export default function DetallePacientePage() {
                         </div>
                     </div>
 
-                    {/* Quick Actions at bottom */}
-                    <div className="pt-4 mt-auto space-y-2">
-                        <Button
-                            variant="outline"
-                            className="w-full gap-2 justify-start"
-                            onClick={() => router.push(`/antropometria?id=${paciente.id}`)}
-                        >
-                            <Scale className="w-4 h-4" />
-                            Registrar Medidas
-                        </Button>
-                        <Button
-                            className="w-full gap-2 justify-start bg-[#6cba00] hover:bg-[#5aa300]"
-                            onClick={() => router.push(`/pacientes/nuevo?patientId=${paciente.id}`)}
-                        >
-                            <FileText className="w-4 h-4" />
-                            Nueva Consulta
-                        </Button>
-                    </div>
                 </aside>
 
                 {/* CONTENIDO PRINCIPAL */}
@@ -368,11 +350,20 @@ export default function DetallePacientePage() {
                         </div>
 
                         {/* Page Title - Desktop */}
-                        <div className="hidden lg:block">
-                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                                Expediente <span className="text-[#ff8508]">del Paciente</span>
-                            </h1>
-                            <p className="text-sm text-slate-500">Resumen clínico y seguimiento nutricional</p>
+                        <div className="hidden lg:flex lg:items-center lg:justify-between">
+                            <div>
+                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                                    Expediente <span className="text-[#ff8508]">del Paciente</span>
+                                </h1>
+                                <p className="text-sm text-slate-500">Resumen clínico y seguimiento nutricional</p>
+                            </div>
+                            <Button
+                                className="gap-2 bg-[#ff8508] hover:bg-[#e67600] text-white rounded-full px-6 shadow-lg shadow-orange-500/20"
+                                onClick={() => router.push(`/pacientes/nuevo?patientId=${paciente.id}`)}
+                            >
+                                <FileText className="w-4 h-4" />
+                                Nueva Consulta
+                            </Button>
                         </div>
 
 
