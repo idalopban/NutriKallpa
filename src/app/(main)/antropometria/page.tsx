@@ -261,21 +261,18 @@ function AntropometriaContent() {
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {stage === 'infant' && (
                             <InfantAnthropometryLayout
-                                patientId={selectedPacienteId}
+                                patientId={selectedPacienteId!}
                                 patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
                                 patientBirthDate={birthDateStr || ''}
                                 patientSex={selectedPaciente.datosPersonales.sexo === 'femenino' ? 'femenino' : 'masculino'}
                                 medidas={medidas}
-                                onSavePediatric={(data) => handleSavePediatric(data)}
-                                onSaveAdult={handleSaveFull}
+                                onSave={handleSavePediatric}
                                 onDeleteMedida={handleDeleteMedida}
-                                initialWeight={selectedPaciente?.datosPersonales.peso || 0}
-                                initialHeight={selectedPaciente?.datosPersonales.talla || 0}
                             />
                         )}
                         {stage === 'preschool' && (
                             <PreschoolAnthropometryLayout
-                                patientId={selectedPacienteId}
+                                patientId={selectedPacienteId!}
                                 patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
                                 patientBirthDate={birthDateStr || ''}
                                 patientSex={selectedPaciente.datosPersonales.sexo === 'femenino' ? 'femenino' : 'masculino'}
@@ -289,7 +286,7 @@ function AntropometriaContent() {
                         )}
                         {stage === 'school' && (
                             <SchoolAnthropometryLayout
-                                patientId={selectedPacienteId}
+                                patientId={selectedPacienteId!}
                                 patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
                                 patientBirthDate={birthDateStr || ''}
                                 patientSex={selectedPaciente.datosPersonales.sexo === 'femenino' ? 'femenino' : 'masculino'}
@@ -316,7 +313,7 @@ function AntropometriaContent() {
                         )}
                         {stage === 'elderly' && (
                             <ElderlyAnthropometryLayout
-                                patientId={selectedPacienteId}
+                                patientId={selectedPacienteId!}
                                 patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
                                 patientBirthDate={birthDateStr || ''}
                                 patientSex={selectedPaciente.datosPersonales.sexo === 'femenino' ? 'femenino' : 'masculino'}
