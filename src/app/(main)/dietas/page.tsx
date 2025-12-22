@@ -65,6 +65,7 @@ import { calculateMifflinStJeor, ACTIVITY_FACTORS, calcularEdad, type ActivityLe
 import { useAuthStore } from "@/store/useAuthStore";
 import { useDietHistory } from "@/hooks/useDietHistory";
 import { DownloadButton } from "@/components/diet/pdf/DownloadButton";
+import { PatientAgeBadge } from "@/components/patient/PatientAgeBadge";
 
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const MEAL_NAMES = ["Desayuno", "Almuerzo", "Cena", "Colación"];
@@ -496,7 +497,10 @@ function DietasContent() {
                                                     <h3 className="font-semibold text-slate-800 dark:text-white group-hover:text-[#ff8508] transition-colors">
                                                         {p.datosPersonales.nombre} {p.datosPersonales.apellido}
                                                     </h3>
-                                                    <span className="text-xs text-muted-foreground">{p.datosPersonales.email || "Sin email"}</span>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <span className="text-xs text-muted-foreground">{p.datosPersonales.email || "Sin email"}</span>
+                                                        <PatientAgeBadge birthDate={p.datosPersonales.fechaNacimiento} className="text-[10px] px-1.5 py-0" />
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="h-8 w-8 rounded-full bg-slate-50 dark:bg-slate-700 group-hover:bg-[#ff8508]/10 flex items-center justify-center transition-colors">

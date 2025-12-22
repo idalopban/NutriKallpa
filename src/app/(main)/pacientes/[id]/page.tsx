@@ -23,6 +23,7 @@ import { ClinicalHistoryTab } from "@/components/patients/ClinicalHistoryTab";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PediatricGrowthChart } from "@/components/pediatrics/PediatricGrowthChart";
 import { NewPediatricMeasurementForm, type PediatricMeasurementData } from "@/components/pediatrics/NewPediatricMeasurementForm";
+import { PatientAgeBadge } from "@/components/patient/PatientAgeBadge";
 import { useToast } from "@/hooks/use-toast";
 
 // Logic
@@ -488,9 +489,10 @@ export default function DetallePacientePage() {
                                                             Patrones de crecimiento infantil (0-5 años)
                                                         </p>
                                                     </div>
-                                                    <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 px-3 py-1">
-                                                        {patientAge < 2 ? '🍼 Lactante' : '👶 Pediátrico'} • {ageDisplay}
-                                                    </Badge>
+                                                    <PatientAgeBadge
+                                                        birthDate={paciente?.datosPersonales.fechaNacimiento}
+                                                        className="px-3 py-1 text-sm rounded-full"
+                                                    />
                                                 </div>
 
                                                 {/* Métricas Básicas Pediátricas */}

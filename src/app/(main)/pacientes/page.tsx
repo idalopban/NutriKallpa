@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
+import { PatientAgeBadge } from "@/components/patient/PatientAgeBadge";
 
 // Helper function to determine patient status
 type PatientStatus = "activo" | "pendiente" | "inactivo";
@@ -150,9 +151,13 @@ function PatientRow({
             <h3 className="font-semibold text-slate-800 dark:text-white group-hover:text-[#ff8508] transition-colors">
               {paciente.datosPersonales.nombre} {paciente.datosPersonales.apellido}
             </h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              {paciente.datosPersonales.email || "Sin email"}
-            </p>
+
+            <div className="flex flex-wrap items-center gap-2 mt-0.5">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {paciente.datosPersonales.email || "Sin email"}
+              </p>
+              <PatientAgeBadge birthDate={paciente.datosPersonales.fechaNacimiento} />
+            </div>
           </div>
         </div>
 

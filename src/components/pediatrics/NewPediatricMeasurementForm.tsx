@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -18,6 +18,9 @@ import {
     AlertTriangle,
     CheckCircle2,
     Info,
+    Calculator,
+    Syringe,
+    ArrowRight
 } from 'lucide-react';
 import {
     calculateGrowthAssessment,
@@ -133,10 +136,156 @@ export function NewPediatricMeasurementForm({
         };
     }, [patientBirthDate]);
 
+    // --- Advanced Infant Features State ---
+    // --- Advanced Infant Features State ---
+    const [showPrematurity, setShowPrematurity] = useState(false);
+    const [showCPEstimation, setShowCPEstimation] = useState(false);
+    // Prematurity
+    const [gestationalWeeks, setGestationalWeeks] = useState<string>("");
+    const [birthWeight, setBirthWeight] = useState<string>("");
+    const [correctedAgeData, setCorrectedAgeData] = useState<{ weeks: number, months: number, text: string } | null>(null);
+
+    // Cerebral Palsy (Stevenson)
+    const [tibiaLength, setTibiaLength] = useState<string>("");
+    const [kneeHeight, setKneeHeight] = useState<string>("");
+    const [estimatedHeightCP, setEstimatedHeightCP] = useState<number | null>(null);
+
+    // Calculate Corrected Age
+    const calculateCorrectedAge = useCallback(() => {
+        console.log('🔍 calculateCorrectedAge called');
+        console.log('Inputs:', { gestationalWeeks, birthWeight, patientBirthDate });
+
+        if (!gestationalWeeks || !patientBirthDate) {
+            console.log('❌ Missing gestationalWeeks or patientBirthDate');
+            setCorrectedAgeData(null);
+            return;
+        }
+
+        const weeks = parseFloat(gestationalWeeks);
+        console.log('Parsed weeks:', weeks);
+
+        if (isNaN(weeks)) {
+            console.log('❌ Invalid gestationalWeeks (NaN)');
+            setCorrectedAgeData(null);
+            return;
+        }
+
+        if (weeks >= 37) {
+            console.log('❌ Not premature (>= 37 weeks)');
+            setCorrectedAgeData(null);
+            return;
+        }
+
+        // Chronological Age
+        const dob = new Date(patientBirthDate);
+        const now = new Date();
+        const diffMs = now.getTime() - dob.getTime();
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        const chronoWeeks = diffDays / 7;
+        const chronoMonths = diffDays / 30.4375;
+
+        console.log('Chronological:', { diffDays, chronoWeeks, chronoMonths });
+
+        // Validity Checks (Table 11) - NOW OPTIONAL
+        const bWeight = parseFloat(birthWeight);
+        let validityLimitMonths = 24; // Default
+
+        if (!isNaN(bWeight) && bWeight > 0) {
+            if (bWeight < 1.0) validityLimitMonths = 36;
+            else if (bWeight < 1.5) validityLimitMonths = 24;
+            else validityLimitMonths = 12;
+
+            console.log(`Weight-based limit: ${validityLimitMonths} months for ${bWeight}kg`);
+
+            if (chronoMonths > validityLimitMonths) {
+                console.log(`❌ Child too old for correction (${chronoMonths.toFixed(1)}m > ${validityLimitMonths}m)`);
+                setCorrectedAgeData(null);
+                return;
+            }
+        } else {
+            console.log('⚠️ No valid birth weight, using default 24m limit');
+        }
+
+        // Formula: Actual Age (weeks) - (40 - Gestational Age)
+        const correctionFactorWeeks = 40 - weeks;
+        const correctedWeeks = chronoWeeks - correctionFactorWeeks;
+
+        console.log('Correction:', { correctionFactorWeeks, correctedWeeks });
+
+        if (correctedWeeks <= 0) {
+            console.log('❌ Corrected age is negative or zero');
+            // Show informative message instead of just hiding
+            setCorrectedAgeData({
+                weeks: 0,
+                months: 0,
+                text: `Bebé muy joven (necesita ${Math.ceil(correctionFactorWeeks - chronoWeeks)} sem. más)`
+            });
+            return;
+        }
+
+        // Display Logic with Rounding (Table 12)
+        const totalCorrectedDays = correctedWeeks * 7;
+        const correctedAgeMonthsFloat = totalCorrectedDays / 30.4375;
+        const correctedMonthsInt = Math.floor(correctedAgeMonthsFloat);
+        const remainingDays = Math.round((correctedAgeMonthsFloat - correctedMonthsInt) * 30.4375);
+
+        let displayMonths = correctedMonthsInt;
+        let suffix = "";
+
+        if (remainingDays >= 16) {
+            displayMonths += 1;
+            suffix = " (Aprox)";
+        }
+
+        const result = {
+            weeks: Math.round(correctedWeeks * 10) / 10,
+            months: Math.round(correctedAgeMonthsFloat * 10) / 10,
+            text: `${displayMonths} meses${suffix}`
+        };
+
+        console.log('✅ Result:', result);
+        setCorrectedAgeData(result);
+
+    }, [gestationalWeeks, birthWeight, patientBirthDate]);
+
+    // Calculate Stevenson Height
+    const calculateStevensonHeight = useCallback(() => {
+        let estTibia = 0;
+        let estKnee = 0;
+
+        // Talla = (3.26 x Tibia) + 30.8
+        if (tibiaLength) {
+            estTibia = (3.26 * parseFloat(tibiaLength)) + 30.8;
+        }
+
+        // Talla = (2.69 x Altura Rodilla) + 24.2
+        if (kneeHeight) {
+            estKnee = (2.69 * parseFloat(kneeHeight)) + 24.2;
+        }
+
+        if (estTibia > 0) {
+            setEstimatedHeightCP(Math.round(estTibia * 10) / 10);
+        } else if (estKnee > 0) {
+            setEstimatedHeightCP(Math.round(estKnee * 10) / 10);
+        } else {
+            setEstimatedHeightCP(null);
+        }
+    }, [tibiaLength, kneeHeight]);
+
+    // Auto-recalc effects removed for manual calculation
+    // useEffect(() => {
+    //     calculateCorrectedAge();
+    // }, [gestationalWeeks, birthWeight, calculateCorrectedAge]);
+
+    // useEffect(() => {
+    //     calculateStevensonHeight();
+    // }, [tibiaLength, kneeHeight, calculateStevensonHeight]);
+
     const {
         register,
         handleSubmit,
         watch,
+        setValue,
         formState: { errors, isSubmitting },
     } = useForm<MeasurementFormValues>({
         resolver: zodResolver(measurementSchema),
@@ -203,6 +352,28 @@ export function NewPediatricMeasurementForm({
                         <Badge className="bg-blue-100 text-blue-700">
                             {patientSex === 'male' ? '👦 Niño' : '👧 Niña'}
                         </Badge>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                type="button"
+                                onClick={() => setShowPrematurity(!showPrematurity)}
+                                className={cn("text-xs h-8", showPrematurity && "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-900/20 dark:border-indigo-800 dark:text-indigo-300")}
+                            >
+                                <Baby className="w-3.5 h-3.5 mr-1.5" />
+                                {showPrematurity ? "Ocultar Prematuro" : "Edad Corregida"}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                type="button"
+                                onClick={() => setShowCPEstimation(!showCPEstimation)}
+                                className={cn("text-xs h-8", showCPEstimation && "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300")}
+                            >
+                                <Ruler className="w-3.5 h-3.5 mr-1.5" />
+                                {showCPEstimation ? "Ocultar Est. Talla" : "Est. Talla (PC)"}
+                            </Button>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -233,6 +404,122 @@ export function NewPediatricMeasurementForm({
                     </div>
                 </CardContent>
             </Card>
+
+            {/* ADVANCED SECTION */}
+            {/* PREMATURITY SECTION */}
+            {showPrematurity && (
+                <div className="p-4 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-800 animate-in slide-in-from-top-2 mb-4">
+                    <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 mb-3">
+                        <Baby className="w-4 h-4" />
+                        <h4 className="text-sm font-bold">Edad Corregida (Prematuros)</h4>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-end">
+                        <div className="space-y-1">
+                            <Label className="text-xs text-slate-500">Sem. Gestación</Label>
+                            <Input
+                                type="number"
+                                placeholder="ej. 32"
+                                value={gestationalWeeks}
+                                onChange={(e) => setGestationalWeeks(e.target.value)}
+                                className="h-9"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-xs text-slate-500">Peso Nacimiento (kg)</Label>
+                            <Input
+                                type="number"
+                                placeholder="ej. 1.8"
+                                value={birthWeight}
+                                onChange={(e) => setBirthWeight(e.target.value)}
+                                className="h-9"
+                            />
+                        </div>
+                        {correctedAgeData && (
+                            <div className="p-2 bg-white dark:bg-slate-900 rounded border border-indigo-200 dark:border-indigo-700 flex items-center justify-center h-9">
+                                <span className="text-sm text-indigo-700 dark:text-indigo-300 font-bold">
+                                    {correctedAgeData.text}
+                                </span>
+                            </div>
+                        )}
+                        <div className="flex items-end">
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={calculateCorrectedAge}
+                                className="h-9 w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                            >
+                                Calcular
+                            </Button>
+                        </div>
+                    </div>
+                    <p className="text-[10px] text-slate-400 italic mt-2">
+                        * Aplica si &lt;37 semanas. Validez según peso: &lt;1kg (36m), 1-1.5kg (24m), &gt;1.5kg (12m).
+                    </p>
+                </div>
+            )}
+
+            {/* CP ESTIMATION SECTION */}
+            {showCPEstimation && (
+                <div className="p-4 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-800 animate-in slide-in-from-top-2 mb-4">
+                    <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 mb-3">
+                        <Ruler className="w-4 h-4" />
+                        <h4 className="text-sm font-bold">Estimación de Talla (Stevenson - PC)</h4>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-end">
+                        <div className="space-y-1">
+                            <Label className="text-xs text-slate-500">Longitud Tibia (cm)</Label>
+                            <Input
+                                type="number"
+                                placeholder="cm"
+                                value={tibiaLength}
+                                onChange={(e) => setTibiaLength(e.target.value)}
+                                className="h-9"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-xs text-slate-500">Altura Rodilla (cm)</Label>
+                            <Input
+                                type="number"
+                                placeholder="cm"
+                                value={kneeHeight}
+                                onChange={(e) => setKneeHeight(e.target.value)}
+                                className="h-9"
+                            />
+                        </div>
+                        {estimatedHeightCP && (
+                            <div className="flex items-center gap-2">
+                                <div className="p-2 flex-1 bg-white dark:bg-slate-900 rounded border border-emerald-200 dark:border-emerald-700 flex items-center justify-center h-9">
+                                    <span className="text-sm text-emerald-700 dark:text-emerald-300 font-bold">
+                                        {estimatedHeightCP} cm
+                                    </span>
+                                </div>
+                                <Button
+                                    size="sm"
+                                    type="button"
+                                    className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    onClick={() => setValue('heightCm', estimatedHeightCP ?? 0, { shouldValidate: true, shouldDirty: true })}
+                                >
+                                    Usar
+                                </Button>
+                            </div>
+                        )}
+                        <div className="flex items-end">
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={calculateStevensonHeight}
+                                className="h-9 w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                            >
+                                Calcular
+                            </Button>
+                        </div>
+                    </div>
+                    <p className="text-[10px] text-slate-400 italic mt-2">
+                        * Stevenson: Talla = (3.26 x Tibia) + 30.8 &nbsp;|&nbsp; Talla = (2.69 x Altura Rodilla) + 24.2
+                    </p>
+                </div>
+            )}
+
 
             {/* Measurement Inputs */}
             <Card>
@@ -316,108 +603,110 @@ export function NewPediatricMeasurementForm({
             </Card>
 
             {/* Real-time Assessment Results */}
-            {assessment && (
-                <Card className="border-green-200 bg-gradient-to-r from-green-50/50 to-blue-50/50 dark:from-green-900/10 dark:to-blue-900/10">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base flex items-center gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-green-600" />
-                            Resultados de la Evaluación
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {/* Nutritional Status Banner */}
-                        <div className={cn(
-                            'p-3 rounded-lg border mb-4 flex items-center gap-2',
-                            assessment.nutritionalStatus === 'Normal'
-                                ? 'bg-green-50 border-green-200 text-green-700'
-                                : assessment.nutritionalStatus.includes('Obesidad') || assessment.nutritionalStatus.includes('severa')
-                                    ? 'bg-red-50 border-red-200 text-red-700'
-                                    : 'bg-amber-50 border-amber-200 text-amber-700'
-                        )}>
-                            {assessment.nutritionalStatus === 'Normal'
-                                ? <CheckCircle2 className="w-5 h-5" />
-                                : <AlertTriangle className="w-5 h-5" />
-                            }
-                            <span className="font-semibold">Estado Nutricional: {assessment.nutritionalStatus}</span>
-                        </div>
+            {
+                assessment && (
+                    <Card className="border-green-200 bg-gradient-to-r from-green-50/50 to-blue-50/50 dark:from-green-900/10 dark:to-blue-900/10">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-base flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                Resultados de la Evaluación
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {/* Nutritional Status Banner */}
+                            <div className={cn(
+                                'p-3 rounded-lg border mb-4 flex items-center gap-2',
+                                assessment.nutritionalStatus === 'Normal'
+                                    ? 'bg-green-50 border-green-200 text-green-700'
+                                    : assessment.nutritionalStatus.includes('Obesidad') || assessment.nutritionalStatus.includes('severa')
+                                        ? 'bg-red-50 border-red-200 text-red-700'
+                                        : 'bg-amber-50 border-amber-200 text-amber-700'
+                            )}>
+                                {assessment.nutritionalStatus === 'Normal'
+                                    ? <CheckCircle2 className="w-5 h-5" />
+                                    : <AlertTriangle className="w-5 h-5" />
+                                }
+                                <span className="font-semibold">Estado Nutricional: {assessment.nutritionalStatus}</span>
+                            </div>
 
-                        {/* Z-Score Grid */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            {/* Weight-for-Age */}
-                            {assessment.wfa && (
-                                <div className={cn('p-3 rounded-lg border', getSeverityColor(assessment.wfa.severityLevel))}>
-                                    <p className="text-xs opacity-70">Peso/Edad</p>
-                                    <p className="text-lg font-bold">Z: {assessment.wfa.zScore.toFixed(2)}</p>
-                                    <div className="flex items-center gap-1 mt-1">
-                                        {getSeverityIcon(assessment.wfa.severityLevel)}
-                                        <span className="text-xs">{assessment.wfa.diagnosis}</span>
+                            {/* Z-Score Grid */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {/* Weight-for-Age */}
+                                {assessment.wfa && (
+                                    <div className={cn('p-3 rounded-lg border', getSeverityColor(assessment.wfa.severityLevel))}>
+                                        <p className="text-xs opacity-70">Peso/Edad</p>
+                                        <p className="text-lg font-bold">Z: {assessment.wfa.zScore.toFixed(2)}</p>
+                                        <div className="flex items-center gap-1 mt-1">
+                                            {getSeverityIcon(assessment.wfa.severityLevel)}
+                                            <span className="text-xs">{assessment.wfa.diagnosis}</span>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {/* Length/Height-for-Age */}
-                            {assessment.lhfa && (
-                                <div className={cn('p-3 rounded-lg border', getSeverityColor(assessment.lhfa.severityLevel))}>
-                                    <p className="text-xs opacity-70">Longitud/Edad</p>
-                                    <p className="text-lg font-bold">Z: {assessment.lhfa.zScore.toFixed(2)}</p>
-                                    <div className="flex items-center gap-1 mt-1">
-                                        {getSeverityIcon(assessment.lhfa.severityLevel)}
-                                        <span className="text-xs">{assessment.lhfa.diagnosis}</span>
+                                {/* Length/Height-for-Age */}
+                                {assessment.lhfa && (
+                                    <div className={cn('p-3 rounded-lg border', getSeverityColor(assessment.lhfa.severityLevel))}>
+                                        <p className="text-xs opacity-70">Longitud/Edad</p>
+                                        <p className="text-lg font-bold">Z: {assessment.lhfa.zScore.toFixed(2)}</p>
+                                        <div className="flex items-center gap-1 mt-1">
+                                            {getSeverityIcon(assessment.lhfa.severityLevel)}
+                                            <span className="text-xs">{assessment.lhfa.diagnosis}</span>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {/* BMI-for-Age */}
-                            {assessment.bfa && (
-                                <div className={cn('p-3 rounded-lg border', getSeverityColor(assessment.bfa.severityLevel))}>
-                                    <p className="text-xs opacity-70">IMC/Edad</p>
-                                    <p className="text-lg font-bold">Z: {assessment.bfa.zScore.toFixed(2)}</p>
-                                    <div className="flex items-center gap-1 mt-1">
-                                        {getSeverityIcon(assessment.bfa.severityLevel)}
-                                        <span className="text-xs">{assessment.bfa.diagnosis}</span>
+                                {/* BMI-for-Age */}
+                                {assessment.bfa && (
+                                    <div className={cn('p-3 rounded-lg border', getSeverityColor(assessment.bfa.severityLevel))}>
+                                        <p className="text-xs opacity-70">IMC/Edad</p>
+                                        <p className="text-lg font-bold">Z: {assessment.bfa.zScore.toFixed(2)}</p>
+                                        <div className="flex items-center gap-1 mt-1">
+                                            {getSeverityIcon(assessment.bfa.severityLevel)}
+                                            <span className="text-xs">{assessment.bfa.diagnosis}</span>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {/* Head Circumference */}
-                            {assessment.hcfa && (
-                                <div className={cn('p-3 rounded-lg border', getSeverityColor(assessment.hcfa.severityLevel))}>
-                                    <p className="text-xs opacity-70">P. Cefálico/Edad</p>
-                                    <p className="text-lg font-bold">Z: {assessment.hcfa.zScore.toFixed(2)}</p>
-                                    <div className="flex items-center gap-1 mt-1">
-                                        {getSeverityIcon(assessment.hcfa.severityLevel)}
-                                        <span className="text-xs">{assessment.hcfa.diagnosis}</span>
+                                {/* Head Circumference */}
+                                {assessment.hcfa && (
+                                    <div className={cn('p-3 rounded-lg border', getSeverityColor(assessment.hcfa.severityLevel))}>
+                                        <p className="text-xs opacity-70">P. Cefálico/Edad</p>
+                                        <p className="text-lg font-bold">Z: {assessment.hcfa.zScore.toFixed(2)}</p>
+                                        <div className="flex items-center gap-1 mt-1">
+                                            {getSeverityIcon(assessment.hcfa.severityLevel)}
+                                            <span className="text-xs">{assessment.hcfa.diagnosis}</span>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                        </div>
+                                )}
+                            </div>
 
-                        {/* Flags */}
-                        <div className="flex flex-wrap gap-2 mt-4">
-                            {assessment.stunting && (
-                                <Badge className="bg-amber-100 text-amber-700">
-                                    ⚠️ Retardo del crecimiento
-                                </Badge>
-                            )}
-                            {assessment.wasting && (
-                                <Badge className="bg-red-100 text-red-700">
-                                    🚨 Emaciación
-                                </Badge>
-                            )}
-                            {assessment.overweight && (
-                                <Badge className="bg-orange-100 text-orange-700">
-                                    ⚠️ Sobrepeso/Obesidad
-                                </Badge>
-                            )}
-                            {!assessment.stunting && !assessment.wasting && !assessment.overweight && (
-                                <Badge className="bg-green-100 text-green-700">
-                                    ✅ Sin alertas nutricionales
-                                </Badge>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
+                            {/* Flags */}
+                            <div className="flex flex-wrap gap-2 mt-4">
+                                {assessment.stunting && (
+                                    <Badge className="bg-amber-100 text-amber-700">
+                                        ⚠️ Retardo del crecimiento
+                                    </Badge>
+                                )}
+                                {assessment.wasting && (
+                                    <Badge className="bg-red-100 text-red-700">
+                                        🚨 Emaciación
+                                    </Badge>
+                                )}
+                                {assessment.overweight && (
+                                    <Badge className="bg-orange-100 text-orange-700">
+                                        ⚠️ Sobrepeso/Obesidad
+                                    </Badge>
+                                )}
+                                {!assessment.stunting && !assessment.wasting && !assessment.overweight && (
+                                    <Badge className="bg-green-100 text-green-700">
+                                        ✅ Sin alertas nutricionales
+                                    </Badge>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )
+            }
 
             {/* Action Buttons */}
             <div className="flex gap-3">
@@ -440,6 +729,6 @@ export function NewPediatricMeasurementForm({
                     {isSubmitting ? 'Guardando...' : 'Guardar Evaluación'}
                 </Button>
             </div>
-        </form>
+        </form >
     );
 }

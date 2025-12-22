@@ -957,3 +957,31 @@ export function calculateDetailedAge(birthDate: string | Date, targetDate: strin
         formatted: parts.join(' ')
     };
 }
+
+/**
+ * Determina el contexto clínico basado en la edad para clasificación visual y lógica.
+ * Unifica etiquetas (Lactante, Pediátrico, etc.) y colores de UI.
+ */
+export function getClinicalContextByAge(fechaNacimiento: Date | string | undefined): {
+    context: 'lactante' | 'pediatrico' | 'adulto' | 'adulto_mayor';
+    label: string;
+    color: string;
+    age: number;
+} {
+    if (!fechaNacimiento) {
+        return { context: 'adulto', label: 'Adulto', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', age: 30 };
+    }
+
+    const birthDate = typeof fechaNacimiento === 'string' ? new Date(fechaNacimiento) : fechaNacimiento;
+    const age = calculateChronologicalAge(birthDate);
+    const roundedAge = Math.floor(age);
+
+    if (age < 2) {
+        return { context: 'lactante', label: 'Lactante', color: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400', age: roundedAge };
+    } else if (age < 18) {
+        return { context: 'pediatrico', label: 'Pediátrico', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', age: roundedAge };
+    } else if (age >= 65) {
+        return { context: 'adulto_mayor', label: 'Adulto Mayor', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400', age: roundedAge };
+    }
+    return { context: 'adulto', label: 'Adulto', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', age: roundedAge };
+}

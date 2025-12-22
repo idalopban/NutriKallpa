@@ -243,8 +243,53 @@ function PediatricGrowthChartComponent({
                             dataKey="month"
                             type="number"
                             domain={[startMonth, endMonth]}
-                            tickCount={13}
-                            label={{ value: 'Edad (meses)', position: 'insideBottom', offset: -10 }}
+                            ticks={(() => {
+                                if (endMonth > 60) {
+                                    const ticks = [];
+                                    for (let m = startMonth; m <= endMonth; m += 3) {
+                                        ticks.push(m);
+                                    }
+                                    return ticks;
+                                }
+                                return undefined; // Default behavior for infant charts
+                            })()}
+                            tick={((props: any) => {
+                                const { x, y, payload } = props;
+                                const month = payload.value;
+
+                                if (endMonth <= 60) {
+                                    return (
+                                        <text x={x} y={y} dy={16} textAnchor="middle" fill="#94a3b8" fontSize={12}>
+                                            {month}
+                                        </text>
+                                    );
+                                }
+
+                                const isYear = month % 12 === 0;
+                                return (
+                                    <g transform={`translate(${x},${y})`}>
+                                        <text
+                                            x={0}
+                                            y={0}
+                                            dy={isYear ? 28 : 12}
+                                            textAnchor="middle"
+                                            fill={isYear ? "#475569" : "#94a3b8"}
+                                            fontSize={isYear ? 12 : 9}
+                                            fontWeight={isYear ? "bold" : "normal"}
+                                        >
+                                            {isYear ? `${month / 12}` : `${month % 12}`}
+                                        </text>
+                                    </g>
+                                );
+                            }) as any}
+                            height={60}
+                            label={{
+                                value: endMonth > 60 ? 'Edad (meses y años cumplidos)' : 'Edad (meses)',
+                                position: 'insideBottom',
+                                offset: 0,
+                                fill: '#64748b',
+                                fontSize: 12
+                            }}
                             stroke="#94a3b8"
                         />
 

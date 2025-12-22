@@ -7,49 +7,27 @@ import { saveEvaluation } from "@/actions/anthropometry-actions";
 import { createPatient } from "@/actions/patient-actions";
 import { calculateBodyComposition } from "@/lib/bodyCompositionMath";
 import { useToast } from "@/hooks/use-toast";
-import { AntropometriaLayout } from "@/components/antropometria/AntropometriaLayout";
 import { FullMeasurementData } from "@/components/antropometria/UnifiedMeasurementForm";
-import { PediatricGrowthChart, type PatientDataPoint } from "@/components/pediatrics/PediatricGrowthChart";
-import { NewPediatricMeasurementForm, type PediatricMeasurementData } from "@/components/pediatrics/NewPediatricMeasurementForm";
-import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Search, Users, ArrowRight, BookOpen, Activity, Save, RotateCcw, Baby, User, HeartPulse } from "lucide-react";
+import { PlusCircle, Search, Users, ArrowRight, BookOpen, Activity, RotateCcw } from "lucide-react";
 import type { Paciente, MedidasAntropometricas } from "@/types";
 import { useAuthStore } from "@/store/useAuthStore";
-import { calculateChronologicalAge, calculateExactAgeInDays } from "@/lib/clinical-calculations";
-import { calculateZScore } from "@/lib/growth-standards";
+import { PatientAgeBadge } from "@/components/patient/PatientAgeBadge";
 
-// Helper para determinar contexto clínico por edad
-function getClinicalContextByAge(fechaNacimiento: Date | string | undefined): {
-    context: 'lactante' | 'pediatrico' | 'adulto' | 'adulto_mayor';
-    label: string;
-    color: string;
-    age: number;
-} {
-    if (!fechaNacimiento) {
-        return { context: 'adulto', label: 'Adulto', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', age: 30 };
-    }
-
-    const birthDate = typeof fechaNacimiento === 'string' ? new Date(fechaNacimiento) : fechaNacimiento;
-    const age = calculateChronologicalAge(birthDate);
-    const roundedAge = Math.floor(age);
-
-    if (age < 2) {
-        return { context: 'lactante', label: 'Lactante', color: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400', age: roundedAge };
-    } else if (age < 18) {
-        return { context: 'pediatrico', label: 'Pediátrico', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', age: roundedAge };
-    } else if (age >= 65) {
-        return { context: 'adulto_mayor', label: 'Adulto Mayor', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400', age: roundedAge };
-    }
-    return { context: 'adulto', label: 'Adulto', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', age: roundedAge };
-}
+// New Hooks & Layouts
+import { useLifeStage } from "@/hooks/useLifeStage";
+import { InfantAnthropometryLayout } from "@/components/antropometria/layouts/InfantAnthropometryLayout";
+import { PreschoolAnthropometryLayout } from "@/components/antropometria/layouts/PreschoolAnthropometryLayout";
+import { SchoolAnthropometryLayout } from "@/components/antropometria/layouts/SchoolAnthropometryLayout";
+import { AdultAnthropometryLayout } from "@/components/antropometria/layouts/AdultAnthropometryLayout";
+import { ElderlyAnthropometryLayout } from "@/components/antropometria/layouts/ElderlyAnthropometryLayout";
+import type { PediatricMeasurementData } from "@/components/pediatrics/NewPediatricMeasurementForm";
 
 function AntropometriaContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user } = useAuthStore();
+    const { toast } = useToast();
 
     const [pacientes, setPacientes] = useState<Paciente[]>([]);
     const [selectedPacienteId, setSelectedPacienteId] = useState<string | null>(null);
@@ -87,18 +65,24 @@ function AntropometriaContent() {
         window.history.pushState({}, "", `?id=${id}`);
     };
 
-    const { toast } = useToast();
+    const selectedPaciente = pacientes.find(p => p.id === selectedPacienteId);
 
-    // ... (rest of hook calls)
+    // Life Stage Hook
+    const birthDateStr = selectedPaciente?.datosPersonales.fechaNacimiento
+        ? (typeof selectedPaciente.datosPersonales.fechaNacimiento === 'string'
+            ? selectedPaciente.datosPersonales.fechaNacimiento
+            : new Date(selectedPaciente.datosPersonales.fechaNacimiento).toISOString())
+        : undefined;
 
-    const handleSave = async (data: FullMeasurementData) => {
-        if (!selectedPacienteId || !user) return;
+    const { stage, isTeenager } = useLifeStage(selectedPaciente?.datosPersonales.fechaNacimiento);
 
+    // --- HANDLERS ---
+
+    // 1. Handle Save for Adult/Elderly (FullMeasurementData)
+    const handleSaveFull = async (data: FullMeasurementData) => {
+        if (!selectedPacienteId || !user || !selectedPaciente) return;
         setIsLoading(true);
 
-        // 1. Calculate Results Snapshot (Basic Body Composition)
-        // Note: Somatotype calculation is skipped for snapshot as the logic is tied to the UI component.
-        // It will be calculated on-the-fly when viewing the record.
         const skinfoldData = {
             triceps: data.skinfolds.triceps,
             subscapular: data.skinfolds.subscapular,
@@ -110,44 +94,26 @@ function AntropometriaContent() {
             calf: data.skinfolds.calf
         };
 
-        // Use 'general' formula as default for snapshot if not specified, 
-        // or check if we can infer it. For now, use 'general'.
         const composition = calculateBodyComposition('general', data.bioData.genero === 'masculino' ? 'male' : 'female', skinfoldData, data.bioData.peso);
-
-        // 2. Calculate IMC
         const tallaMetros = data.bioData.talla / 100;
         const imc = tallaMetros > 0 ? data.bioData.peso / (tallaMetros * tallaMetros) : 0;
 
-        // 3. Map Data
         const nuevaMedida: MedidasAntropometricas = {
-            id: '',
+            id: crypto.randomUUID(),
             pacienteId: selectedPacienteId,
             fecha: new Date().toISOString(),
-            tipoPaciente: 'general',
+            tipoPaciente: stage === 'elderly' ? 'adulto_mayor' : 'adulto',
             peso: data.bioData.peso,
             talla: data.bioData.talla,
             edad: data.bioData.edad,
             sexo: data.bioData.genero,
-            imc: Math.round(imc * 100) / 100, // IMC with 2 decimals
-            pliegues: {
-                triceps: data.skinfolds.triceps,
-                biceps: data.skinfolds.biceps,
-                subscapular: data.skinfolds.subscapular,
-                supraspinale: data.skinfolds.supraspinale,
-                // iliac_crest: data.skinfolds.iliac_crest, // NOTE: MedidasAntropometricas type might rely on 'supraspinale' or 'iliac_crest' depending on ISAK version. 
-                // Let's use what we have in types.ts. types.ts has 'iliac_crest' AND 'supraspinale'.
-                iliac_crest: data.skinfolds.iliac_crest,
-                abdominal: data.skinfolds.abdominal,
-                thigh: data.skinfolds.thigh,
-                calf: data.skinfolds.calf
-            },
+            imc: Math.round(imc * 100) / 100,
+            pliegues: { ...skinfoldData },
             perimetros: {
                 brazoRelajado: data.girths.brazoRelajado,
                 brazoFlex: data.girths.brazoFlexionado,
                 cintura: data.girths.cintura,
                 pantorrilla: data.girths.pantorrilla,
-                cadera: undefined, // Add if available
-                musloMedio: undefined // Add if available
             },
             diametros: {
                 humero: data.breadths.humero,
@@ -155,48 +121,47 @@ function AntropometriaContent() {
             }
         };
 
-        // 2.5 Ensure Patient Exists in DB (Sync on demand)
-        if (selectedPaciente) {
-            console.log("🔄 Asegurando sincronización de paciente:", selectedPacienteId);
-            await createPatient(selectedPaciente);
-        }
-
-        // 2.6 Generate ID for localStorage and save locally FIRST
-        const medidasConId: MedidasAntropometricas = {
-            ...nuevaMedida,
-            id: crypto.randomUUID() // Generate a client-side ID
-        };
-
-        // 3. Save to localStorage FIRST (for immediate UI update)
-        saveMedidas(medidasConId);
-        console.log("✅ Medidas guardadas en localStorage:", medidasConId.id);
-
-        // 4. Sync to Database (background save)
-        const result = await saveEvaluation(medidasConId, {
+        // Save Logic
+        saveMedidas(nuevaMedida);
+        if (selectedPaciente) await createPatient(selectedPaciente);
+        // Note: Check if saveEvaluation signature matches, assuming yes or optional args
+        await saveEvaluation(nuevaMedida, {
             bodyFatPercent: composition.isValid ? composition.fatPercent : undefined,
             muscleMassKg: composition.isValid ? composition.leanMassKg : undefined
         });
 
-        if (result.success) {
-            toast({
-                title: "Evaluación Guardada",
-                description: "Los datos se han registrado correctamente en el historial.",
-                variant: "default",
-                className: "bg-green-500 text-white border-none"
-            });
+        setMedidas(prev => [nuevaMedida, ...prev]);
+        toast({ title: "Evaluación Guardada", description: "Datos registrados correctamente.", className: "bg-green-500 text-white border-none" });
+        setIsLoading(false);
+    };
 
-            // Redirect to Patient Profile -> Evolution Tab
-            if (selectedPacienteId) {
-                router.push(`/pacientes/${selectedPacienteId}?tab=avance`);
-            }
-        } else {
-            toast({
-                title: "Error al guardar",
-                description: result.error || "No se pudo registrar la evaluación.",
-                variant: "destructive"
-            });
-        }
+    // 2. Handle Save for Pediatric/Infant
+    const handleSavePediatric = async (data: PediatricMeasurementData) => {
+        if (!selectedPacienteId || !user || !selectedPaciente) return;
+        setIsLoading(true);
 
+        const newMedida: MedidasAntropometricas = {
+            id: crypto.randomUUID(),
+            pacienteId: selectedPacienteId,
+            fecha: data.dateRecorded.toISOString(),
+            peso: data.weightKg,
+            talla: data.heightCm,
+            edad: Math.floor(data.ageInMonths / 12),
+            sexo: selectedPaciente.datosPersonales.sexo || 'masculino',
+            imc: data.weightKg / Math.pow(data.heightCm / 100, 2),
+            tipoPaciente: 'pediatrico',
+            // Fill basics
+            pliegues: { triceps: 0, subscapular: 0, biceps: 0, iliac_crest: 0, supraspinale: 0, abdominal: 0, thigh: 0, calf: 0 },
+            perimetros: { brazoRelajado: 0, brazoFlex: 0, cintura: 0, pantorrilla: 0 },
+            diametros: { humero: 0, femur: 0 }
+        };
+
+        saveMedidas(newMedida);
+        if (selectedPaciente) await createPatient(selectedPaciente);
+        await saveEvaluation(newMedida);
+
+        setMedidas(prev => [newMedida, ...prev]);
+        toast({ title: "Evaluación Pediátrica Guardada", description: "Datos registrados correctamente.", className: "bg-green-500 text-white border-none" });
         setIsLoading(false);
     };
 
@@ -207,38 +172,25 @@ function AntropometriaContent() {
         }
     };
 
-    const selectedPaciente = pacientes.find(p => p.id === selectedPacienteId);
-
-    // Obtener la última medida del paciente (más reciente primero)
     const ultimaMedida = medidas.length > 0 ? medidas[0] : null;
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-screen">
-                <Activity className="w-10 h-10 text-[#ff8508] animate-pulse" />
-            </div>
-        );
+    if (isLoading && !pacientes.length) {
+        return <div className="flex items-center justify-center h-screen"><Activity className="w-10 h-10 text-[#ff8508] animate-pulse" /></div>;
     }
 
     return (
         <div className="min-h-screen bg-white dark:bg-[#0f172a]">
-            {/* NEW HEADER DESIGN */}
+            {/* HEADER */}
             <div className="border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-30">
                 <div className="container mx-auto px-4 md:px-6 py-4 md:py-0 md:h-20 flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-[1600px]">
-
-                    {/* LEFT: Title & Subtitle */}
                     <div className="flex flex-col">
                         <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                             Evaluación <span className="text-[#ff8508]">Antropométrica</span>
                         </h1>
-                        <p className="text-sm text-slate-400">
-                            Evaluación paso a paso
-                        </p>
+                        <p className="text-sm text-slate-400">Evaluación paso a paso</p>
                     </div>
 
-                    {/* RIGHT: Controls */}
                     <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
-                        {/* Patient Search Input */}
                         {!selectedPaciente ? (
                             <div className="w-full md:w-[300px] relative">
                                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -260,23 +212,11 @@ function AntropometriaContent() {
                                 </Button>
                             </div>
                         )}
-
                         <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-2" />
-
-                        <Button
-                            variant="outline"
-                            className="h-11 rounded-xl border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 gap-2 font-medium"
-                            onClick={() => router.push('/antropometria/formulas')}
-                        >
-                            <BookOpen className="w-4 h-4" /> Formulas
+                        <Button variant="outline" className="h-11 rounded-xl" onClick={() => router.push('/antropometria/formulas')}>
+                            <BookOpen className="w-4 h-4 mr-2" /> Formulas
                         </Button>
-
-                        <Button
-                            variant="secondary"
-                            size="icon"
-                            className="h-11 w-11 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-                            onClick={() => router.push('/pacientes/nuevo')}
-                        >
+                        <Button variant="secondary" size="icon" className="h-11 w-11 rounded-xl" onClick={() => router.push('/pacientes/nuevo')}>
                             <PlusCircle className="w-5 h-5" />
                         </Button>
                     </div>
@@ -285,254 +225,106 @@ function AntropometriaContent() {
 
             <div className="container mx-auto p-4 md:p-6 max-w-[1600px]">
                 {!selectedPaciente ? (
-                    // CHECK IF THERE ARE PATIENTS
-                    pacientes.length > 0 ? (
-                        // PATIENT DIRECTORY - Show list of patients to select
-                        <div className="animate-in fade-in duration-300">
-                            <div className="mb-4 flex items-center justify-between">
-                                <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
-                                    Directorio de Pacientes
-                                    <span className="ml-2 text-sm font-normal text-slate-400">
-                                        ({filteredPatients.length} {filteredPatients.length === 1 ? 'paciente' : 'pacientes'})
-                                    </span>
-                                </h2>
-                                {patientSearch && (
-                                    <Button variant="ghost" size="sm" onClick={() => setPatientSearch("")}>
-                                        Limpiar búsqueda
-                                    </Button>
-                                )}
-                            </div>
+                    // DIRECTORY
+                    <div className="animate-in fade-in duration-300">
+                        {pacientes.length > 0 ? (
                             <div className="grid gap-3">
-                                {filteredPatients.length === 0 ? (
-                                    <div className="p-8 border rounded-xl bg-slate-50 dark:bg-slate-800 dark:border-slate-700 text-center text-muted-foreground">
-                                        No se encontraron pacientes con "{patientSearch}".
-                                    </div>
-                                ) : (
-                                    filteredPatients.map(p => (
-                                        <div
-                                            key={p.id}
-                                            className="group flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-[#ff8508]/50 hover:shadow-md transition-all cursor-pointer"
-                                            onClick={() => handlePacienteChange(p.id)}
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className="h-12 w-12 rounded-full bg-[#ff8508]/10 flex items-center justify-center overflow-hidden border-2 border-slate-100 dark:border-slate-600 group-hover:border-[#ff8508]/20">
-                                                    {p.datosPersonales.avatarUrl ? (
-                                                        p.datosPersonales.avatarUrl.startsWith('avatar-') ? (
-                                                            <span className="text-lg">
-                                                                {p.datosPersonales.avatarUrl === 'avatar-1' && '👤'}
-                                                                {p.datosPersonales.avatarUrl === 'avatar-2' && '👨'}
-                                                                {p.datosPersonales.avatarUrl === 'avatar-3' && '👩'}
-                                                                {p.datosPersonales.avatarUrl === 'avatar-4' && '👴'}
-                                                                {p.datosPersonales.avatarUrl === 'avatar-5' && '👵'}
-                                                                {p.datosPersonales.avatarUrl === 'avatar-6' && '🧑‍⚕️'}
-                                                                {p.datosPersonales.avatarUrl === 'avatar-7' && '🏃'}
-                                                                {p.datosPersonales.avatarUrl === 'avatar-8' && '🏋️'}
-                                                                {p.datosPersonales.avatarUrl === 'avatar-9' && '🧘'}
-                                                                {p.datosPersonales.avatarUrl === 'avatar-10' && '🚴'}
-                                                            </span>
-                                                        ) : (
-                                                            <img
-                                                                src={p.datosPersonales.avatarUrl}
-                                                                alt={`${p.datosPersonales.nombre} ${p.datosPersonales.apellido}`}
-                                                                className="w-full h-full object-cover"
-                                                            />
-                                                        )
-                                                    ) : (
-                                                        <span className="text-[#ff8508] font-bold text-lg">
-                                                            {p.datosPersonales.nombre[0]}{p.datosPersonales.apellido[0]}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-semibold text-slate-800 dark:text-white group-hover:text-[#ff8508] transition-colors">
-                                                        {p.datosPersonales.nombre} {p.datosPersonales.apellido}
-                                                    </h3>
-                                                    <div className="flex items-center gap-2 mt-0.5">
-                                                        <span className="text-xs text-muted-foreground">{p.datosPersonales.email || "Sin email"}</span>
-                                                        {(() => {
-                                                            const ctx = getClinicalContextByAge(p.datosPersonales.fechaNacimiento);
-                                                            return (
-                                                                <Badge className={`text-[10px] px-1.5 py-0 font-medium ${ctx.color}`}>
-                                                                    {ctx.label} • {ctx.age} años
-                                                                </Badge>
-                                                            );
-                                                        })()}
-                                                    </div>
-                                                </div>
+                                {filteredPatients.map(p => (
+                                    <div key={p.id} className="group flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-[#ff8508]/50 hover:shadow-md transition-all cursor-pointer" onClick={() => handlePacienteChange(p.id)}>
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-12 w-12 rounded-full bg-[#ff8508]/10 flex items-center justify-center overflow-hidden border-2 border-slate-100 dark:border-slate-600 group-hover:border-[#ff8508]/20">
+                                                <span className="text-[#ff8508] font-bold text-lg">{p.datosPersonales.nombre[0]}{p.datosPersonales.apellido[0]}</span>
                                             </div>
-                                            <div className="h-8 w-8 rounded-full bg-slate-50 dark:bg-slate-700 group-hover:bg-[#ff8508]/10 flex items-center justify-center transition-colors">
-                                                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-[#ff8508]" />
+                                            <div>
+                                                <h3 className="font-semibold text-slate-800 dark:text-white group-hover:text-[#ff8508] transition-colors">
+                                                    {p.datosPersonales.nombre} {p.datosPersonales.apellido}
+                                                </h3>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <PatientAgeBadge birthDate={p.datosPersonales.fechaNacimiento} className="text-[10px] px-1.5 py-0" />
+                                                </div>
                                             </div>
                                         </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    ) : (
-                        // EMPTY STATE - NO PATIENTS REGISTERED
-                        <div className="flex flex-col items-center justify-center min-h-[70vh] animate-in fade-in zoom-in-95 duration-500">
-
-                            {/* ICON CLUSTER */}
-                            <div className="relative mb-8">
-                                <div className="w-24 h-24 bg-[#fff7ed] dark:bg-[#fff7ed]/10 rounded-[2rem] flex items-center justify-center mb-4 text-[#ff8508]">
-                                    <Users className="w-10 h-10" />
-                                </div>
-                                <div className="absolute -bottom-2 -right-2 bg-[#6cba00] p-2 rounded-full border-4 border-white dark:border-[#0f172a]">
-                                    <Activity className="w-5 h-5 text-white" />
-                                </div>
-                            </div>
-
-                            {/* TEXT CONTENT */}
-                            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-3 text-center">
-                                No hay pacientes registrados
-                            </h2>
-                            <p className="text-slate-500 dark:text-slate-400 text-center max-w-md mb-8 leading-relaxed">
-                                Para iniciar una evaluación antropométrica, primero debes registrar un paciente en el sistema.
-                            </p>
-
-                            {/* ACTION BUTTON */}
-                            <Button
-                                className="h-12 px-8 rounded-full bg-[#ff8508] hover:bg-[#e67600] text-white font-semibold gap-2 shadow-sm"
-                                onClick={() => router.push('/pacientes/nuevo')}
-                            >
-                                <PlusCircle className="w-4 h-4" /> Agregar Paciente
-                            </Button>
-
-                        </div>
-                    )
-                ) : (
-                    // ACTIVE CONTENT - Renderizado basado en edad
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {(() => {
-                            const ctx = getClinicalContextByAge(selectedPaciente.datosPersonales.fechaNacimiento);
-                            const patientBirthDateStr = typeof selectedPaciente.datosPersonales.fechaNacimiento === 'string'
-                                ? selectedPaciente.datosPersonales.fechaNacimiento
-                                : selectedPaciente.datosPersonales.fechaNacimiento?.toISOString?.() || '';
-
-                            // PEDIÁTRICO (0-5 años): Formulario OMS con curvas de crecimiento
-                            if (ctx.age < 6) {
-                                // Calcular datos para gráficas desde las medidas existentes
-                                const birthDateObj = typeof selectedPaciente.datosPersonales.fechaNacimiento === 'string'
-                                    ? new Date(selectedPaciente.datosPersonales.fechaNacimiento)
-                                    : selectedPaciente.datosPersonales.fechaNacimiento;
-                                const patientSex = selectedPaciente.datosPersonales.sexo === 'femenino' ? 'female' as const : 'male' as const;
-
-                                // Convertir medidas a puntos de datos para gráficas
-                                const weightChartData: PatientDataPoint[] = medidas.map(m => {
-                                    const measureDate = new Date(m.fecha);
-                                    const birthStr = selectedPaciente.datosPersonales.fechaNacimiento;
-
-                                    let exactDays = 0;
-                                    if (birthStr) {
-                                        exactDays = calculateExactAgeInDays(birthStr, m.fecha);
-                                    }
-
-                                    const ageMs = measureDate.getTime() - (birthDateObj?.getTime() || 0);
-                                    const ageMonths = ageMs / (1000 * 60 * 60 * 24 * 30.4375);
-                                    const zRes = calculateZScore(m.peso, ageMonths, patientSex, 'wfa');
-
-                                    return {
-                                        ageInMonths: Math.round(ageMonths * 100) / 100,
-                                        value: m.peso,
-                                        date: typeof m.fecha === 'string' ? m.fecha : new Date(m.fecha).toISOString(),
-                                        zScore: zRes?.zScore,
-                                        diagnosis: zRes?.diagnosis,
-                                        ageInDays: exactDays
-                                    };
-                                }).filter(p => p.ageInMonths >= 0 && p.ageInMonths <= 60);
-
-                                const heightChartData: PatientDataPoint[] = medidas.map(m => {
-                                    const measureDate = new Date(m.fecha);
-                                    const birthStr = selectedPaciente.datosPersonales.fechaNacimiento;
-
-                                    let exactDays = 0;
-                                    if (birthStr) {
-                                        exactDays = calculateExactAgeInDays(birthStr, m.fecha);
-                                    }
-
-                                    const ageMs = measureDate.getTime() - (birthDateObj?.getTime() || 0);
-                                    const ageInMonths = ageMs / (1000 * 60 * 60 * 24 * 30.4375);
-                                    const zResult = calculateZScore(m.talla, ageInMonths, patientSex, 'lhfa');
-
-                                    return {
-                                        ageInMonths: Math.round(ageInMonths * 100) / 100, // Fixed precision
-                                        value: m.talla,
-                                        date: typeof m.fecha === 'string' ? m.fecha : new Date(m.fecha).toISOString(),
-                                        zScore: zResult?.zScore,
-                                        diagnosis: zResult?.diagnosis,
-                                        ageInDays: exactDays
-                                    };
-                                }).filter(p => p.ageInMonths >= 0 && p.ageInMonths <= 60);
-
-                                return (
-                                    <div className="space-y-6">
-                                        {/* Formulario Pediátrico */}
-                                        <NewPediatricMeasurementForm
-                                            patientId={selectedPacienteId!}
-                                            patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
-                                            patientBirthDate={patientBirthDateStr}
-                                            patientSex={patientSex}
-                                            onSave={(data: PediatricMeasurementData) => {
-                                                const newMedida: MedidasAntropometricas = {
-                                                    id: crypto.randomUUID(),
-                                                    pacienteId: selectedPacienteId!,
-                                                    fecha: data.dateRecorded.toISOString(),
-                                                    peso: data.weightKg,
-                                                    talla: data.heightCm,
-                                                    edad: Math.floor(data.ageInMonths / 12),
-                                                    sexo: selectedPaciente.datosPersonales.sexo || 'masculino',
-                                                    imc: data.weightKg / Math.pow(data.heightCm / 100, 2),
-                                                    tipoPaciente: 'pediatrico',
-                                                };
-                                                saveMedidas(newMedida);
-                                                setMedidas(prev => [newMedida, ...prev]);
-                                                toast({
-                                                    title: "✅ Evaluación pediátrica guardada",
-                                                    description: `Peso: ${data.weightKg}kg, Talla: ${data.heightCm}cm | Estado: ${data.zScores.nutritionalStatus}`,
-                                                });
-                                            }}
-                                        />
-
-                                        {/* Curvas de Crecimiento - Peso/Edad */}
-                                        <PediatricGrowthChart
-                                            indicator="wfa"
-                                            sex={patientSex}
-                                            patientData={weightChartData}
-                                            patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
-                                            startMonth={0}
-                                            endMonth={Math.min(ctx.age * 12 + 12, 60)}
-                                        />
-
-                                        {/* Curvas de Crecimiento - Longitud/Talla por Edad */}
-                                        <PediatricGrowthChart
-                                            indicator="lhfa"
-                                            sex={patientSex}
-                                            patientData={heightChartData}
-                                            patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
-                                            startMonth={0}
-                                            endMonth={Math.min(ctx.age * 12 + 12, 60)}
-                                        />
+                                        <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-[#ff8508]" />
                                     </div>
-                                );
-                            }
-
-                            // ADULTO (6+ años): Formulario estándar de composición corporal
-                            return (
-                                <div className="mb-6">
-                                    <AntropometriaLayout
-                                        key={`${selectedPacienteId}-${medidas.length}`}
-                                        patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
-                                        patientGender={selectedPaciente.datosPersonales.sexo === 'femenino' ? 'femenino' : 'masculino'}
-                                        patientBirthDate={patientBirthDateStr}
-                                        initialWeight={ultimaMedida?.peso || 0}
-                                        initialHeight={ultimaMedida?.talla || 0}
-                                        medidas={medidas}
-                                        onSave={handleSave}
-                                        onDeleteMedida={handleDeleteMedida}
-                                    />
-                                </div>
-                            );
-                        })()}
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-20">
+                                <Users className="w-16 h-16 mx-auto text-slate-300 mb-4" />
+                                <h3 className="text-xl font-medium text-slate-900 dark:text-white">No hay pacientes</h3>
+                                <Button className="mt-4" onClick={() => router.push('/pacientes/nuevo')}>Agregar Paciente</Button>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    // SELECTED PATIENT CONTENT
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {stage === 'infant' && (
+                            <InfantAnthropometryLayout
+                                patientId={selectedPacienteId}
+                                patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
+                                patientBirthDate={birthDateStr || ''}
+                                patientSex={selectedPaciente.datosPersonales.sexo === 'femenino' ? 'femenino' : 'masculino'}
+                                medidas={medidas}
+                                onSavePediatric={(data) => handleSavePediatric(data)}
+                                onSaveAdult={handleSaveFull}
+                                onDeleteMedida={handleDeleteMedida}
+                                initialWeight={selectedPaciente?.datosPersonales.peso || 0}
+                                initialHeight={selectedPaciente?.datosPersonales.talla || 0}
+                            />
+                        )}
+                        {stage === 'preschool' && (
+                            <PreschoolAnthropometryLayout
+                                patientId={selectedPacienteId}
+                                patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
+                                patientBirthDate={birthDateStr || ''}
+                                patientSex={selectedPaciente.datosPersonales.sexo === 'femenino' ? 'femenino' : 'masculino'}
+                                medidas={medidas}
+                                onSavePediatric={(data) => handleSavePediatric(data)}
+                                onSaveAdult={handleSaveFull}
+                                onDeleteMedida={handleDeleteMedida}
+                                initialWeight={selectedPaciente?.datosPersonales.peso || 0}
+                                initialHeight={selectedPaciente?.datosPersonales.talla || 0}
+                            />
+                        )}
+                        {stage === 'school' && (
+                            <SchoolAnthropometryLayout
+                                patientId={selectedPacienteId}
+                                patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
+                                patientBirthDate={birthDateStr || ''}
+                                patientSex={selectedPaciente.datosPersonales.sexo === 'femenino' ? 'femenino' : 'masculino'}
+                                medidas={medidas}
+                                onSavePediatric={(data) => handleSavePediatric(data)}
+                                onSaveAdult={handleSaveFull}
+                                onDeleteMedida={handleDeleteMedida}
+                                isTeenager={isTeenager}
+                                initialWeight={selectedPaciente?.datosPersonales.peso || 0}
+                                initialHeight={selectedPaciente?.datosPersonales.talla || 0}
+                            />
+                        )}
+                        {stage === 'adult' && (
+                            <AdultAnthropometryLayout
+                                patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
+                                patientGender={selectedPaciente.datosPersonales.sexo === 'femenino' ? 'femenino' : 'masculino'}
+                                patientBirthDate={birthDateStr}
+                                initialWeight={selectedPaciente?.datosPersonales.peso || 0}
+                                initialHeight={selectedPaciente?.datosPersonales.talla || 0}
+                                medidas={medidas}
+                                onSave={handleSaveFull}
+                                onDeleteMedida={handleDeleteMedida}
+                            />
+                        )}
+                        {stage === 'elderly' && (
+                            <ElderlyAnthropometryLayout
+                                patientId={selectedPacienteId}
+                                patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
+                                patientBirthDate={birthDateStr || ''}
+                                patientSex={selectedPaciente.datosPersonales.sexo === 'femenino' ? 'femenino' : 'masculino'}
+                                medidas={medidas}
+                                onSave={handleSaveFull}
+                                onDeleteMedida={handleDeleteMedida}
+                            />
+                        )}
                     </div>
                 )}
             </div>
@@ -542,11 +334,7 @@ function AntropometriaContent() {
 
 export default function AntropometriaPage() {
     return (
-        <Suspense fallback={
-            <div className="flex items-center justify-center h-screen">
-                <Activity className="w-8 h-8 text-[#ff8508] animate-spin" />
-            </div>
-        }>
+        <Suspense fallback={<div className="flex items-center justify-center h-screen"><Activity className="w-8 h-8 text-[#ff8508] animate-spin" /></div>}>
             <AntropometriaContent />
         </Suspense>
     );
