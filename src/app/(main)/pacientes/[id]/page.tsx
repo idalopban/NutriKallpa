@@ -21,6 +21,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { EvolutionSummary } from "@/components/patients/EvolutionSummary";
 import { ClinicalHistoryTab } from "@/components/patients/ClinicalHistoryTab";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { PediatricGrowthChart } from "@/components/pediatrics/PediatricGrowthChart";
+import { NewPediatricMeasurementForm, type PediatricMeasurementData } from "@/components/pediatrics/NewPediatricMeasurementForm";
+import { useToast } from "@/hooks/use-toast";
 
 // Logic
 import { usePatientStore } from "@/store/usePatientStore";
@@ -33,6 +36,9 @@ import {
     ACTIVITY_LABELS,
     type ActivityLevel
 } from "@/lib/calculos-nutricionales";
+import { calculateChronologicalAge, calculateExactAgeInDays, calculateDetailedAge } from "@/lib/clinical-calculations";
+import { calculateZScore } from "@/lib/growth-standards";
+import { type PatientDataPoint } from "@/components/pediatrics/PediatricGrowthChart";
 
 export default function DetallePacientePage() {
     const params = useParams();
@@ -48,6 +54,8 @@ export default function DetallePacientePage() {
         loadPatient,
         refreshMedidas
     } = usePatientStore();
+
+    const { toast } = useToast();
 
     const [activityLevel, setActivityLevel] = useState<ActivityLevel>('sedentary');
     const [nutritionalGoal, setNutritionalGoal] = useState<'maintain' | 'cut' | 'bulk'>('maintain');
@@ -123,7 +131,8 @@ export default function DetallePacientePage() {
     const imc = ultimaMedida.imc || 0;
 
     const birthDate = new Date(paciente.datosPersonales.fechaNacimiento);
-    const age = new Date().getFullYear() - birthDate.getFullYear();
+    const ageDetailed = calculateDetailedAge(paciente.datosPersonales.fechaNacimiento);
+    const age = ageDetailed.years;
 
     const getImcColor = (valor: number) => {
         if (valor < 18.5) return "text-blue-500";
@@ -200,7 +209,7 @@ export default function DetallePacientePage() {
                         <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                             {paciente.datosPersonales.nombre} {paciente.datosPersonales.apellido}
                         </h2>
-                        <p className="text-sm text-slate-500">Edad: {age} años</p>
+                        <p className="text-sm text-slate-500">Edad: {ageDetailed.formatted}</p>
                         <Button
                             size="sm"
                             className="mt-4 bg-[#0d9488] hover:bg-[#0f766e] text-white rounded-full px-6"
@@ -388,279 +397,482 @@ export default function DetallePacientePage() {
 
                             {/* Antropometría - Resumen Completo */}
                             <TabsContent value="antropometria" className="space-y-6 focus-visible:outline-none">
-                                {medidas.length > 0 ? (() => {
-                                    // Calculate body composition from skinfolds usando la medida seleccionada
-                                    const sumPliegues = selectedMedida.pliegues
-                                        ? Object.values(selectedMedida.pliegues).reduce((a, b) => Number(a || 0) + Number(b || 0), 0)
-                                        : 0;
+                                {(() => {
+                                    // Calcular edad del paciente para determinar el tipo de formulario
+                                    const birthDate = typeof paciente.datosPersonales.fechaNacimiento === 'string'
+                                        ? new Date(paciente.datosPersonales.fechaNacimiento)
+                                        : paciente.datosPersonales.fechaNacimiento;
+                                    const patientAge = birthDate ? calculateChronologicalAge(birthDate) : age;
 
-                                    // Estimate body fat % using Yuhasz modified formula
-                                    const sex = selectedMedida.sexo || paciente.datosPersonales.sexo || 'masculino';
-                                    let bodyFatPercent = 0;
-                                    if (sex === 'masculino') {
-                                        bodyFatPercent = (sumPliegues * 0.097) + 3.64;
-                                    } else {
-                                        bodyFatPercent = (sumPliegues * 0.1429) + 4.56;
-                                    }
-                                    bodyFatPercent = Math.max(3, Math.min(bodyFatPercent, 50));
+                                    // PEDIÁTRICO (0-5 años): Resumen visual OMS
+                                    if (patientAge < 6) {
+                                        const lastWeight = ultimaMedida?.peso || 0;
+                                        const lastHeight = ultimaMedida?.talla || 0;
+                                        const ageInMonths = Math.floor(patientAge * 12);
+                                        const patientSex = paciente.datosPersonales.sexo === 'femenino' ? 'female' as const : 'male' as const;
 
-                                    const masaGrasa = (bodyFatPercent / 100) * (selectedMedida.peso || 0);
-                                    const masaMuscular = (selectedMedida.peso || 0) - masaGrasa;
+                                        // Calcular Z-Scores reales
+                                        const wfaResult = lastWeight > 0 ? calculateZScore(lastWeight, ageInMonths, patientSex, 'wfa') : null;
+                                        const lhfaResult = lastHeight > 0 ? calculateZScore(lastHeight, ageInMonths, patientSex, 'lhfa') : null;
+                                        const imc = lastWeight > 0 && lastHeight > 0 ? lastWeight / Math.pow(lastHeight / 100, 2) : 0;
+                                        const bfaResult = imc > 0 ? calculateZScore(imc, ageInMonths, patientSex, 'bfa') : null;
 
-                                    // Estimate somatotype (simplified Heath-Carter)
-                                    const talla = selectedMedida.talla || 170;
-                                    const peso = selectedMedida.peso || 70;
-                                    const triceps = getAnthroNumber(selectedMedida.pliegues?.triceps);
-                                    const subscapular = getAnthroNumber(selectedMedida.pliegues?.subscapular);
-                                    const supraspinale = getAnthroNumber(selectedMedida.pliegues?.supraspinale);
+                                        // Preparar datos para gráficas desde historial de medidas
+                                        // Preparar datos para gráficas desde historial de medidas
+                                        const weightChartData: PatientDataPoint[] = medidas.map(m => {
+                                            const measureDate = new Date(m.fecha);
+                                            const birthDateStr = paciente?.datosPersonales?.fechaNacimiento;
+                                            const birthDateObj = birthDateStr ? new Date(birthDateStr) : new Date();
 
-                                    // Endomorphy
-                                    const sumTres = triceps + subscapular + supraspinale;
-                                    const correccion = (170.18 / talla);
-                                    const endo = sumTres > 0 ? Math.max(0.5, -0.7182 + 0.1451 * (sumTres * correccion) - 0.00068 * Math.pow(sumTres * correccion, 2) + 0.0000014 * Math.pow(sumTres * correccion, 3)) : 0;
+                                            // Calcular días exactos usando la función centralizada
+                                            let exactDays = 0;
+                                            if (birthDateStr) {
+                                                exactDays = calculateExactAgeInDays(birthDateStr, m.fecha);
+                                            }
 
-                                    // Mesomorphy (simplified)
-                                    const humero = getAnthroNumber(selectedMedida.diametros?.humero, 7);
-                                    const femur = getAnthroNumber(selectedMedida.diametros?.femur, 10);
-                                    const brazoFlex = getAnthroNumber(selectedMedida.perimetros?.brazoFlex, 30);
-                                    const pantorrilla = getAnthroNumber(selectedMedida.perimetros?.pantorrilla, 35);
-                                    const meso = humero > 0 ? Math.max(0.5, 0.858 * humero + 0.601 * femur + 0.188 * brazoFlex + 0.161 * pantorrilla - 0.131 * talla + 4.5) : 0;
+                                            const ageMs = measureDate.getTime() - birthDateObj.getTime();
+                                            const ageMonths = ageMs / (1000 * 60 * 60 * 24 * 30.4375);
+                                            const zRes = calculateZScore(m.peso, ageMonths, patientSex, 'wfa');
 
-                                    // Ectomorphy
-                                    const ponderal = talla / Math.pow(peso, 1 / 3);
-                                    let ecto = 0;
-                                    if (ponderal >= 40.75) ecto = 0.732 * ponderal - 28.58;
-                                    else if (ponderal >= 38.25) ecto = 0.463 * ponderal - 17.63;
-                                    else ecto = 0.5;
-                                    ecto = Math.max(0.5, ecto);
+                                            return {
+                                                ageInMonths: Math.round(ageMonths * 100) / 100,
+                                                value: m.peso,
+                                                date: typeof m.fecha === 'string' ? m.fecha : new Date(m.fecha).toISOString(),
+                                                zScore: zRes?.zScore,
+                                                diagnosis: zRes?.diagnosis,
+                                                ageInDays: exactDays
+                                            };
+                                        }).filter(p => p.ageInMonths >= 0 && p.ageInMonths <= 60);
 
-                                    return (
-                                        <div className="space-y-6">
-                                            {/* Header con indicador de evaluación seleccionada */}
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                                                        {selectedEvaluationIndex === 0 ? 'Última Evaluación' : `Evaluación #${medidas.length - selectedEvaluationIndex}`}
-                                                    </h3>
-                                                    <p className="text-sm text-slate-500">
-                                                        {selectedMedida.fecha ? new Date(selectedMedida.fecha).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Sin fecha'}
-                                                    </p>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    {selectedEvaluationIndex !== 0 && (
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="gap-2 text-xs"
-                                                            onClick={() => setSelectedEvaluationIndex(0)}
-                                                        >
-                                                            Ver última
-                                                        </Button>
-                                                    )}
-                                                    <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                                                        {medidas.length} evaluación{medidas.length > 1 ? 'es' : ''}
+                                        // Calcular edad en años, meses y días
+                                        const today = new Date();
+                                        const birth = paciente?.datosPersonales?.fechaNacimiento ? new Date(paciente.datosPersonales.fechaNacimiento) : new Date();
+                                        let years = today.getFullYear() - birth.getFullYear();
+                                        let months = today.getMonth() - birth.getMonth();
+                                        let days = today.getDate() - birth.getDate();
+
+                                        if (days < 0) {
+                                            months--;
+                                            const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+                                            days += prevMonth.getDate();
+                                        }
+                                        if (months < 0) {
+                                            years--;
+                                            months += 12;
+                                        }
+
+                                        const ageDisplay = years > 0
+                                            ? `${years}a ${months}m ${days}d`
+                                            : months > 0
+                                                ? `${months}m ${days}d`
+                                                : `${days}d`;
+
+                                        // Helper para color de Z-Score
+                                        const getZColor = (z: number | undefined) => {
+                                            if (z === undefined) return 'bg-slate-50 border-slate-200 text-slate-600';
+                                            if (z < -3 || z > 3) return 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800/30 dark:text-red-400';
+                                            if (z < -2 || z > 2) return 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-800/30 dark:text-amber-400';
+                                            return 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800/30 dark:text-green-400';
+                                        };
+
+                                        return (
+                                            <div className="space-y-6">
+                                                {/* Header Pediátrico */}
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                                            <span className="text-2xl">👶</span>
+                                                            Evaluación Pediátrica OMS
+                                                        </h3>
+                                                        <p className="text-sm text-slate-500">
+                                                            Patrones de crecimiento infantil (0-5 años)
+                                                        </p>
+                                                    </div>
+                                                    <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 px-3 py-1">
+                                                        {patientAge < 2 ? '🍼 Lactante' : '👶 Pediátrico'} • {ageDisplay}
                                                     </Badge>
                                                 </div>
-                                            </div>
 
-                                            {/* Datos Básicos */}
-                                            <Card className="border-slate-100 dark:border-slate-700 shadow-sm rounded-xl bg-white dark:bg-slate-800">
-                                                <CardHeader className="pb-2">
-                                                    <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-2">
-                                                        <Scale className="w-4 h-4 text-[#6cba00]" />
-                                                        Datos Básicos
-                                                    </CardTitle>
-                                                </CardHeader>
-                                                <CardContent>
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                                        <div className="p-4 bg-[#f0f9e8] dark:bg-[#6cba00]/10 rounded-xl text-center border border-[#daeaac] dark:border-[#6cba00]/20">
-                                                            <p className="text-xs text-[#6cba00] font-medium mb-1">Peso</p>
-                                                            <p className="text-2xl font-bold text-slate-900 dark:text-white">{selectedMedida.peso || 0}<span className="text-sm font-normal text-slate-400 ml-1">kg</span></p>
-                                                        </div>
-                                                        <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl text-center">
-                                                            <p className="text-xs text-slate-500 mb-1">Talla</p>
-                                                            <p className="text-2xl font-bold text-slate-900 dark:text-white">{selectedMedida.talla || 0}<span className="text-sm font-normal text-slate-400 ml-1">cm</span></p>
-                                                        </div>
-                                                        <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl text-center">
-                                                            <p className="text-xs text-slate-500 mb-1">IMC</p>
-                                                            <p className={`text-2xl font-bold ${getImcColor(selectedMedida.imc || 0)}`}>{(selectedMedida.imc || 0).toFixed(1)}<span className="text-sm font-normal text-slate-400 ml-1">kg/m²</span></p>
-                                                        </div>
-                                                        <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl text-center">
-                                                            <p className="text-xs text-slate-500 mb-1">Edad</p>
-                                                            <p className="text-2xl font-bold text-slate-900 dark:text-white">{selectedMedida.edad || age}<span className="text-sm font-normal text-slate-400 ml-1">años</span></p>
-                                                        </div>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-
-                                            {/* Composición Corporal */}
-                                            {sumPliegues > 0 && (
-                                                <Card className="border-slate-100 dark:border-slate-700 shadow-sm rounded-xl bg-white dark:bg-slate-800">
+                                                {/* Métricas Básicas Pediátricas */}
+                                                <Card className="border-pink-200 dark:border-pink-800/30 bg-gradient-to-br from-pink-50/50 to-blue-50/50 dark:from-pink-900/10 dark:to-blue-900/10">
                                                     <CardHeader className="pb-2">
                                                         <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-2">
-                                                            <Activity className="w-4 h-4 text-orange-500" />
-                                                            Composición Corporal
+                                                            <Scale className="w-4 h-4 text-pink-500" />
+                                                            Datos de Crecimiento
                                                         </CardTitle>
                                                     </CardHeader>
                                                     <CardContent>
                                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                                            <div className="p-4 bg-red-50 dark:bg-red-900/10 rounded-xl text-center border border-red-100 dark:border-red-900/20">
-                                                                <p className="text-xs text-red-600 font-medium mb-1">% Grasa</p>
-                                                                <p className="text-2xl font-bold text-red-600">{bodyFatPercent.toFixed(1)}<span className="text-sm font-normal text-red-400 ml-1">%</span></p>
+                                                            <div className="p-4 bg-white dark:bg-slate-800 rounded-xl text-center border border-pink-100 dark:border-pink-900/20 shadow-sm">
+                                                                <p className="text-xs text-pink-600 font-medium mb-1">Peso</p>
+                                                                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                                                                    {lastWeight > 0 ? lastWeight.toFixed(1) : '--'}
+                                                                    <span className="text-sm font-normal text-slate-400 ml-1">kg</span>
+                                                                </p>
                                                             </div>
-                                                            <div className="p-4 bg-orange-50 dark:bg-orange-900/10 rounded-xl text-center border border-orange-100 dark:border-orange-900/20">
-                                                                <p className="text-xs text-orange-600 font-medium mb-1">Masa Grasa</p>
-                                                                <p className="text-2xl font-bold text-orange-600">{masaGrasa.toFixed(1)}<span className="text-sm font-normal text-orange-400 ml-1">kg</span></p>
+                                                            <div className="p-4 bg-white dark:bg-slate-800 rounded-xl text-center border border-blue-100 dark:border-blue-900/20 shadow-sm">
+                                                                <p className="text-xs text-blue-600 font-medium mb-1">
+                                                                    {ageInMonths < 24 ? 'Longitud' : 'Talla'}
+                                                                </p>
+                                                                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                                                                    {lastHeight > 0 ? lastHeight.toFixed(1) : '--'}
+                                                                    <span className="text-sm font-normal text-slate-400 ml-1">cm</span>
+                                                                </p>
                                                             </div>
-                                                            <div className="p-4 bg-green-50 dark:bg-green-900/10 rounded-xl text-center border border-green-100 dark:border-green-900/20">
-                                                                <p className="text-xs text-green-600 font-medium mb-1">Masa Muscular</p>
-                                                                <p className="text-2xl font-bold text-green-600">{masaMuscular.toFixed(1)}<span className="text-sm font-normal text-green-400 ml-1">kg</span></p>
+                                                            <div className="p-4 bg-white dark:bg-slate-800 rounded-xl text-center border border-purple-100 dark:border-purple-900/20 shadow-sm">
+                                                                <p className="text-xs text-purple-600 font-medium mb-1">Edad</p>
+                                                                <p className="text-lg font-bold text-slate-900 dark:text-white">
+                                                                    {years > 0 && <>{years}<span className="text-xs font-normal text-slate-400 ml-0.5">a</span> </>}
+                                                                    {months}<span className="text-xs font-normal text-slate-400 ml-0.5">m</span> {days}<span className="text-xs font-normal text-slate-400 ml-0.5">d</span>
+                                                                </p>
                                                             </div>
-                                                            <div className="p-4 bg-purple-50 dark:bg-purple-900/10 rounded-xl text-center border border-purple-100 dark:border-purple-900/20">
-                                                                <p className="text-xs text-purple-600 font-medium mb-1">Σ Pliegues</p>
-                                                                <p className="text-2xl font-bold text-purple-600">{sumPliegues.toFixed(1)}<span className="text-sm font-normal text-purple-400 ml-1">mm</span></p>
+                                                            <div className="p-4 bg-white dark:bg-slate-800 rounded-xl text-center border border-green-100 dark:border-green-900/20 shadow-sm">
+                                                                <p className="text-xs text-green-600 font-medium mb-1">Estado</p>
+                                                                <p className="text-lg font-bold text-green-600">
+                                                                    {lastWeight > 0 ? '✓ Normal' : 'Sin datos'}
+                                                                </p>
                                                             </div>
                                                         </div>
                                                     </CardContent>
                                                 </Card>
-                                            )}
 
-                                            {/* Somatotipo */}
-                                            {(endo > 0 || meso > 0 || ecto > 0) && (
+                                                {/* Indicadores Z-Score Reales */}
+                                                {lastWeight > 0 && (
+                                                    <Card className="border-slate-200 dark:border-slate-700 shadow-sm">
+                                                        <CardHeader className="pb-2">
+                                                            <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                                                                <TrendingUp className="w-4 h-4 text-blue-500" />
+                                                                Indicadores de Crecimiento (Z-Score OMS)
+                                                            </CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                                                <div className={`p-3 rounded-xl border ${getZColor(wfaResult?.zScore)}`}>
+                                                                    <p className="text-xs font-medium">Peso/Edad</p>
+                                                                    <p className="text-xl font-bold">
+                                                                        Z: {wfaResult?.zScore?.toFixed(2) || '--'}
+                                                                    </p>
+                                                                    <p className="text-[10px]">{wfaResult?.diagnosis || 'Sin datos'}</p>
+                                                                </div>
+                                                                <div className={`p-3 rounded-xl border ${getZColor(lhfaResult?.zScore)}`}>
+                                                                    <p className="text-xs font-medium">{ageInMonths < 24 ? 'Long' : 'Talla'}/Edad</p>
+                                                                    <p className="text-xl font-bold">
+                                                                        Z: {lhfaResult?.zScore?.toFixed(2) || '--'}
+                                                                    </p>
+                                                                    <p className="text-[10px]">{lhfaResult?.diagnosis || 'Sin datos'}</p>
+                                                                </div>
+                                                                <div className={`p-3 rounded-xl border ${getZColor(bfaResult?.zScore)}`}>
+                                                                    <p className="text-xs font-medium">IMC/Edad</p>
+                                                                    <p className="text-xl font-bold">
+                                                                        Z: {bfaResult?.zScore?.toFixed(2) || '--'}
+                                                                    </p>
+                                                                    <p className="text-[10px]">{bfaResult?.diagnosis || 'Sin datos'}</p>
+                                                                </div>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
+
+                                                {/* Gráfica de Crecimiento con datos reales */}
+                                                <PediatricGrowthChart
+                                                    indicator="wfa"
+                                                    sex={patientSex}
+                                                    patientData={weightChartData}
+                                                    patientName={`${paciente.datosPersonales.nombre} ${paciente.datosPersonales.apellido}`}
+                                                    startMonth={0}
+                                                    endMonth={Math.min(ageInMonths + 12, 60)}
+                                                />
+
+                                                {/* Botón Nueva Evaluación */}
+                                                <div className="flex justify-center py-4">
+                                                    <Button
+                                                        size="lg"
+                                                        className="gap-2 bg-pink-600 hover:bg-pink-700 text-white px-8 rounded-full shadow-lg shadow-pink-500/20"
+                                                        onClick={() => router.push(`/antropometria?id=${paciente.id}`)}
+                                                    >
+                                                        <Activity className="w-5 h-5" />
+                                                        Nueva Evaluación Pediátrica
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
+                                    // ADULTO (6+ años): Formulario estándar de composición corporal
+                                    return medidas.length > 0 ? (() => {
+                                        // Calculate body composition from skinfolds usando la medida seleccionada
+                                        const sumPliegues = selectedMedida.pliegues
+                                            ? Object.values(selectedMedida.pliegues).reduce((a, b) => Number(a || 0) + Number(b || 0), 0)
+                                            : 0;
+
+                                        // Estimate body fat % using Yuhasz modified formula
+                                        const sex = selectedMedida.sexo || paciente.datosPersonales.sexo || 'masculino';
+                                        let bodyFatPercent = 0;
+                                        if (sex === 'masculino') {
+                                            bodyFatPercent = (sumPliegues * 0.097) + 3.64;
+                                        } else {
+                                            bodyFatPercent = (sumPliegues * 0.1429) + 4.56;
+                                        }
+                                        bodyFatPercent = Math.max(3, Math.min(bodyFatPercent, 50));
+
+                                        const masaGrasa = (bodyFatPercent / 100) * (selectedMedida.peso || 0);
+                                        const masaMuscular = (selectedMedida.peso || 0) - masaGrasa;
+
+                                        // Estimate somatotype (simplified Heath-Carter)
+                                        const talla = selectedMedida.talla || 170;
+                                        const peso = selectedMedida.peso || 70;
+                                        const triceps = getAnthroNumber(selectedMedida.pliegues?.triceps);
+                                        const subscapular = getAnthroNumber(selectedMedida.pliegues?.subscapular);
+                                        const supraspinale = getAnthroNumber(selectedMedida.pliegues?.supraspinale);
+
+                                        // Endomorphy
+                                        const sumTres = triceps + subscapular + supraspinale;
+                                        const correccion = (170.18 / talla);
+                                        const endo = sumTres > 0 ? Math.max(0.5, -0.7182 + 0.1451 * (sumTres * correccion) - 0.00068 * Math.pow(sumTres * correccion, 2) + 0.0000014 * Math.pow(sumTres * correccion, 3)) : 0;
+
+                                        // Mesomorphy (simplified)
+                                        const humero = getAnthroNumber(selectedMedida.diametros?.humero, 7);
+                                        const femur = getAnthroNumber(selectedMedida.diametros?.femur, 10);
+                                        const brazoFlex = getAnthroNumber(selectedMedida.perimetros?.brazoFlex, 30);
+                                        const pantorrilla = getAnthroNumber(selectedMedida.perimetros?.pantorrilla, 35);
+                                        const meso = humero > 0 ? Math.max(0.5, 0.858 * humero + 0.601 * femur + 0.188 * brazoFlex + 0.161 * pantorrilla - 0.131 * talla + 4.5) : 0;
+
+                                        // Ectomorphy
+                                        const ponderal = talla / Math.pow(peso, 1 / 3);
+                                        let ecto = 0;
+                                        if (ponderal >= 40.75) ecto = 0.732 * ponderal - 28.58;
+                                        else if (ponderal >= 38.25) ecto = 0.463 * ponderal - 17.63;
+                                        else ecto = 0.5;
+                                        ecto = Math.max(0.5, ecto);
+
+                                        return (
+                                            <div className="space-y-6">
+                                                {/* Header con indicador de evaluación seleccionada */}
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                                                            {selectedEvaluationIndex === 0 ? 'Última Evaluación' : `Evaluación #${medidas.length - selectedEvaluationIndex}`}
+                                                        </h3>
+                                                        <p className="text-sm text-slate-500">
+                                                            {selectedMedida.fecha ? new Date(selectedMedida.fecha).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Sin fecha'}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        {selectedEvaluationIndex !== 0 && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="gap-2 text-xs"
+                                                                onClick={() => setSelectedEvaluationIndex(0)}
+                                                            >
+                                                                Ver última
+                                                            </Button>
+                                                        )}
+                                                        <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                                            {medidas.length} evaluación{medidas.length > 1 ? 'es' : ''}
+                                                        </Badge>
+                                                    </div>
+                                                </div>
+
+                                                {/* Datos Básicos */}
                                                 <Card className="border-slate-100 dark:border-slate-700 shadow-sm rounded-xl bg-white dark:bg-slate-800">
                                                     <CardHeader className="pb-2">
                                                         <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-2">
-                                                            <UserIcon className="w-4 h-4 text-blue-500" />
-                                                            Somatotipo
+                                                            <Scale className="w-4 h-4 text-[#6cba00]" />
+                                                            Datos Básicos
                                                         </CardTitle>
                                                     </CardHeader>
                                                     <CardContent>
-                                                        <div className="grid grid-cols-3 gap-4">
-                                                            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-xl text-center border border-yellow-100 dark:border-yellow-900/20">
-                                                                <p className="text-xs text-yellow-700 font-medium mb-1">Endomorfia</p>
-                                                                <p className="text-3xl font-bold text-yellow-600">{endo.toFixed(1)}</p>
-                                                                <p className="text-[10px] text-yellow-500 mt-1">Adiposidad</p>
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                            <div className="p-4 bg-[#f0f9e8] dark:bg-[#6cba00]/10 rounded-xl text-center border border-[#daeaac] dark:border-[#6cba00]/20">
+                                                                <p className="text-xs text-[#6cba00] font-medium mb-1">Peso</p>
+                                                                <p className="text-2xl font-bold text-slate-900 dark:text-white">{selectedMedida.peso || 0}<span className="text-sm font-normal text-slate-400 ml-1">kg</span></p>
                                                             </div>
-                                                            <div className="p-4 bg-green-50 dark:bg-green-900/10 rounded-xl text-center border border-green-100 dark:border-green-900/20">
-                                                                <p className="text-xs text-green-700 font-medium mb-1">Mesomorfia</p>
-                                                                <p className="text-3xl font-bold text-green-600">{meso.toFixed(1)}</p>
-                                                                <p className="text-[10px] text-green-500 mt-1">Muscularidad</p>
+                                                            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl text-center">
+                                                                <p className="text-xs text-slate-500 mb-1">Talla</p>
+                                                                <p className="text-2xl font-bold text-slate-900 dark:text-white">{selectedMedida.talla || 0}<span className="text-sm font-normal text-slate-400 ml-1">cm</span></p>
                                                             </div>
-                                                            <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-xl text-center border border-blue-100 dark:border-blue-900/20">
-                                                                <p className="text-xs text-blue-700 font-medium mb-1">Ectomorfia</p>
-                                                                <p className="text-3xl font-bold text-blue-600">{ecto.toFixed(1)}</p>
-                                                                <p className="text-[10px] text-blue-500 mt-1">Linealidad</p>
+                                                            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl text-center">
+                                                                <p className="text-xs text-slate-500 mb-1">IMC</p>
+                                                                <p className={`text-2xl font-bold ${getImcColor(selectedMedida.imc || 0)}`}>{(selectedMedida.imc || 0).toFixed(1)}<span className="text-sm font-normal text-slate-400 ml-1">kg/m²</span></p>
+                                                            </div>
+                                                            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl text-center">
+                                                                <p className="text-xs text-slate-500 mb-1">Edad</p>
+                                                                <p className="text-2xl font-bold text-slate-900 dark:text-white">{selectedMedida.edad || age}<span className="text-sm font-normal text-slate-400 ml-1">años</span></p>
                                                             </div>
                                                         </div>
                                                     </CardContent>
                                                 </Card>
-                                            )}
 
-                                            {/* Historial de Evaluaciones */}
-                                            <Card className="border-slate-100 dark:border-slate-700 shadow-sm rounded-xl bg-white dark:bg-slate-800">
-                                                <CardHeader className="pb-3">
-                                                    <div className="flex items-center justify-between">
-                                                        <CardTitle className="flex items-center gap-2 text-lg text-slate-800 dark:text-slate-100">
-                                                            <History className="w-5 h-5 text-slate-400" />
-                                                            Historial de Evaluaciones
-                                                        </CardTitle>
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="gap-2 text-xs"
-                                                            onClick={() => router.push(`/antropometria?id=${paciente.id}`)}
-                                                        >
-                                                            <Activity className="w-3 h-3" /> Nueva Evaluación
-                                                        </Button>
-                                                    </div>
-                                                </CardHeader>
-                                                <CardContent>
-                                                    <div className="space-y-2">
-                                                        {medidas.map((medida, index) => (
-                                                            <div
-                                                                key={medida.id || index}
-                                                                className={`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer ${selectedEvaluationIndex === index
-                                                                    ? 'bg-[#6cba00]/10 border-[#6cba00] ring-2 ring-[#6cba00]/20'
-                                                                    : index === 0
-                                                                        ? 'bg-[#6cba00]/5 border-[#6cba00]/20 hover:bg-[#6cba00]/10'
-                                                                        : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                                                                    }`}
-                                                                onClick={() => setSelectedEvaluationIndex(index)}
-                                                            >
-                                                                <div className="flex items-center gap-4">
-                                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${selectedEvaluationIndex === index
-                                                                        ? 'bg-[#6cba00] text-white'
-                                                                        : index === 0
-                                                                            ? 'bg-[#6cba00]/10 text-[#6cba00]'
-                                                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
-                                                                        }`}>
-                                                                        <Scale className="w-4 h-4" />
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="text-sm font-semibold text-slate-800 dark:text-white">
-                                                                            {medida.fecha ? new Date(medida.fecha).toLocaleDateString('es-PE', {
-                                                                                weekday: 'long',
-                                                                                day: 'numeric',
-                                                                                month: 'long',
-                                                                                year: 'numeric'
-                                                                            }) : 'Sin fecha'}
-                                                                        </p>
-                                                                        <p className="text-xs text-slate-500">
-                                                                            {index === 0 ? 'Última evaluación' : `Evaluación #${medidas.length - index}`}
-                                                                            {selectedEvaluationIndex === index && <span className="ml-2 text-[#6cba00] font-medium">• Seleccionada</span>}
-                                                                        </p>
-                                                                    </div>
+                                                {/* Composición Corporal */}
+                                                {sumPliegues > 0 && (
+                                                    <Card className="border-slate-100 dark:border-slate-700 shadow-sm rounded-xl bg-white dark:bg-slate-800">
+                                                        <CardHeader className="pb-2">
+                                                            <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                                                                <Activity className="w-4 h-4 text-orange-500" />
+                                                                Composición Corporal
+                                                            </CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                                <div className="p-4 bg-red-50 dark:bg-red-900/10 rounded-xl text-center border border-red-100 dark:border-red-900/20">
+                                                                    <p className="text-xs text-red-600 font-medium mb-1">% Grasa</p>
+                                                                    <p className="text-2xl font-bold text-red-600">{bodyFatPercent.toFixed(1)}<span className="text-sm font-normal text-red-400 ml-1">%</span></p>
                                                                 </div>
-                                                                <div className="flex items-center gap-6 text-sm">
-                                                                    <div className="text-right">
-                                                                        <p className="font-semibold text-slate-800 dark:text-white">{medida.peso || 0} kg</p>
-                                                                        <p className="text-xs text-slate-400">Peso</p>
-                                                                    </div>
-                                                                    <div className="text-right">
-                                                                        <p className={`font-semibold ${getImcColor(medida.imc || 0)}`}>{(medida.imc || 0).toFixed(1)}</p>
-                                                                        <p className="text-xs text-slate-400">IMC</p>
-                                                                    </div>
-                                                                    <ChevronRight className={`w-4 h-4 transition-colors ${selectedEvaluationIndex === index ? 'text-[#6cba00]' : 'text-slate-300'}`} />
+                                                                <div className="p-4 bg-orange-50 dark:bg-orange-900/10 rounded-xl text-center border border-orange-100 dark:border-orange-900/20">
+                                                                    <p className="text-xs text-orange-600 font-medium mb-1">Masa Grasa</p>
+                                                                    <p className="text-2xl font-bold text-orange-600">{masaGrasa.toFixed(1)}<span className="text-sm font-normal text-orange-400 ml-1">kg</span></p>
+                                                                </div>
+                                                                <div className="p-4 bg-green-50 dark:bg-green-900/10 rounded-xl text-center border border-green-100 dark:border-green-900/20">
+                                                                    <p className="text-xs text-green-600 font-medium mb-1">Masa Muscular</p>
+                                                                    <p className="text-2xl font-bold text-green-600">{masaMuscular.toFixed(1)}<span className="text-sm font-normal text-green-400 ml-1">kg</span></p>
+                                                                </div>
+                                                                <div className="p-4 bg-purple-50 dark:bg-purple-900/10 rounded-xl text-center border border-purple-100 dark:border-purple-900/20">
+                                                                    <p className="text-xs text-purple-600 font-medium mb-1">Σ Pliegues</p>
+                                                                    <p className="text-2xl font-bold text-purple-600">{sumPliegues.toFixed(1)}<span className="text-sm font-normal text-purple-400 ml-1">mm</span></p>
                                                                 </div>
                                                             </div>
-                                                        ))}
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
 
-                                            {/* Action Button */}
-                                            <div className="flex flex-col items-center gap-4 py-6">
-                                                <Button
-                                                    size="lg"
-                                                    className="gap-3 bg-[#6cba00] hover:bg-[#5aa300] text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-green-500/20"
-                                                    onClick={() => router.push(`/antropometria?id=${paciente.id}`)}
-                                                >
-                                                    <Activity className="w-5 h-5" />
-                                                    Nueva Evaluación Antropométrica
-                                                </Button>
+                                                {/* Somatotipo */}
+                                                {(endo > 0 || meso > 0 || ecto > 0) && (
+                                                    <Card className="border-slate-100 dark:border-slate-700 shadow-sm rounded-xl bg-white dark:bg-slate-800">
+                                                        <CardHeader className="pb-2">
+                                                            <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                                                                <UserIcon className="w-4 h-4 text-blue-500" />
+                                                                Somatotipo
+                                                            </CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <div className="grid grid-cols-3 gap-4">
+                                                                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-xl text-center border border-yellow-100 dark:border-yellow-900/20">
+                                                                    <p className="text-xs text-yellow-700 font-medium mb-1">Endomorfia</p>
+                                                                    <p className="text-3xl font-bold text-yellow-600">{endo.toFixed(1)}</p>
+                                                                    <p className="text-[10px] text-yellow-500 mt-1">Adiposidad</p>
+                                                                </div>
+                                                                <div className="p-4 bg-green-50 dark:bg-green-900/10 rounded-xl text-center border border-green-100 dark:border-green-900/20">
+                                                                    <p className="text-xs text-green-700 font-medium mb-1">Mesomorfia</p>
+                                                                    <p className="text-3xl font-bold text-green-600">{meso.toFixed(1)}</p>
+                                                                    <p className="text-[10px] text-green-500 mt-1">Muscularidad</p>
+                                                                </div>
+                                                                <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-xl text-center border border-blue-100 dark:border-blue-900/20">
+                                                                    <p className="text-xs text-blue-700 font-medium mb-1">Ectomorfia</p>
+                                                                    <p className="text-3xl font-bold text-blue-600">{ecto.toFixed(1)}</p>
+                                                                    <p className="text-[10px] text-blue-500 mt-1">Linealidad</p>
+                                                                </div>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
+
+                                                {/* Historial de Evaluaciones */}
+                                                <Card className="border-slate-100 dark:border-slate-700 shadow-sm rounded-xl bg-white dark:bg-slate-800">
+                                                    <CardHeader className="pb-3">
+                                                        <div className="flex items-center justify-between">
+                                                            <CardTitle className="flex items-center gap-2 text-lg text-slate-800 dark:text-slate-100">
+                                                                <History className="w-5 h-5 text-slate-400" />
+                                                                Historial de Evaluaciones
+                                                            </CardTitle>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="gap-2 text-xs"
+                                                                onClick={() => router.push(`/antropometria?id=${paciente.id}`)}
+                                                            >
+                                                                <Activity className="w-3 h-3" /> Nueva Evaluación
+                                                            </Button>
+                                                        </div>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                        <div className="space-y-2">
+                                                            {medidas.map((medida, index) => (
+                                                                <div
+                                                                    key={medida.id || index}
+                                                                    className={`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer ${selectedEvaluationIndex === index
+                                                                        ? 'bg-[#6cba00]/10 border-[#6cba00] ring-2 ring-[#6cba00]/20'
+                                                                        : index === 0
+                                                                            ? 'bg-[#6cba00]/5 border-[#6cba00]/20 hover:bg-[#6cba00]/10'
+                                                                            : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                                                                        }`}
+                                                                    onClick={() => setSelectedEvaluationIndex(index)}
+                                                                >
+                                                                    <div className="flex items-center gap-4">
+                                                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${selectedEvaluationIndex === index
+                                                                            ? 'bg-[#6cba00] text-white'
+                                                                            : index === 0
+                                                                                ? 'bg-[#6cba00]/10 text-[#6cba00]'
+                                                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                                                                            }`}>
+                                                                            <Scale className="w-4 h-4" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-sm font-semibold text-slate-800 dark:text-white">
+                                                                                {medida.fecha ? new Date(medida.fecha).toLocaleDateString('es-PE', {
+                                                                                    weekday: 'long',
+                                                                                    day: 'numeric',
+                                                                                    month: 'long',
+                                                                                    year: 'numeric'
+                                                                                }) : 'Sin fecha'}
+                                                                            </p>
+                                                                            <p className="text-xs text-slate-500">
+                                                                                {index === 0 ? 'Última evaluación' : `Evaluación #${medidas.length - index}`}
+                                                                                {selectedEvaluationIndex === index && <span className="ml-2 text-[#6cba00] font-medium">• Seleccionada</span>}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-6 text-sm">
+                                                                        <div className="text-right">
+                                                                            <p className="font-semibold text-slate-800 dark:text-white">{medida.peso || 0} kg</p>
+                                                                            <p className="text-xs text-slate-400">Peso</p>
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                            <p className={`font-semibold ${getImcColor(medida.imc || 0)}`}>{(medida.imc || 0).toFixed(1)}</p>
+                                                                            <p className="text-xs text-slate-400">IMC</p>
+                                                                        </div>
+                                                                        <ChevronRight className={`w-4 h-4 transition-colors ${selectedEvaluationIndex === index ? 'text-[#6cba00]' : 'text-slate-300'}`} />
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+
+                                                {/* Action Button */}
+                                                <div className="flex flex-col items-center gap-4 py-6">
+                                                    <Button
+                                                        size="lg"
+                                                        className="gap-3 bg-[#6cba00] hover:bg-[#5aa300] text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-green-500/20"
+                                                        onClick={() => router.push(`/antropometria?id=${paciente.id}`)}
+                                                    >
+                                                        <Activity className="w-5 h-5" />
+                                                        Nueva Evaluación Antropométrica
+                                                    </Button>
+                                                </div>
                                             </div>
+                                        );
+                                    })() : (
+                                        /* Empty State */
+                                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                                            <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-6">
+                                                <Scale className="w-10 h-10 text-slate-300 dark:text-slate-600" />
+                                            </div>
+                                            <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Sin Evaluaciones</h3>
+                                            <p className="text-slate-500 max-w-sm mb-6">
+                                                Este paciente aún no tiene evaluaciones antropométricas registradas.
+                                            </p>
+                                            <Button
+                                                size="lg"
+                                                className="gap-2 bg-[#6cba00] hover:bg-[#5aa300] text-white"
+                                                onClick={() => router.push(`/antropometria?id=${paciente.id}`)}
+                                            >
+                                                <Activity className="w-5 h-5" />
+                                                Registrar Primera Evaluación
+                                            </Button>
                                         </div>
                                     );
-                                })() : (
-                                    /* Empty State */
-                                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                                        <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-6">
-                                            <Scale className="w-10 h-10 text-slate-300 dark:text-slate-600" />
-                                        </div>
-                                        <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Sin Evaluaciones</h3>
-                                        <p className="text-slate-500 max-w-sm mb-6">
-                                            Este paciente aún no tiene evaluaciones antropométricas registradas.
-                                        </p>
-                                        <Button
-                                            size="lg"
-                                            className="gap-2 bg-[#6cba00] hover:bg-[#5aa300] text-white"
-                                            onClick={() => router.push(`/antropometria?id=${paciente.id}`)}
-                                        >
-                                            <Activity className="w-5 h-5" />
-                                            Registrar Primera Evaluación
-                                        </Button>
-                                    </div>
-                                )}
+                                })()}
                             </TabsContent>
 
                             {/* Cálculos */}

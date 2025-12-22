@@ -287,8 +287,11 @@ export default function NuevoPacientePage() {
     }
 
     try {
-      const pacienteId = crypto.randomUUID();
+      // FIX: Use existing ID if updating, otherwise generate new
+      const pacienteId = existingPatient?.id || crypto.randomUUID();
       const now = new Date().toISOString();
+      // FIX: Preserve original creation date if updating
+      const createdAt = existingPatient?.createdAt || now;
 
       // 1. Preparar Datos Personales
       const names = data.nombreCompleto.trim().split(" ");
@@ -330,7 +333,7 @@ export default function NuevoPacientePage() {
             ldl: data.ldl
           }
         },
-        createdAt: now,
+        createdAt: createdAt,
         updatedAt: now,
       };
 

@@ -9,13 +9,42 @@ import { calculateBodyComposition } from "@/lib/bodyCompositionMath";
 import { useToast } from "@/hooks/use-toast";
 import { AntropometriaLayout } from "@/components/antropometria/AntropometriaLayout";
 import { FullMeasurementData } from "@/components/antropometria/UnifiedMeasurementForm";
+import { PediatricGrowthChart, type PatientDataPoint } from "@/components/pediatrics/PediatricGrowthChart";
+import { NewPediatricMeasurementForm, type PediatricMeasurementData } from "@/components/pediatrics/NewPediatricMeasurementForm";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Search, Users, ArrowRight, BookOpen, Activity, Save, RotateCcw } from "lucide-react";
+import { PlusCircle, Search, Users, ArrowRight, BookOpen, Activity, Save, RotateCcw, Baby, User, HeartPulse } from "lucide-react";
 import type { Paciente, MedidasAntropometricas } from "@/types";
 import { useAuthStore } from "@/store/useAuthStore";
+import { calculateChronologicalAge, calculateExactAgeInDays } from "@/lib/clinical-calculations";
+import { calculateZScore } from "@/lib/growth-standards";
+
+// Helper para determinar contexto clínico por edad
+function getClinicalContextByAge(fechaNacimiento: Date | string | undefined): {
+    context: 'lactante' | 'pediatrico' | 'adulto' | 'adulto_mayor';
+    label: string;
+    color: string;
+    age: number;
+} {
+    if (!fechaNacimiento) {
+        return { context: 'adulto', label: 'Adulto', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', age: 30 };
+    }
+
+    const birthDate = typeof fechaNacimiento === 'string' ? new Date(fechaNacimiento) : fechaNacimiento;
+    const age = calculateChronologicalAge(birthDate);
+    const roundedAge = Math.floor(age);
+
+    if (age < 2) {
+        return { context: 'lactante', label: 'Lactante', color: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400', age: roundedAge };
+    } else if (age < 18) {
+        return { context: 'pediatrico', label: 'Pediátrico', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', age: roundedAge };
+    } else if (age >= 65) {
+        return { context: 'adulto_mayor', label: 'Adulto Mayor', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400', age: roundedAge };
+    }
+    return { context: 'adulto', label: 'Adulto', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', age: roundedAge };
+}
 
 function AntropometriaContent() {
     const router = useRouter();
@@ -318,7 +347,17 @@ function AntropometriaContent() {
                                                     <h3 className="font-semibold text-slate-800 dark:text-white group-hover:text-[#ff8508] transition-colors">
                                                         {p.datosPersonales.nombre} {p.datosPersonales.apellido}
                                                     </h3>
-                                                    <span className="text-xs text-muted-foreground">{p.datosPersonales.email || "Sin email"}</span>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <span className="text-xs text-muted-foreground">{p.datosPersonales.email || "Sin email"}</span>
+                                                        {(() => {
+                                                            const ctx = getClinicalContextByAge(p.datosPersonales.fechaNacimiento);
+                                                            return (
+                                                                <Badge className={`text-[10px] px-1.5 py-0 font-medium ${ctx.color}`}>
+                                                                    {ctx.label} • {ctx.age} años
+                                                                </Badge>
+                                                            );
+                                                        })()}
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="h-8 w-8 rounded-full bg-slate-50 dark:bg-slate-700 group-hover:bg-[#ff8508]/10 flex items-center justify-center transition-colors">
@@ -362,24 +401,138 @@ function AntropometriaContent() {
                         </div>
                     )
                 ) : (
-                    // ACTIVE CONTENT
+                    // ACTIVE CONTENT - Renderizado basado en edad
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {/* We already show the selected patient in header, but keeping the layout consistent with previous content */}
-                        <div className="mb-6">
-                            <AntropometriaLayout
-                                key={`${selectedPacienteId}-${medidas.length}`}
-                                patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
-                                patientGender={selectedPaciente.datosPersonales.sexo === 'femenino' ? 'femenino' : 'masculino'}
-                                patientBirthDate={typeof selectedPaciente.datosPersonales.fechaNacimiento === 'string'
-                                    ? selectedPaciente.datosPersonales.fechaNacimiento
-                                    : selectedPaciente.datosPersonales.fechaNacimiento?.toISOString?.() || ''}
-                                initialWeight={ultimaMedida?.peso || 0}
-                                initialHeight={ultimaMedida?.talla || 0}
-                                medidas={medidas}
-                                onSave={handleSave}
-                                onDeleteMedida={handleDeleteMedida}
-                            />
-                        </div>
+                        {(() => {
+                            const ctx = getClinicalContextByAge(selectedPaciente.datosPersonales.fechaNacimiento);
+                            const patientBirthDateStr = typeof selectedPaciente.datosPersonales.fechaNacimiento === 'string'
+                                ? selectedPaciente.datosPersonales.fechaNacimiento
+                                : selectedPaciente.datosPersonales.fechaNacimiento?.toISOString?.() || '';
+
+                            // PEDIÁTRICO (0-5 años): Formulario OMS con curvas de crecimiento
+                            if (ctx.age < 6) {
+                                // Calcular datos para gráficas desde las medidas existentes
+                                const birthDateObj = typeof selectedPaciente.datosPersonales.fechaNacimiento === 'string'
+                                    ? new Date(selectedPaciente.datosPersonales.fechaNacimiento)
+                                    : selectedPaciente.datosPersonales.fechaNacimiento;
+                                const patientSex = selectedPaciente.datosPersonales.sexo === 'femenino' ? 'female' as const : 'male' as const;
+
+                                // Convertir medidas a puntos de datos para gráficas
+                                const weightChartData: PatientDataPoint[] = medidas.map(m => {
+                                    const measureDate = new Date(m.fecha);
+                                    const birthStr = selectedPaciente.datosPersonales.fechaNacimiento;
+
+                                    let exactDays = 0;
+                                    if (birthStr) {
+                                        exactDays = calculateExactAgeInDays(birthStr, m.fecha);
+                                    }
+
+                                    const ageMs = measureDate.getTime() - (birthDateObj?.getTime() || 0);
+                                    const ageMonths = ageMs / (1000 * 60 * 60 * 24 * 30.4375);
+                                    const zRes = calculateZScore(m.peso, ageMonths, patientSex, 'wfa');
+
+                                    return {
+                                        ageInMonths: Math.round(ageMonths * 100) / 100,
+                                        value: m.peso,
+                                        date: typeof m.fecha === 'string' ? m.fecha : new Date(m.fecha).toISOString(),
+                                        zScore: zRes?.zScore,
+                                        diagnosis: zRes?.diagnosis,
+                                        ageInDays: exactDays
+                                    };
+                                }).filter(p => p.ageInMonths >= 0 && p.ageInMonths <= 60);
+
+                                const heightChartData: PatientDataPoint[] = medidas.map(m => {
+                                    const measureDate = new Date(m.fecha);
+                                    const birthStr = selectedPaciente.datosPersonales.fechaNacimiento;
+
+                                    let exactDays = 0;
+                                    if (birthStr) {
+                                        exactDays = calculateExactAgeInDays(birthStr, m.fecha);
+                                    }
+
+                                    const ageMs = measureDate.getTime() - (birthDateObj?.getTime() || 0);
+                                    const ageInMonths = ageMs / (1000 * 60 * 60 * 24 * 30.4375);
+                                    const zResult = calculateZScore(m.talla, ageInMonths, patientSex, 'lhfa');
+
+                                    return {
+                                        ageInMonths: Math.round(ageInMonths * 100) / 100, // Fixed precision
+                                        value: m.talla,
+                                        date: typeof m.fecha === 'string' ? m.fecha : new Date(m.fecha).toISOString(),
+                                        zScore: zResult?.zScore,
+                                        diagnosis: zResult?.diagnosis,
+                                        ageInDays: exactDays
+                                    };
+                                }).filter(p => p.ageInMonths >= 0 && p.ageInMonths <= 60);
+
+                                return (
+                                    <div className="space-y-6">
+                                        {/* Formulario Pediátrico */}
+                                        <NewPediatricMeasurementForm
+                                            patientId={selectedPacienteId!}
+                                            patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
+                                            patientBirthDate={patientBirthDateStr}
+                                            patientSex={patientSex}
+                                            onSave={(data: PediatricMeasurementData) => {
+                                                const newMedida: MedidasAntropometricas = {
+                                                    id: crypto.randomUUID(),
+                                                    pacienteId: selectedPacienteId!,
+                                                    fecha: data.dateRecorded.toISOString(),
+                                                    peso: data.weightKg,
+                                                    talla: data.heightCm,
+                                                    edad: Math.floor(data.ageInMonths / 12),
+                                                    sexo: selectedPaciente.datosPersonales.sexo || 'masculino',
+                                                    imc: data.weightKg / Math.pow(data.heightCm / 100, 2),
+                                                    tipoPaciente: 'pediatrico',
+                                                };
+                                                saveMedidas(newMedida);
+                                                setMedidas(prev => [newMedida, ...prev]);
+                                                toast({
+                                                    title: "✅ Evaluación pediátrica guardada",
+                                                    description: `Peso: ${data.weightKg}kg, Talla: ${data.heightCm}cm | Estado: ${data.zScores.nutritionalStatus}`,
+                                                });
+                                            }}
+                                        />
+
+                                        {/* Curvas de Crecimiento - Peso/Edad */}
+                                        <PediatricGrowthChart
+                                            indicator="wfa"
+                                            sex={patientSex}
+                                            patientData={weightChartData}
+                                            patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
+                                            startMonth={0}
+                                            endMonth={Math.min(ctx.age * 12 + 12, 60)}
+                                        />
+
+                                        {/* Curvas de Crecimiento - Longitud/Talla por Edad */}
+                                        <PediatricGrowthChart
+                                            indicator="lhfa"
+                                            sex={patientSex}
+                                            patientData={heightChartData}
+                                            patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
+                                            startMonth={0}
+                                            endMonth={Math.min(ctx.age * 12 + 12, 60)}
+                                        />
+                                    </div>
+                                );
+                            }
+
+                            // ADULTO (6+ años): Formulario estándar de composición corporal
+                            return (
+                                <div className="mb-6">
+                                    <AntropometriaLayout
+                                        key={`${selectedPacienteId}-${medidas.length}`}
+                                        patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
+                                        patientGender={selectedPaciente.datosPersonales.sexo === 'femenino' ? 'femenino' : 'masculino'}
+                                        patientBirthDate={patientBirthDateStr}
+                                        initialWeight={ultimaMedida?.peso || 0}
+                                        initialHeight={ultimaMedida?.talla || 0}
+                                        medidas={medidas}
+                                        onSave={handleSave}
+                                        onDeleteMedida={handleDeleteMedida}
+                                    />
+                                </div>
+                            );
+                        })()}
                     </div>
                 )}
             </div>

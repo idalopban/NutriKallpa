@@ -531,3 +531,429 @@ export const MNASF_QUESTIONS = {
         ],
     },
 };
+
+// ============================================================================
+// 5. EVALUACIÓN GESTACIONAL - CURVA DE ATALAH
+// ============================================================================
+
+/**
+ * Rangos de IMC por semana de gestación según Curva de Atalah (Chile, 1997)
+ * Estándar para clasificación nutricional de embarazadas en Latinoamérica.
+ * 
+ * Estructura: { semana: { bajoPeso: max, normal: [min, max], sobrepeso: [min, max], obesidad: min } }
+ */
+export const ATALAH_BMI_RANGES: Record<number, { bajoPeso: number; normal: [number, number]; sobrepeso: [number, number]; obesidad: number }> = {
+    // Semanas 6-42 de gestación
+    6: { bajoPeso: 20.0, normal: [20.0, 25.0], sobrepeso: [25.0, 30.0], obesidad: 30.0 },
+    7: { bajoPeso: 20.0, normal: [20.0, 25.0], sobrepeso: [25.0, 30.0], obesidad: 30.0 },
+    8: { bajoPeso: 20.0, normal: [20.0, 25.0], sobrepeso: [25.0, 30.0], obesidad: 30.0 },
+    9: { bajoPeso: 20.0, normal: [20.0, 25.0], sobrepeso: [25.0, 30.0], obesidad: 30.0 },
+    10: { bajoPeso: 20.0, normal: [20.0, 25.5], sobrepeso: [25.5, 30.0], obesidad: 30.0 },
+    11: { bajoPeso: 20.0, normal: [20.0, 25.5], sobrepeso: [25.5, 30.0], obesidad: 30.0 },
+    12: { bajoPeso: 20.0, normal: [20.0, 25.5], sobrepeso: [25.5, 30.0], obesidad: 30.0 },
+    13: { bajoPeso: 20.0, normal: [20.0, 25.5], sobrepeso: [25.5, 30.0], obesidad: 30.0 },
+    14: { bajoPeso: 20.5, normal: [20.5, 26.0], sobrepeso: [26.0, 30.5], obesidad: 30.5 },
+    15: { bajoPeso: 20.5, normal: [20.5, 26.0], sobrepeso: [26.0, 30.5], obesidad: 30.5 },
+    16: { bajoPeso: 21.0, normal: [21.0, 26.5], sobrepeso: [26.5, 31.0], obesidad: 31.0 },
+    17: { bajoPeso: 21.0, normal: [21.0, 26.5], sobrepeso: [26.5, 31.0], obesidad: 31.0 },
+    18: { bajoPeso: 21.5, normal: [21.5, 27.0], sobrepeso: [27.0, 31.5], obesidad: 31.5 },
+    19: { bajoPeso: 21.5, normal: [21.5, 27.0], sobrepeso: [27.0, 31.5], obesidad: 31.5 },
+    20: { bajoPeso: 22.0, normal: [22.0, 27.5], sobrepeso: [27.5, 32.0], obesidad: 32.0 },
+    21: { bajoPeso: 22.0, normal: [22.0, 27.5], sobrepeso: [27.5, 32.0], obesidad: 32.0 },
+    22: { bajoPeso: 22.5, normal: [22.5, 28.0], sobrepeso: [28.0, 32.5], obesidad: 32.5 },
+    23: { bajoPeso: 22.5, normal: [22.5, 28.0], sobrepeso: [28.0, 32.5], obesidad: 32.5 },
+    24: { bajoPeso: 23.0, normal: [23.0, 28.5], sobrepeso: [28.5, 33.0], obesidad: 33.0 },
+    25: { bajoPeso: 23.0, normal: [23.0, 28.5], sobrepeso: [28.5, 33.0], obesidad: 33.0 },
+    26: { bajoPeso: 23.5, normal: [23.5, 29.0], sobrepeso: [29.0, 33.5], obesidad: 33.5 },
+    27: { bajoPeso: 23.5, normal: [23.5, 29.0], sobrepeso: [29.0, 33.5], obesidad: 33.5 },
+    28: { bajoPeso: 24.0, normal: [24.0, 29.5], sobrepeso: [29.5, 34.0], obesidad: 34.0 },
+    29: { bajoPeso: 24.0, normal: [24.0, 29.5], sobrepeso: [29.5, 34.0], obesidad: 34.0 },
+    30: { bajoPeso: 24.5, normal: [24.5, 30.0], sobrepeso: [30.0, 34.5], obesidad: 34.5 },
+    31: { bajoPeso: 24.5, normal: [24.5, 30.0], sobrepeso: [30.0, 34.5], obesidad: 34.5 },
+    32: { bajoPeso: 25.0, normal: [25.0, 30.5], sobrepeso: [30.5, 35.0], obesidad: 35.0 },
+    33: { bajoPeso: 25.0, normal: [25.0, 30.5], sobrepeso: [30.5, 35.0], obesidad: 35.0 },
+    34: { bajoPeso: 25.5, normal: [25.5, 31.0], sobrepeso: [31.0, 35.5], obesidad: 35.5 },
+    35: { bajoPeso: 25.5, normal: [25.5, 31.0], sobrepeso: [31.0, 35.5], obesidad: 35.5 },
+    36: { bajoPeso: 26.0, normal: [26.0, 31.5], sobrepeso: [31.5, 36.0], obesidad: 36.0 },
+    37: { bajoPeso: 26.0, normal: [26.0, 31.5], sobrepeso: [31.5, 36.0], obesidad: 36.0 },
+    38: { bajoPeso: 26.5, normal: [26.5, 32.0], sobrepeso: [32.0, 36.5], obesidad: 36.5 },
+    39: { bajoPeso: 26.5, normal: [26.5, 32.0], sobrepeso: [32.0, 36.5], obesidad: 36.5 },
+    40: { bajoPeso: 27.0, normal: [27.0, 32.5], sobrepeso: [32.5, 37.0], obesidad: 37.0 },
+    41: { bajoPeso: 27.0, normal: [27.0, 32.5], sobrepeso: [32.5, 37.0], obesidad: 37.0 },
+    42: { bajoPeso: 27.5, normal: [27.5, 33.0], sobrepeso: [33.0, 37.5], obesidad: 37.5 },
+};
+
+export type AtalahClassification = 'Bajo Peso' | 'Normal' | 'Sobrepeso' | 'Obesidad';
+
+/**
+ * Clasifica el estado nutricional de una gestante según la Curva de Atalah.
+ * 
+ * @param bmi - Índice de Masa Corporal actual de la gestante
+ * @param gestationalWeeks - Semanas de gestación (6-42)
+ * @returns Clasificación nutricional según Atalah
+ */
+export function classifyAtalah(bmi: number, gestationalWeeks: number): AtalahClassification {
+    // Ajustar semanas al rango válido (6-42)
+    const week = Math.max(6, Math.min(42, Math.round(gestationalWeeks)));
+    const ranges = ATALAH_BMI_RANGES[week];
+
+    if (!ranges) {
+        console.warn(`Semana gestacional ${gestationalWeeks} fuera de rango, usando semana 20`);
+        return classifyAtalah(bmi, 20);
+    }
+
+    if (bmi < ranges.bajoPeso) {
+        return 'Bajo Peso';
+    } else if (bmi >= ranges.normal[0] && bmi < ranges.sobrepeso[0]) {
+        return 'Normal';
+    } else if (bmi >= ranges.sobrepeso[0] && bmi < ranges.obesidad) {
+        return 'Sobrepeso';
+    } else {
+        return 'Obesidad';
+    }
+}
+
+/**
+ * Calcula la ganancia de peso gestacional recomendada según IOM 2009.
+ * Basado en el IMC pregestacional.
+ * 
+ * @param prePregnancyBMI - IMC antes del embarazo
+ * @param isMultiple - Si es embarazo múltiple (gemelos+)
+ * @returns { total: [min, max], weeklySecondThird: [min, max] }
+ */
+export function getRecommendedGestationalWeightGain(
+    prePregnancyBMI: number,
+    isMultiple: boolean = false
+): { total: [number, number]; weeklySecondThird: [number, number] } {
+    if (isMultiple) {
+        // Embarazo múltiple
+        if (prePregnancyBMI < 18.5) {
+            return { total: [22.7, 24.5], weeklySecondThird: [0.68, 0.79] };
+        } else if (prePregnancyBMI < 25) {
+            return { total: [16.8, 24.5], weeklySecondThird: [0.57, 0.79] };
+        } else if (prePregnancyBMI < 30) {
+            return { total: [14.1, 22.7], weeklySecondThird: [0.45, 0.68] };
+        } else {
+            return { total: [11.3, 19.1], weeklySecondThird: [0.34, 0.57] };
+        }
+    }
+
+    // Embarazo único (IOM 2009)
+    if (prePregnancyBMI < 18.5) {
+        // Bajo peso
+        return { total: [12.5, 18.0], weeklySecondThird: [0.44, 0.58] };
+    } else if (prePregnancyBMI < 25) {
+        // Normal
+        return { total: [11.5, 16.0], weeklySecondThird: [0.35, 0.50] };
+    } else if (prePregnancyBMI < 30) {
+        // Sobrepeso
+        return { total: [7.0, 11.5], weeklySecondThird: [0.23, 0.33] };
+    } else {
+        // Obesidad
+        return { total: [5.0, 9.0], weeklySecondThird: [0.17, 0.27] };
+    }
+}
+
+// ============================================================================
+// 6. PACIENTES NEUROLÓGICOS - ECUACIONES DE STEVENSON
+// ============================================================================
+
+/**
+ * Estima la talla de un paciente con Parálisis Cerebral usando longitud de tibia.
+ * Ecuación de Stevenson (1995).
+ * 
+ * Útil cuando el paciente no puede mantener postura erecta.
+ * 
+ * @param tibiaLength - Longitud de tibia en cm (desde borde superior medial hasta maléolo interno)
+ * @returns Talla estimada en cm
+ */
+export function estimateHeightFromTibia(tibiaLength: number): number {
+    // Ecuación de Stevenson: Talla (cm) = (3.26 × Longitud Tibia) + 30.8
+    return (3.26 * tibiaLength) + 30.8;
+}
+
+/**
+ * Ecuación alternativa usando longitud de segmento superior del brazo.
+ * Stevenson (1995).
+ * 
+ * @param upperArmLength - Longitud del húmero (acromion a olécranon) en cm
+ * @returns Talla estimada en cm
+ */
+export function estimateHeightFromUpperArm(upperArmLength: number): number {
+    // Ecuación: Talla (cm) = (4.35 × Longitud Brazo Superior) + 21.8
+    return (4.35 * upperArmLength) + 21.8;
+}
+
+/**
+ * Determina si un paciente con PC tiene riesgo nutricional según GMFCS.
+ * Niveles IV-V tienen alto riesgo de desnutrición.
+ * 
+ * @param gmfcsLevel - Nivel GMFCS (I-V)
+ * @returns true si está en alto riesgo nutricional
+ */
+export type GMFCSLevel = 'I' | 'II' | 'III' | 'IV' | 'V';
+
+export function isCPNutritionalRisk(gmfcsLevel: GMFCSLevel): boolean {
+    return gmfcsLevel === 'IV' || gmfcsLevel === 'V';
+}
+
+// ============================================================================
+// 7. IMC CORREGIDO PARA AMPUTADOS
+// ============================================================================
+
+/**
+ * Calcula el IMC real de un paciente con amputaciones.
+ * Primero corrige el peso estimando el peso completo, luego calcula IMC.
+ * 
+ * Fórmula:
+ * 1. Peso Corregido = Peso Actual / (1 - %amputación)
+ * 2. IMC = Peso Corregido / (Talla en m)²
+ * 
+ * @param pesoActual - Peso medido actualmente (con amputación) en kg
+ * @param talla - Talla en cm
+ * @param amputations - Lista de segmentos amputados
+ * @returns { correctedWeight, bmi, bmiClassification }
+ */
+export function calculateAmputeeBMI(
+    pesoActual: number,
+    talla: number,
+    amputations: AmputationType[],
+    edad: number = 40
+): { correctedWeight: number; bmi: number; classification: BMIClassification } {
+    const correctedWeight = calculateCorrectedWeight(pesoActual, amputations);
+    const tallaM = talla / 100;
+    const bmi = correctedWeight / (tallaM * tallaM);
+    const classification = classifyBMIByAge(bmi, edad);
+
+    return {
+        correctedWeight: Math.round(correctedWeight * 10) / 10,
+        bmi: Math.round(bmi * 10) / 10,
+        classification,
+    };
+}
+
+// ============================================================================
+// 8. TIPO DE EVALUACIÓN UNIFICADA
+// ============================================================================
+
+export type AssessmentType = 'general' | 'gestante' | 'pediatrico' | 'adulto_mayor' | 'amputado' | 'neuro';
+
+export interface AssessmentResult {
+    type: AssessmentType;
+    bmi: number;
+    bmiClassification: string;
+    riskLevel: 'bajo' | 'normal' | 'elevado' | 'alto' | 'muy_alto';
+    details: Record<string, unknown>;
+    warnings: string[];
+}
+
+/**
+ * Función unificada de evaluación nutricional que detecta el contexto clínico
+ * y aplica las fórmulas correctas automáticamente.
+ * 
+ * @param input - Datos del paciente
+ * @returns Resultado de evaluación con clasificación interpretada
+ */
+export function evaluateNutritionalStatus(input: {
+    peso: number;
+    talla: number;
+    edad: number;
+    sexo: 'masculino' | 'femenino';
+    type?: AssessmentType;
+    // Datos específicos por tipo
+    gestationalWeeks?: number;
+    prePregnancyWeight?: number;
+    amputations?: AmputationType[];
+    gmfcsLevel?: GMFCSLevel;
+    tibiaLength?: number;
+    alturaRodilla?: number;
+}): AssessmentResult {
+    const { peso, talla, edad, sexo, type = 'general' } = input;
+    const tallaM = talla / 100;
+    const warnings: string[] = [];
+    const details: Record<string, unknown> = {};
+
+    // Detectar tipo si no se especifica
+    let effectiveType = type;
+    if (type === 'general') {
+        if (input.gestationalWeeks) effectiveType = 'gestante';
+        else if (edad < 18) effectiveType = 'pediatrico';
+        else if (edad >= 65) effectiveType = 'adulto_mayor';
+        else if (input.amputations && input.amputations.length > 0) effectiveType = 'amputado';
+        else if (input.gmfcsLevel || input.tibiaLength) effectiveType = 'neuro';
+    }
+
+    let bmi = peso / (tallaM * tallaM);
+    let classification: BMIClassification;
+
+    switch (effectiveType) {
+        case 'gestante': {
+            if (!input.gestationalWeeks) {
+                warnings.push('No se especificaron semanas de gestación, usando semana 20');
+            }
+            const weeks = input.gestationalWeeks || 20;
+            const atalahResult = classifyAtalah(bmi, weeks);
+            details.atalahClassification = atalahResult;
+            details.gestationalWeeks = weeks;
+
+            if (input.prePregnancyWeight) {
+                const prePregnancyBMI = input.prePregnancyWeight / (tallaM * tallaM);
+                const weightGain = getRecommendedGestationalWeightGain(prePregnancyBMI);
+                details.prePregnancyBMI = Math.round(prePregnancyBMI * 10) / 10;
+                details.recommendedWeightGain = weightGain;
+            }
+
+            classification = {
+                category: atalahResult,
+                isGeriatric: false,
+                riskLevel: atalahResult === 'Normal' ? 'normal' : 'elevado',
+            };
+            break;
+        }
+
+        case 'adulto_mayor': {
+            // Usar rangos geriátricos (23-27.9 como normal)
+            classification = classifyBMIByAge(bmi, 65);
+            details.isGeriatricBMI = true;
+
+            // Si hay altura de rodilla, estimar talla
+            if (input.alturaRodilla) {
+                const tallaEstimada = estimateHeightFromKnee(input.alturaRodilla, edad, sexo);
+                details.tallaEstimada = Math.round(tallaEstimada * 10) / 10;
+                warnings.push(`Talla estimada por Chumlea: ${details.tallaEstimada} cm`);
+            }
+            break;
+        }
+
+        case 'amputado': {
+            if (!input.amputations || input.amputations.length === 0) {
+                warnings.push('No se especificaron amputaciones');
+                classification = classifyBMIByAge(bmi, edad);
+            } else {
+                const result = calculateAmputeeBMI(peso, talla, input.amputations, edad);
+                bmi = result.bmi;
+                classification = result.classification;
+                details.correctedWeight = result.correctedWeight;
+                details.amputationPercentage = Math.round(calculateTotalAmputationPercentage(input.amputations) * 100);
+            }
+            break;
+        }
+
+        case 'neuro': {
+            // Estimar talla si hay longitud de tibia
+            let effectiveTalla = talla;
+            if (input.tibiaLength) {
+                effectiveTalla = estimateHeightFromTibia(input.tibiaLength);
+                details.tallaEstimadaTibia = Math.round(effectiveTalla * 10) / 10;
+                warnings.push(`Talla estimada por Stevenson: ${details.tallaEstimadaTibia} cm`);
+            }
+
+            const effectiveTallaM = effectiveTalla / 100;
+            bmi = peso / (effectiveTallaM * effectiveTallaM);
+            classification = classifyBMIByAge(bmi, edad);
+
+            if (input.gmfcsLevel) {
+                details.gmfcsLevel = input.gmfcsLevel;
+                details.isNutritionalRisk = isCPNutritionalRisk(input.gmfcsLevel);
+                if (details.isNutritionalRisk) {
+                    warnings.push('Alto riesgo nutricional por GMFCS IV-V');
+                }
+            }
+            break;
+        }
+
+        case 'pediatrico':
+        default: {
+            classification = classifyBMIByAge(bmi, edad);
+            break;
+        }
+    }
+
+    return {
+        type: effectiveType,
+        bmi: Math.round(bmi * 10) / 10,
+        bmiClassification: classification.category,
+        riskLevel: classification.riskLevel,
+        details,
+        warnings,
+    };
+}
+
+/**
+ * Calcula la edad exacta en días entre dos fechas, ignorando horas y zonas horarias.
+ * Maneja strings 'YYYY-MM-DD' como fechas literales (sin shift UTC->Local).
+ * Garantiza consistencia entre el header del paciente y las gráficas.
+ * 
+ * @param birthDate - Fecha de nacimiento
+ * @param targetDate - Fecha objetivo (por defecto hoy)
+ * @returns Número de días exactos
+ */
+export function calculateExactAgeInDays(birthDate: string | Date, targetDate: string | Date = new Date()): number {
+    const getVisualMidnight = (val: string | Date): number => {
+        if (typeof val === 'string') {
+            // Si es fecha pura YYYY-MM-DD, usar componentes literales
+            if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+                const [y, m, d] = val.split('-').map(Number);
+                return Date.UTC(y, m - 1, d);
+            }
+        }
+        // Para objetos Date o strings ISO con hora, usar fecha LOCAL del navegador
+        // Esto asegura que "hoy" sea hoy 00:00 local
+        const d = new Date(val);
+        return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+    };
+
+    const t1 = getVisualMidnight(birthDate);
+    const t2 = getVisualMidnight(targetDate);
+
+    return Math.round((t2 - t1) / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Calcula la edad detallada (años, meses, días) garantizando consistencia visual.
+ */
+export function calculateDetailedAge(birthDate: string | Date, targetDate: string | Date = new Date()) {
+    // Reutilizar lógica de "Visual Date" para evitar offsets
+    const getVisualDate = (val: string | Date): Date => {
+        if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+            const [y, m, d] = val.split('-').map(Number);
+            return new Date(y, m - 1, d); // Local Date construida visualmente
+        }
+        const d = new Date(val);
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    };
+
+    const birth = getVisualDate(birthDate);
+    const target = getVisualDate(targetDate);
+
+    let years = target.getFullYear() - birth.getFullYear();
+    let months = target.getMonth() - birth.getMonth();
+    let days = target.getDate() - birth.getDate();
+
+    if (days < 0) {
+        months--;
+        // Días en el mes anterior al objetivo
+        const prevMonth = new Date(target.getFullYear(), target.getMonth(), 0);
+        days += prevMonth.getDate();
+    }
+    if (months < 0) {
+        years--;
+        months += 12;
+    }
+
+    if (years < 0) return { years: 0, months: 0, days: 0, formatted: '0 días' };
+
+    const parts = [];
+    if (years > 0) parts.push(`${years} ${years === 1 ? 'año' : 'años'}`);
+    if (months > 0) parts.push(`${months} ${months === 1 ? 'mes' : 'meses'}`);
+    if (days > 0) parts.push(`${days} ${days === 1 ? 'día' : 'días'}`);
+
+    if (parts.length === 0) parts.push('0 días');
+
+    return {
+        years,
+        months,
+        days,
+        formatted: parts.join(' ')
+    };
+}
