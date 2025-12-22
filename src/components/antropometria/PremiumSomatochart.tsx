@@ -49,6 +49,8 @@ export function PremiumSomatochart({ endo, meso, ecto }: SomatotipoChartProps) {
 
             <CardContent className="p-4 flex justify-center items-center bg-white dark:bg-slate-900 flex-1">
                 <svg viewBox={`0 0 ${width} ${height}`} className="w-full max-w-[690px]">
+                    {/* Fondo blanco para eliminar contraste con el Card */}
+                    <rect x="0" y="0" width={width} height={height} fill="white" className="dark:fill-slate-900" />
                     <defs>
                         <linearGradient id="gradMeso" x1="50%" y1="0%" x2="50%" y2="100%">
                             <stop offset="0%" stopColor="#4ade80" />

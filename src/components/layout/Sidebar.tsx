@@ -104,8 +104,8 @@ export function Sidebar() {
 
                                     active
                                         ? [
-                                            // ACTIVE STATE - use CSS variable for exact match
-                                            "bg-background",
+                                            // ACTIVE STATE - use white to match page backgrounds
+                                            "bg-white dark:bg-[#0f172a]",
                                             // Text color
                                             "text-[#6cba00]",
                                             // Shape: Rounded left, Flat right
@@ -150,7 +150,7 @@ export function Sidebar() {
                         className={cn(
                             "flex items-center justify-center w-full h-[56px] transition-all relative z-10",
                             isActive("/settings")
-                                ? "bg-background text-[#6cba00] rounded-l-[20px] ml-3"
+                                ? "bg-white dark:bg-[#0f172a] text-[#6cba00] rounded-l-[20px] ml-3"
                                 : "text-white/70 hover:text-white"
                         )}
                     >
