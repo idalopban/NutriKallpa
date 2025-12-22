@@ -80,7 +80,7 @@ export function ElderlyAnthropometryLayout({
 
     const handleSave = () => {
         // Construct the FullMeasurementData object expected by the saver
-        const height = formState.estimatedHeight ? parseFloat(formState.estimatedHeight as string) : 0;
+        const height = formState.estimatedHeight ? Number(formState.estimatedHeight) : 0;
         const weight = formState.weight ? parseFloat(formState.weight) : 0;
 
         // Map to FullMeasurementData
@@ -255,7 +255,7 @@ export function ElderlyAnthropometryLayout({
                             {(formState.weight && (formState.estimatedHeight || 0)) ? (
                                 <div className="flex flex-wrap gap-4 mt-4">
                                     <Badge className="text-lg py-2 px-4 bg-slate-100 text-slate-800 hover:bg-slate-200">
-                                        IMC: {(parseFloat(formState.weight) / Math.pow((parseFloat(formState.estimatedHeight as string) / 100), 2)).toFixed(1)}
+                                        IMC: {(parseFloat(formState.weight) / Math.pow((Number(formState.estimatedHeight) / 100), 2)).toFixed(1)}
                                     </Badge>
                                 </div>
                             ) : null}
