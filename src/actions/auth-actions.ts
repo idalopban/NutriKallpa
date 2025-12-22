@@ -41,6 +41,8 @@ interface DBUser {
   clinic_name?: string;
   clinic_address?: string;
   clinic_phone?: string;
+  subscription_expires_at?: string;
+  subscription_status?: 'active' | 'expired' | 'trial' | 'unlimited';
   created_at?: string;
   updated_at?: string;
 }
@@ -123,6 +125,21 @@ export async function loginUser(email: string, password: string) {
     recordAttempt('login', normalizedEmail, true);
     logger.auth.loginAttempt(normalizedEmail, true);
 
+    // 6.5 CHECK SUBSCRIPTION STATUS (Skip for admins)
+    if (user.rol !== 'admin' && user.subscription_status !== 'unlimited') {
+      const expiresAt = user.subscription_expires_at ? new Date(user.subscription_expires_at) : null;
+      if (expiresAt && expiresAt < new Date()) {
+        // Update status to expired in background
+        client.from('users').update({ subscription_status: 'expired' }).eq('id', user.id);
+        logger.warn('User subscription expired', { action: 'login', userId: user.id.slice(0, 8) + '...' });
+        return {
+          success: false,
+          error: "Tu suscripción ha expirado. Contacta al administrador para renovar.",
+          subscriptionExpired: true
+        };
+      }
+    }
+
     // 7. Set server-side session
     await setServerSession(user.id);
 
@@ -144,6 +161,8 @@ export async function loginUser(email: string, password: string) {
         clinicName: safeUser.clinic_name,
         clinicAddress: safeUser.clinic_address,
         clinicPhone: safeUser.clinic_phone,
+        subscriptionExpiresAt: safeUser.subscription_expires_at,
+        subscriptionStatus: safeUser.subscription_status,
         createdAt: safeUser.created_at,
       }
     };
@@ -197,12 +216,17 @@ export async function registerUser(data: {
       return { success: false, error: "Código de invitación inválido o ya utilizado" };
     }
 
-    const inviteData = invitation[0] as { code: string; rol: string };
+    const inviteData = invitation[0] as { code: string; rol: string; subscription_days?: number };
 
-    // 4. Hash password with bcrypt
+    // 4. Calculate subscription expiration
+    const subscriptionDays = inviteData.subscription_days || 30; // Default 30 days
+    const subscriptionExpiresAt = new Date();
+    subscriptionExpiresAt.setDate(subscriptionExpiresAt.getDate() + subscriptionDays);
+
+    // 5. Hash password with bcrypt
     const passwordHash = await hashPassword(data.password);
 
-    // 5. Create user in database
+    // 6. Create user in database with subscription
     const { data: newUser, error: createError } = await client
       .from('users')
       .insert({
@@ -211,6 +235,8 @@ export async function registerUser(data: {
         nombre: data.nombre,
         rol: inviteData.rol || 'usuario',
         especialidad: 'Nutricionista General',
+        subscription_expires_at: subscriptionExpiresAt.toISOString(),
+        subscription_status: 'active',
       })
       .select()
       .single();
@@ -220,13 +246,13 @@ export async function registerUser(data: {
       return { success: false, error: "Error al crear la cuenta" };
     }
 
-    // 6. Mark invitation code as used
+    // 7. Mark invitation code as used
     await client
       .from('invitation_codes')
       .update({ status: 'used', used_by: data.email })
       .eq('code', data.invitationCode.toUpperCase());
 
-    // 7. Return success with user data
+    // 8. Return success with user data
     const user = newUser as DBUser;
     return {
       success: true,
@@ -288,7 +314,12 @@ export async function registerGoogleUser(data: {
       return { success: false, error: "Código de invitación inválido o ya utilizado" };
     }
 
-    const inviteData = invitation as { code: string; rol: string };
+    const inviteData = invitation as { code: string; rol: string; subscription_days?: number };
+
+    // Calculate subscription expiration
+    const subscriptionDays = inviteData.subscription_days || 30;
+    const subscriptionExpiresAt = new Date();
+    subscriptionExpiresAt.setDate(subscriptionExpiresAt.getDate() + subscriptionDays);
 
     // Create user in database (no password hash for OAuth users)
     const { data: newUser, error: createError } = await supabase
@@ -300,6 +331,8 @@ export async function registerGoogleUser(data: {
         rol: inviteData.rol || 'usuario',
         especialidad: 'Nutricionista General',
         photo_url: data.photoUrl,
+        subscription_expires_at: subscriptionExpiresAt.toISOString(),
+        subscription_status: 'active',
       })
       .select()
       .single();
@@ -326,6 +359,8 @@ export async function registerGoogleUser(data: {
         rol: user.rol as 'admin' | 'usuario',
         especialidad: user.especialidad,
         photoUrl: user.photo_url,
+        subscriptionExpiresAt: user.subscription_expires_at,
+        subscriptionStatus: user.subscription_status,
       }
     };
 
@@ -713,8 +748,15 @@ export async function getInvitationCodesFromDB() {
 
 /**
  * Create a new invitation code in Supabase
+ * @param code - The invitation code string
+ * @param rol - Role to assign: 'usuario' or 'admin'
+ * @param subscriptionDays - Duration of subscription in days (default: 30)
  */
-export async function createInvitationCode(code: string, rol: string = 'usuario') {
+export async function createInvitationCode(
+  code: string,
+  rol: string = 'usuario',
+  subscriptionDays: number = 30
+) {
   try {
     const supabase = createSupabaseAdmin();
 
@@ -724,6 +766,7 @@ export async function createInvitationCode(code: string, rol: string = 'usuario'
         code: code.toUpperCase(),
         rol: rol,
         status: 'active',
+        subscription_days: subscriptionDays,
         created_at: new Date().toISOString(),
       });
 

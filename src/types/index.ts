@@ -25,6 +25,9 @@ export interface User {
   clinicName?: string;
   clinicAddress?: string;
   clinicPhone?: string;
+  // Subscription fields
+  subscriptionExpiresAt?: string | Date;
+  subscriptionStatus?: 'active' | 'expired' | 'trial' | 'unlimited';
   createdAt?: Date | string;
   updatedAt?: Date | string;
 }
@@ -33,6 +36,7 @@ export interface InvitationCode {
   code: string;
   rol: UserRole;
   status: 'active' | 'used';
+  subscriptionDays?: number; // Duration in days (7, 30, 90, 365)
   createdAt: string;
   usedBy?: string; // email of user who used it
 }

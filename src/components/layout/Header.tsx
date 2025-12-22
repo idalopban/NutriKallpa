@@ -182,6 +182,32 @@ export function Header() {
 
             {/* Right Controls */}
             <div className="flex items-center gap-2 md:gap-4">
+                {/* Subscription Badge - Only show for non-admin users with expiration */}
+                {mounted && user && user.rol !== 'admin' && user.subscriptionStatus !== 'unlimited' && user.subscriptionExpiresAt && (
+                    (() => {
+                        const expiresAt = new Date(user.subscriptionExpiresAt);
+                        const now = new Date();
+                        const daysLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                        const isExpired = daysLeft <= 0;
+                        const isWarning = daysLeft > 0 && daysLeft <= 7;
+
+                        return (
+                            <div
+                                className={cn(
+                                    "hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all",
+                                    isExpired && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+                                    isWarning && "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+                                    !isExpired && !isWarning && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                )}
+                                title={`Suscripción ${isExpired ? 'expirada' : `válida hasta ${expiresAt.toLocaleDateString()}`}`}
+                            >
+                                <span className="text-xs">
+                                    {isExpired ? '⚠️ Expirada' : isWarning ? `⏳ ${daysLeft}d` : `✓ ${daysLeft}d`}
+                                </span>
+                            </div>
+                        );
+                    })()
+                )}
                 <NotificationsPopover />
                 <SettingsDialog />
             </div>

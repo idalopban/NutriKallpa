@@ -66,6 +66,7 @@ export default function AdminPage() {
     // Bulk Code Generation State
     const [bulkQuantity, setBulkQuantity] = useState(10);
     const [bulkRole, setBulkRole] = useState<"usuario" | "admin">("usuario");
+    const [subscriptionDays, setSubscriptionDays] = useState(30); // NEW: Subscription duration
     const [generatedCodes, setGeneratedCodes] = useState<string[]>([]);
     const [isGeneratingBulk, setIsGeneratingBulk] = useState(false);
 
@@ -92,6 +93,7 @@ export default function AdminPage() {
                 code: c.code,
                 rol: c.rol,
                 status: c.status,
+                subscriptionDays: c.subscription_days || 30,
                 createdAt: c.created_at,
                 usedBy: c.used_by,
             })));
@@ -101,7 +103,7 @@ export default function AdminPage() {
 
     const handleGenerateCode = async () => {
         const code = Math.random().toString(36).substring(2, 10).toUpperCase();
-        const result = await createInvitationCode(code, "usuario");
+        const result = await createInvitationCode(code, "usuario", 30);
         if (result.success) {
             toast.success("Código de invitación generado correctamente");
             refreshData();
@@ -141,7 +143,7 @@ export default function AdminPage() {
 
         for (let i = 0; i < bulkQuantity; i++) {
             const code = Math.random().toString(36).substring(2, 10).toUpperCase();
-            const result = await createInvitationCode(code, bulkRole);
+            const result = await createInvitationCode(code, bulkRole, subscriptionDays);
             if (result.success) {
                 newCodes.push(code);
                 successCount++;
@@ -468,6 +470,23 @@ export default function AdminPage() {
                                         </SelectContent>
                                     </Select>
                                 </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="subscription-days">Duración Suscripción</Label>
+                                    <Select
+                                        value={subscriptionDays.toString()}
+                                        onValueChange={(val) => setSubscriptionDays(parseInt(val))}
+                                    >
+                                        <SelectTrigger className="w-44">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="7">7 días (Prueba)</SelectItem>
+                                            <SelectItem value="30">30 días (1 mes)</SelectItem>
+                                            <SelectItem value="90">90 días (3 meses)</SelectItem>
+                                            <SelectItem value="365">365 días (1 año)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                                 <Button
                                     onClick={handleGenerateBulk}
                                     disabled={isGeneratingBulk}
@@ -571,7 +590,8 @@ export default function AdminPage() {
                                     <TableRow>
                                         <TableHead>Código</TableHead>
                                         <TableHead>Estado</TableHead>
-                                        <TableHead>Rol Asignado</TableHead>
+                                        <TableHead>Rol</TableHead>
+                                        <TableHead>Duración</TableHead>
                                         <TableHead>Creado</TableHead>
                                         <TableHead>Usado Por</TableHead>
                                         <TableHead className="text-right">Acciones</TableHead>
@@ -580,7 +600,7 @@ export default function AdminPage() {
                                 <TableBody>
                                     {invitations.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                                                 No hay códigos generados.
                                             </TableCell>
                                         </TableRow>
@@ -595,6 +615,11 @@ export default function AdminPage() {
                                                     </span>
                                                 </TableCell>
                                                 <TableCell className="capitalize">{inv.rol}</TableCell>
+                                                <TableCell>
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-purple-100 text-purple-800 text-xs font-medium">
+                                                        {inv.subscriptionDays || 30} días
+                                                    </span>
+                                                </TableCell>
                                                 <TableCell>{new Date(inv.createdAt).toLocaleDateString()}</TableCell>
                                                 <TableCell>{inv.usedBy || "-"}</TableCell>
                                                 <TableCell className="text-right">
