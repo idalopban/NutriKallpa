@@ -17,7 +17,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useRouter } from "next/navigation";
 
 export function SettingsDialog() {
-    const { theme, setTheme } = useTheme();
+    const { theme, setTheme, resolvedTheme } = useTheme();
     const { logout } = useAuthStore();
     const router = useRouter();
 
@@ -75,34 +75,49 @@ export function SettingsDialog() {
                             <Label>Tema</Label>
                             <span className="text-xs text-muted-foreground">Selecciona tu preferencia de tema</span>
                         </div>
-                        <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
-                            <Button
-                                variant={theme === "light" ? "default" : "ghost"}
-                                size="sm"
+                        <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                            {/* Botón Claro */}
+                            <button
+                                type="button"
                                 onClick={() => setTheme("light")}
-                                className={`gap-1.5 h-8 px-3 ${theme === "light" ? "bg-white dark:bg-slate-700 shadow-sm" : ""}`}
+                                className="flex items-center gap-1.5 h-8 px-3 rounded-md text-sm font-medium transition-colors"
+                                style={
+                                    mounted && theme === "light"
+                                        ? { backgroundColor: '#6cba00', color: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+                                        : { backgroundColor: 'transparent', color: '#475569' }
+                                }
                             >
                                 <Sun className="h-3.5 w-3.5" />
-                                <span className="text-xs">Claro</span>
-                            </Button>
-                            <Button
-                                variant={theme === "dark" ? "default" : "ghost"}
-                                size="sm"
+                                <span className="text-xs font-medium">Claro</span>
+                            </button>
+                            {/* Botón Oscuro */}
+                            <button
+                                type="button"
                                 onClick={() => setTheme("dark")}
-                                className={`gap-1.5 h-8 px-3 ${theme === "dark" ? "bg-white dark:bg-slate-700 shadow-sm" : ""}`}
+                                className="flex items-center gap-1.5 h-8 px-3 rounded-md text-sm font-medium transition-colors"
+                                style={
+                                    mounted && theme === "dark"
+                                        ? { backgroundColor: '#ff8508', color: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+                                        : { backgroundColor: 'transparent', color: '#475569' }
+                                }
                             >
                                 <Moon className="h-3.5 w-3.5" />
-                                <span className="text-xs">Oscuro</span>
-                            </Button>
-                            <Button
-                                variant={theme === "system" ? "default" : "ghost"}
-                                size="sm"
+                                <span className="text-xs font-medium">Oscuro</span>
+                            </button>
+                            {/* Botón Sistema */}
+                            <button
+                                type="button"
                                 onClick={() => setTheme("system")}
-                                className={`gap-1.5 h-8 px-3 ${theme === "system" ? "bg-white dark:bg-slate-700 shadow-sm" : ""}`}
+                                className="flex items-center gap-1.5 h-8 px-3 rounded-md text-sm font-medium transition-colors"
+                                style={
+                                    mounted && (theme === "system" || theme === undefined)
+                                        ? { backgroundColor: '#6cba00', color: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+                                        : { backgroundColor: 'transparent', color: '#475569' }
+                                }
                             >
                                 <Monitor className="h-3.5 w-3.5" />
-                                <span className="text-xs">Sistema</span>
-                            </Button>
+                                <span className="text-xs font-medium">Sistema</span>
+                            </button>
                         </div>
                     </div>
 
