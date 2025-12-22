@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -158,6 +158,7 @@ export default function NuevoPacientePage() {
   const patientId = searchParams.get('patientId');
   const [existingPatient, setExistingPatient] = useState<Paciente | null>(null);
   const [isLoadingPatient, setIsLoadingPatient] = useState(false);
+  const imcBarRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -270,6 +271,14 @@ export default function NuevoPacientePage() {
   // Cálculos derivados visuales
   const imc = (peso && talla) ? (peso / Math.pow(talla / 100, 2)).toFixed(1) : "0.0";
   const totalProteina = (peso && ratio) ? (peso * ratio).toFixed(0) : "0";
+
+  // Actualizar ancho de barra IMC via Ref para evitar lint error de estilos inline
+  useEffect(() => {
+    if (imcBarRef.current) {
+      const width = Math.min(Number(imc) * 2.5, 100);
+      imcBarRef.current.style.width = `${width}%`;
+    }
+  }, [imc]);
 
   // Color dinámico según objetivo
   const getObjectiveColor = () => {
@@ -397,7 +406,7 @@ export default function NuevoPacientePage() {
             <span className="text-slate-900 dark:text-white">{existingPatient ? 'Consulta de Seguimiento' : 'Nuevo Registro'}</span>
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            {existingPatient ? 'Consulta de Seguimiento' : 'Crear Expediente'}
+            {existingPatient ? 'Editar Paciente' : 'Nuevo Paciente'}
           </h1>
           <p className="text-slate-500 dark:text-slate-400">
             {existingPatient
@@ -1144,63 +1153,66 @@ export default function NuevoPacientePage() {
           <div className="lg:col-span-4 space-y-6">
             <div className="sticky top-6 space-y-6">
 
-              <Card className="bg-slate-900 text-white border-none shadow-xl overflow-hidden relative">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-                <CardHeader className="pb-2 relative z-10">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Calculator className="w-5 h-5 text-green-400" />
-                    Resumen Rápido
-                  </CardTitle>
+              <Card className="bg-[#0f172a] text-white border-none shadow-2xl overflow-hidden rounded-[32px] p-6">
+                <CardHeader className="p-0 mb-8 space-y-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#059669]/20 flex items-center justify-center text-[#10b981] shadow-sm">
+                      <Calculator className="w-6 h-6" />
+                    </div>
+                    <CardTitle className="text-xl font-bold tracking-tight">
+                      Resumen Rápido
+                    </CardTitle>
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-6 relative z-10">
-
+                <CardContent className="p-0 space-y-8">
                   {/* IMC Preview */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-sm text-slate-400">
-                      <span>IMC Estimado</span>
-                      <span className="text-white font-medium">{imc}</span>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-end">
+                      <span className="text-sm font-medium text-slate-400">IMC Estimado</span>
+                      <span className="text-2xl font-bold text-white">{imc}</span>
                     </div>
                     <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all duration-500 ${Number(imc) > 25 ? 'bg-orange-500' : Number(imc) < 18.5 ? 'bg-blue-500' : 'bg-green-500'}`}
-                        style={{ width: `${Math.min(Number(imc) * 2, 100)}%` }}
+                        ref={imcBarRef}
+                        className={`h-full rounded-full transition-all duration-700 ${Number(imc) > 25 ? 'bg-orange-500' : Number(imc) < 18.5 ? 'bg-blue-500' : 'bg-[#10b981]'}`}
                       ></div>
                     </div>
-                    <p className="text-xs text-right text-slate-500">
-                      {Number(imc) >= 25 ? 'Sobrepeso' : Number(imc) < 18.5 ? 'Bajo Peso' : 'Peso Normal'}
+                    <p className="text-xs text-right text-slate-500 font-medium">
+                      {Number(imc) >= 30 ? 'Obesidad' : Number(imc) >= 25 ? 'Sobrepeso' : Number(imc) < 18.5 ? 'Bajo Peso' : 'Peso Normal'}
                     </p>
                   </div>
 
-                  <Separator className="bg-slate-800" />
+                  <Separator className="bg-slate-800/50" />
 
                   {/* Proteína Preview */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-sm text-slate-400">
-                      <span>Proteína Diaria</span>
-                      <span className="text-white font-medium">{totalProteina} g</span>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-end">
+                      <span className="text-sm font-medium text-slate-400">Proteína Diaria</span>
+                      <span className="text-2xl font-bold text-white">{totalProteina} g</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <Utensils className="w-3 h-3" />
-                      <span>Basado en {ratio} g/kg</span>
+                      <div className="p-1 rounded bg-slate-800/50">
+                        <Utensils className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="font-medium text-slate-400">Basado en <span className="text-white">{ratio} g/kg</span></span>
                     </div>
                   </div>
 
-                  <Separator className="bg-slate-800" />
-
-                  {/* Objetivo Preview */}
-                  <div className={`p-3 rounded-lg border border-white/10 ${getObjectiveColor()} bg-opacity-10`}>
-                    <p className="text-xs font-bold uppercase tracking-wider opacity-70">Objetivo</p>
-                    <p className="font-semibold capitalize">{objetivo}</p>
+                  {/* Objetivo Badge */}
+                  <div className="bg-[#1e293b]/50 border border-slate-800 rounded-2xl p-5 space-y-1.5 transition-all">
+                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-blue-500">Objetivo</p>
+                    <p className="text-2xl font-bold text-blue-400 capitalize">{objetivo}</p>
                   </div>
-
                 </CardContent>
               </Card>
 
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-4 flex gap-3 items-start">
-                <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-blue-900 dark:text-blue-300">Listo para empezar</h4>
-                  <p className="text-xs text-blue-700 dark:text-blue-400 leading-relaxed">
+              <div className="bg-[#eff6ff] dark:bg-blue-900/10 border border-[#dbeafe] dark:border-blue-900/20 rounded-[24px] p-6 flex gap-4 items-start shadow-sm">
+                <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0 mt-0.5 shadow-sm">
+                  <Check className="w-4 h-4" />
+                </div>
+                <div className="space-y-2">
+                  <h4 className="text-base font-bold text-[#1e40af] dark:text-blue-400">Listo para empezar</h4>
+                  <p className="text-sm text-[#3b82f6] dark:text-blue-500 leading-relaxed font-medium">
                     Al guardar, serás redirigido al perfil del paciente donde podrás realizar la primera evaluación antropométrica completa.
                   </p>
                 </div>
