@@ -112,10 +112,48 @@ export interface ConfiguracionNutricional {
   macroGrasa?: number;
 }
 
+/* -------------------------------------------------------------------------- */
+/* ALERGIAS E INTOLERANCIAS (Medical Grade)                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Allergy Severity Levels:
+ * - fatal: IgE-mediated allergy - can cause anaphylaxis. MUST exclude all traces and derivatives.
+ * - intolerance: Causes discomfort (digestive, skin, etc.) but not life-threatening. Exclude direct sources.
+ * - preference: Patient prefers to avoid but can tolerate. Use alternatives when available.
+ */
+export type AllergySeverity = 'fatal' | 'intolerance' | 'preference';
+
+/**
+ * Medical allergy entry with severity classification
+ */
+export interface AllergyEntry {
+  allergen: string;          // Common name (e.g., "Lácteos", "Maní", "Gluten")
+  severity: AllergySeverity;
+  notes?: string;            // Additional clinical notes
+  confirmedBy?: 'patient' | 'test' | 'doctor';  // Source of diagnosis
+}
+
+/**
+ * Allergen derivatives map - for fatal allergies, these must also be excluded
+ */
+export const ALLERGEN_DERIVATIVES: Record<string, string[]> = {
+  'Lácteos': ['leche', 'queso', 'yogur', 'mantequilla', 'crema', 'caseína', 'suero', 'whey', 'lactosa', 'nata', 'requesón'],
+  'Huevo': ['huevo', 'clara', 'yema', 'mayonesa', 'albumina', 'ovoalbumina', 'lecitina'],
+  'Maní': ['maní', 'cacahuete', 'crema de maní', 'mantequilla de maní'],
+  'Frutos Secos': ['nuez', 'almendra', 'avellana', 'castaña', 'pistacho', 'pecana', 'marañón', 'anacardo'],
+  'Trigo': ['trigo', 'harina', 'pan', 'fideo', 'galleta', 'sémola', 'cuscús', 'gluten'],
+  'Gluten': ['trigo', 'avena', 'cebada', 'centeno', 'espelta', 'kamut', 'gluten'],
+  'Mariscos': ['camarón', 'langostino', 'cangrejo', 'langosta', 'mejillón', 'almeja', 'ostra', 'calamar', 'pulpo'],
+  'Pescado': ['pescado', 'atún', 'salmón', 'tilapia', 'bonito', 'jurel', 'caballa', 'anchoa'],
+  'Soya': ['soya', 'soja', 'tofu', 'tempeh', 'edamame', 'miso', 'leche de soya'],
+};
+
 export interface Preferencias {
   restricciones?: string[];
   gustos?: string[];
-  alergias?: string[];
+  alergias?: string[];                    // Legacy: simple string array
+  alergiasDetalladas?: AllergyEntry[];    // New: detailed allergy entries with severity
   likedFoods?: string[];
   dislikedFoods?: string[];
 }

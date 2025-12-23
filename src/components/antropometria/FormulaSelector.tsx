@@ -12,6 +12,11 @@ import {
     BodyCompositionResult
 } from "@/lib/bodyCompositionMath";
 import {
+    validateFormulaMatch,
+    type FormulaProfile
+} from "@/lib/formula-advisor";
+import { FormulaAlertBanner } from "./FormulaAlertBanner";
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -19,21 +24,84 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { AlertCircle, CheckCircle2, Scale, Activity, TrendingUp, Info } from "lucide-react";
+import type { Paciente } from "@/types";
 
 interface FormulaSelectorProps {
     skinfolds: SkinfoldData;
     gender: Gender;
     weightKg: number;
+    heightCm?: number;
+    age?: number;
+    activityLevel?: string;
+    patient?: Partial<Paciente>;
     onResultChange?: (result: BodyCompositionResult | null) => void;
 }
 
-export function FormulaSelector({ skinfolds, gender, weightKg, onResultChange }: FormulaSelectorProps) {
+export function FormulaSelector({
+    skinfolds,
+    gender,
+    weightKg,
+    heightCm,
+    age,
+    activityLevel,
+    patient,
+    onResultChange
+}: FormulaSelectorProps) {
     const [selectedFormula, setSelectedFormula] = useState<FormulaType>('general');
 
     // Calcular resultado
     const result = useMemo(() => {
         return calculateBodyComposition(selectedFormula, gender, skinfolds, weightKg);
     }, [selectedFormula, gender, skinfolds, weightKg]);
+
+    // Validate formula-profile match
+    const formulaValidation = useMemo(() => {
+        // Build patient data for validation
+        const patientData = {
+            datosPersonales: {
+                nombre: patient?.datosPersonales?.nombre || '',
+                apellido: patient?.datosPersonales?.apellido || '',
+                email: patient?.datosPersonales?.email || '',
+                fechaNacimiento: patient?.datosPersonales?.fechaNacimiento || new Date().toISOString(),
+                peso: heightCm ? weightKg : undefined,
+                talla: heightCm
+            },
+            configuracionNutricional: {
+                nivelActividad: activityLevel as 'sedentario' | 'ligera' | 'moderada' | 'intensa' | 'muy_intensa' | undefined,
+                ...patient?.configuracionNutricional
+            }
+        };
+
+        const measurements = {
+            peso: weightKg,
+            talla: heightCm || 170,
+            edad: age || 30
+        };
+
+        // Map FormulaType to FormulaProfile
+        const formulaProfileMap: Record<FormulaType, FormulaProfile> = {
+            general: 'general',
+            control: 'control',
+            fitness: 'fitness',
+            athlete: 'atleta',
+            rapid: 'rapida'
+        };
+        const selectedProfile = formulaProfileMap[selectedFormula] || 'general';
+
+        return validateFormulaMatch(selectedProfile, patientData, measurements);
+    }, [selectedFormula, weightKg, heightCm, age, activityLevel, patient]);
+
+    // Handle switching to recommended formula
+    const handleSwitchFormula = (recommended: FormulaProfile) => {
+        const profileToFormulaMap: Record<FormulaProfile, FormulaType> = {
+            general: 'general',
+            control: 'control',
+            fitness: 'control', // Fitness maps to control in this system
+            atleta: 'athlete',
+            rapida: 'rapid'
+        };
+        setSelectedFormula(profileToFormulaMap[recommended] || 'general');
+    };
 
     // Notificar cambios
     useEffect(() => {
@@ -78,8 +146,8 @@ export function FormulaSelector({ skinfolds, gender, weightKg, onResultChange }:
                         <span
                             key={idx}
                             className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${missingLabels.includes(label)
-                                    ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
-                                    : 'bg-[#6cba00]/10 text-[#6cba00]'
+                                ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                                : 'bg-[#6cba00]/10 text-[#6cba00]'
                                 }`}
                         >
                             {label}
@@ -95,6 +163,14 @@ export function FormulaSelector({ skinfolds, gender, weightKg, onResultChange }:
                     </p>
                 </div>
             </div>
+
+            {/* Formula-Profile Match Alert */}
+            {(heightCm || age || activityLevel || patient) && (
+                <FormulaAlertBanner
+                    validation={formulaValidation}
+                    onSwitchFormula={handleSwitchFormula}
+                />
+            )}
 
             {/* Alerta de pliegues faltantes */}
             {missingLabels.length > 0 && (
@@ -171,9 +247,9 @@ export function FormulaSelector({ skinfolds, gender, weightKg, onResultChange }:
                         <div className="flex items-center justify-between text-xs">
                             <span className="text-slate-500">Clasificación</span>
                             <span className={`font-bold ${result.fatPercent < 15 ? 'text-blue-500' :
-                                    result.fatPercent < 25 ? 'text-[#6cba00]' :
-                                        result.fatPercent < 32 ? 'text-amber-500' :
-                                            'text-red-500'
+                                result.fatPercent < 25 ? 'text-[#6cba00]' :
+                                    result.fatPercent < 32 ? 'text-amber-500' :
+                                        'text-red-500'
                                 }`}>
                                 {gender === 'male'
                                     ? (result.fatPercent < 12 ? 'Atlético' : result.fatPercent < 20 ? 'Fitness' : result.fatPercent < 25 ? 'Aceptable' : 'Sobrepeso')

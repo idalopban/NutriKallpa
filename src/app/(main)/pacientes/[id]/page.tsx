@@ -24,6 +24,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { PediatricGrowthChart } from "@/components/pediatrics/PediatricGrowthChart";
 import { NewPediatricMeasurementForm, type PediatricMeasurementData } from "@/components/pediatrics/NewPediatricMeasurementForm";
 import { PatientAgeBadge } from "@/components/patient/PatientAgeBadge";
+import { PatientProgressCard } from "@/components/patient/PatientProgressCard";
 import { useToast } from "@/hooks/use-toast";
 
 // Logic
@@ -329,6 +330,15 @@ export default function DetallePacientePage() {
                                 <span className="font-medium text-slate-700 dark:text-slate-200 text-xs">{lastVisit}</span>
                             </div>
                         </div>
+
+                        <Separator className="my-4" />
+
+                        {/* Gamification Progress */}
+                        <PatientProgressCard
+                            pacienteId={paciente.id}
+                            patientName={paciente.datosPersonales.nombre}
+                            compact={true}
+                        />
                     </div>
 
                 </aside>
@@ -993,6 +1003,9 @@ export default function DetallePacientePage() {
                                                             value={proteinRatio}
                                                             onChange={(e) => setProteinRatio(parseFloat(e.target.value) || 1.6)}
                                                             className="w-20 h-10 text-center border border-[#ffd9a8] rounded-lg font-bold text-[#ff8508] focus:ring-2 focus:ring-[#ff8508]/30 focus:border-[#ff8508]"
+                                                            aria-label="Ratio de proteína personalizado (g/kg)"
+                                                            title="Ratio de proteína personalizado"
+                                                            placeholder="1.6"
                                                         />
                                                         <span className="text-[10px] text-muted-foreground">Personalizado</span>
                                                     </div>

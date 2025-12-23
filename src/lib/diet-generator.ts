@@ -63,7 +63,42 @@ export interface UserPreferences {
     likedFoods: string[];
     dislikedFoods: string[];
     pathologies?: string[]; // Audit Fix: Medical Constraints
+    allergies?: AllergyEntrySimple[]; // New: Allergies with severity
 }
+
+// Simplified allergy entry for diet generator (matches types/index.ts AllergyEntry)
+interface AllergyEntrySimple {
+    allergen: string;
+    severity: 'fatal' | 'intolerance' | 'preference';
+}
+
+// --- ALLERGY FILTERS (Medical Grade) ---
+// For fatal allergies, these derivatives must ALSO be excluded
+const ALLERGEN_DERIVATIVES: Record<string, string[]> = {
+    'Lácteos': ['leche', 'queso', 'yogur', 'mantequilla', 'crema', 'caseína', 'suero', 'whey', 'lactosa', 'nata', 'requesón', 'kefir', 'helado'],
+    'Huevo': ['huevo', 'clara', 'yema', 'mayonesa', 'albumina', 'ovoalbumina', 'lecitina', 'merengue'],
+    'Maní': ['maní', 'cacahuete', 'cacahuate', 'crema de maní', 'mantequilla de maní'],
+    'Frutos Secos': ['nuez', 'almendra', 'avellana', 'castaña', 'pistacho', 'pecana', 'marañón', 'anacardo', 'macadamia'],
+    'Trigo': ['trigo', 'harina', 'pan', 'fideo', 'galleta', 'sémola', 'cuscús', 'salvado'],
+    'Gluten': ['trigo', 'avena', 'cebada', 'centeno', 'espelta', 'kamut', 'gluten', 'seitan'],
+    'Mariscos': ['camarón', 'langostino', 'cangrejo', 'langosta', 'mejillón', 'almeja', 'ostra', 'calamar', 'pulpo', 'conchas'],
+    'Pescado': ['pescado', 'atún', 'salmón', 'tilapia', 'bonito', 'jurel', 'caballa', 'anchoa', 'sardina', 'trucha'],
+    'Soya': ['soya', 'soja', 'tofu', 'tempeh', 'edamame', 'miso', 'leche de soya', 'salsa de soya', 'sillao'],
+    'Ajonjolí': ['ajonjolí', 'sésamo', 'tahini', 'tahina'],
+};
+
+// Simple allergen terms for direct matching
+const ALLERGEN_SIMPLE_TERMS: Record<string, string[]> = {
+    'Lácteos': ['leche', 'queso', 'yogur'],
+    'Huevo': ['huevo'],
+    'Maní': ['maní', 'cacahuete'],
+    'Frutos Secos': ['nuez', 'almendra', 'pecana'],
+    'Trigo': ['trigo', 'harina de trigo'],
+    'Gluten': ['trigo', 'gluten'],
+    'Mariscos': ['camarón', 'langostino', 'mariscos'],
+    'Pescado': ['pescado', 'atún'],
+    'Soya': ['soya', 'soja'],
+};
 
 // --- SAFETY CONSTANTS ---
 const SAFETY_FILTERS: Record<string, string[]> = {
@@ -82,6 +117,55 @@ const SAFETY_FILTERS: Record<string, string[]> = {
     'SOP': ['azucar', 'miel', 'chancaca', 'panela', 'jarabe', 'dulce', 'gaseosa', 'galleta', 'golosina', 'pan blanco', 'arroz blanco', 'fideo refinado', 'leche entera', 'queso mantecoso', 'crema de leche', 'helado', 'fritura', 'frito'],
     'Anemia': ['cafe', 'te', 'te negro', 'te verde', 'leche con comida', 'calcio', 'coca cola', 'gaseosa', 'chocolate', 'salvado', 'fibra']
 };
+
+/**
+ * Filter foods based on allergy severity
+ * @param foods - Available foods
+ * @param allergies - Patient allergies with severity
+ * @returns Filtered foods and warnings
+ */
+function filterByAllergySeverity(
+    foods: Alimento[],
+    allergies: AllergyEntrySimple[]
+): { filtered: Alimento[], warnings: string[] } {
+    let filtered = [...foods];
+    const warnings: string[] = [];
+
+    for (const allergy of allergies) {
+        const { allergen, severity } = allergy;
+
+        // Get terms to filter based on severity
+        let termsToExclude: string[] = [];
+
+        if (severity === 'fatal') {
+            // Fatal: Exclude ALL derivatives and traces
+            termsToExclude = ALLERGEN_DERIVATIVES[allergen] || [allergen.toLowerCase()];
+            warnings.push(`🔴 ALERGIA FATAL: ${allergen} - Excluidos ${termsToExclude.length} términos y derivados.`);
+        } else if (severity === 'intolerance') {
+            // Intolerance: Exclude direct sources only
+            termsToExclude = ALLERGEN_SIMPLE_TERMS[allergen] || [allergen.toLowerCase()];
+            warnings.push(`🟠 Intolerancia: ${allergen} - Excluidos ${termsToExclude.length} alimentos directos.`);
+        } else {
+            // Preference: Only exclude if there are alternatives (handled elsewhere)
+            // We still track but don't force-filter
+            continue;
+        }
+
+        const beforeCount = filtered.length;
+        filtered = filtered.filter(f => {
+            const name = f.nombre.toLowerCase();
+            return !termsToExclude.some(term => name.includes(term.toLowerCase()));
+        });
+        const removedCount = beforeCount - filtered.length;
+
+        if (removedCount > 0) {
+            warnings[warnings.length - 1] += ` (${removedCount} alimentos removidos)`;
+        }
+    }
+
+    return { filtered, warnings };
+}
+
 
 // --- CONSTANTS ---
 
@@ -399,6 +483,13 @@ export function generateSmartDailyPlan(
                     }
                 }
             });
+        }
+
+        // C. FILTER: ALLERGY SEVERITY (Medical Grade)
+        if (preferences?.allergies && preferences.allergies.length > 0) {
+            const allergyResult = filterByAllergySeverity(filteredFoods, preferences.allergies);
+            filteredFoods = allergyResult.filtered;
+            safetyWarnings.push(...allergyResult.warnings);
         }
 
         // 2. Define Meal Structure & Targets
