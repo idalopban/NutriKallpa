@@ -13,6 +13,7 @@ import { calcularComposicionCorporal, calcularTodasLasFormulas, seleccionarMejor
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { getAnthroNumber } from "@/types";
+import { formatClinicalAge } from "@/lib/clinical-calculations";
 
 // Types
 import type { MedidasAntropometricas, Paciente } from "@/types";
@@ -105,7 +106,7 @@ export function DashboardAntropometria({
                             {paciente.datosPersonales.nombre} {paciente.datosPersonales.apellido}
                         </h2>
                         <p className="text-muted-foreground flex items-center gap-2">
-                            <User className="w-4 h-4" /> {paciente.datosPersonales.sexo} • {new Date().getFullYear() - new Date(paciente.datosPersonales.fechaNacimiento).getFullYear()} años
+                            <User className="w-4 h-4" /> {paciente.datosPersonales.sexo === 'masculino' ? 'Masculino' : 'Femenino'} • {formatClinicalAge(paciente.datosPersonales.fechaNacimiento)}
                         </p>
                     </div>
                     {ultimaMedida && (

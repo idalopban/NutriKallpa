@@ -985,3 +985,42 @@ export function getClinicalContextByAge(fechaNacimiento: Date | string | undefin
     }
     return { context: 'adulto', label: 'Adulto', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', age: roundedAge };
 }
+
+/**
+ * Formatea la edad de manera clínica estándar:
+ * - Años si edad >= 1 año
+ * - Meses si edad < 1 año y >= 1 mes
+ * - Días si edad < 1 mes
+ */
+export function formatClinicalAge(birthDate: Date | string | undefined): string {
+    if (!birthDate) return '---';
+    const detailed = calculateDetailedAge(birthDate);
+
+    if (detailed.years >= 1) {
+        return `${detailed.years} ${detailed.years === 1 ? 'año' : 'años'}`;
+    }
+    if (detailed.months >= 1) {
+        return `${detailed.months} ${detailed.months === 1 ? 'mes' : 'meses'}`;
+    }
+    return `${detailed.days} ${detailed.days === 1 ? 'día' : 'días'}`;
+}
+
+/**
+ * Formatea la edad clínica estándar a partir de meses (y opcionalmente días):
+ * - Años si meses >= 12
+ * - Meses si meses < 12 y >= 1
+ * - Días si meses < 1
+ */
+export function formatClinicalAgeFromMonths(months: number, days?: number): string {
+    if (months >= 12) {
+        const years = Math.floor(months / 12);
+        return `${years} ${years === 1 ? 'año' : 'años'}`;
+    }
+    if (months >= 1) {
+        const m = Math.floor(months);
+        return `${m} ${m === 1 ? 'mes' : 'meses'}`;
+    }
+    // Si no hay días, calcular desde meses
+    const d = days !== undefined ? Math.floor(days) : Math.round(months * 30.4375);
+    return `${d} ${d === 1 ? 'día' : 'días'}`;
+}

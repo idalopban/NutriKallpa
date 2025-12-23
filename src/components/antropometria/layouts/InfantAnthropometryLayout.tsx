@@ -15,6 +15,8 @@ interface InfantAnthropometryLayoutProps {
     patientName: string;
     patientBirthDate: string;
     patientSex: 'masculino' | 'femenino';
+    initialWeight?: number;
+    initialHeight?: number;
     medidas: MedidasAntropometricas[];
     onSave: (data: PediatricMeasurementData) => void;
     onDeleteMedida?: (id: string) => void;
@@ -25,6 +27,8 @@ export function InfantAnthropometryLayout({
     patientName,
     patientBirthDate,
     patientSex,
+    initialWeight,
+    initialHeight,
     medidas,
     onSave,
     onDeleteMedida
@@ -90,6 +94,8 @@ export function InfantAnthropometryLayout({
                                 patientName={patientName}
                                 patientBirthDate={patientBirthDate}
                                 patientSex={sex}
+                                initialWeight={initialWeight}
+                                initialHeight={initialHeight}
                                 onSave={onSave}
                             />
                         </div>

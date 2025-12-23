@@ -14,6 +14,7 @@ import {
   getRequisitosFormula,
   type TipoPaciente
 } from "@/lib/calculos-nutricionales"
+import { formatClinicalAge } from "@/lib/clinical-calculations"
 import { saveMedidas } from "@/lib/storage"
 import type { MedidasAntropometricas, Somatotipo, Paciente, ResultadoFormula } from "@/types"
 import { getAnthroNumber } from "@/types"
@@ -355,11 +356,10 @@ export function FormularioMedidas({ paciente, onSuccess }: FormularioMedidasProp
                   <Label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Edad</Label>
                   <div className="relative">
                     <Input
-                      value={calcularEdad(paciente.datosPersonales.fechaNacimiento)}
+                      value={formatClinicalAge(paciente.datosPersonales.fechaNacimiento)}
                       disabled
                       className="pl-3 h-10 text-base font-medium bg-slate-50 text-slate-500 border-slate-200"
                     />
-                    <span className="absolute right-2 top-2.5 text-xs text-slate-400">años</span>
                   </div>
                 </div>
               </div>

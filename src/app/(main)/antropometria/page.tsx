@@ -265,6 +265,8 @@ function AntropometriaContent() {
                                 patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
                                 patientBirthDate={birthDateStr || ''}
                                 patientSex={selectedPaciente.datosPersonales.sexo === 'femenino' ? 'femenino' : 'masculino'}
+                                initialWeight={selectedPaciente.datosPersonales.peso}
+                                initialHeight={selectedPaciente.datosPersonales.talla}
                                 medidas={medidas}
                                 onSave={handleSavePediatric}
                                 onDeleteMedida={handleDeleteMedida}
@@ -317,6 +319,8 @@ function AntropometriaContent() {
                                 patientName={`${selectedPaciente.datosPersonales.nombre} ${selectedPaciente.datosPersonales.apellido}`}
                                 patientBirthDate={birthDateStr || ''}
                                 patientSex={selectedPaciente.datosPersonales.sexo === 'femenino' ? 'femenino' : 'masculino'}
+                                initialWeight={selectedPaciente.datosPersonales.peso}
+                                initialHeight={selectedPaciente.datosPersonales.talla}
                                 medidas={medidas}
                                 onSave={handleSaveFull}
                                 onDeleteMedida={handleDeleteMedida}

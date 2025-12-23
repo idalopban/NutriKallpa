@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { getClinicalContextByAge } from "@/lib/clinical-calculations";
+import { getClinicalContextByAge, formatClinicalAge } from "@/lib/clinical-calculations";
 import { cn } from "@/lib/utils";
 
 interface PatientAgeBadgeProps {
@@ -13,7 +13,7 @@ export function PatientAgeBadge({ birthDate, className, showAge = true }: Patien
 
     return (
         <Badge className={cn("rounded-full border-0 font-medium px-2.5 py-0.5 text-xs whitespace-nowrap shadow-none", color, className)}>
-            {label}{showAge && ` • ${age} ${age === 1 ? 'año' : 'años'}`}
+            {label}{showAge && ` • ${formatClinicalAge(birthDate)}`}
         </Badge>
     );
 }

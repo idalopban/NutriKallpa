@@ -10,6 +10,7 @@ import { SomatotypePanel } from "./SomatotypePanel";
 import { EvaluationHistory } from "./EvaluationHistory";
 import { SkinfoldData, Gender } from "@/lib/bodyCompositionMath";
 import type { MedidasAntropometricas } from "@/types";
+import { formatClinicalAge } from "@/lib/clinical-calculations";
 
 // Tab Types
 type TabId = 'composicion' | 'fraccionamiento' | 'somatocarta' | 'historial';
@@ -118,7 +119,7 @@ export function AntropometriaLayout({
             {patientName && (
                 <div className="flex items-center gap-2 px-4 py-2 bg-[#6cba00]/10 text-[#6cba00] rounded-full text-sm font-medium w-fit">
                     <User className="w-4 h-4" />
-                    {patientName}
+                    {patientName} {patientBirthDate && ` • ${formatClinicalAge(patientBirthDate)}`}
                 </div>
             )}
 

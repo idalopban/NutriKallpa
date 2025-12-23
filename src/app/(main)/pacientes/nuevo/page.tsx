@@ -49,6 +49,12 @@ import { createPatient } from "@/actions/patient-actions";
 import { useAuthStore } from "@/store/useAuthStore";
 import type { Paciente, MedidasAntropometricas } from "@/types";
 
+// Helper to handle optional numbers in forms (avoids controlled/uncontrolled transition)
+const optionalNumber = z.preprocess(
+  (v) => (v === "" || v === undefined || v === null ? undefined : v),
+  z.coerce.number().optional()
+);
+
 // --- VALIDATION SCHEMA ---
 const formSchema = z.object({
   nombreCompleto: z.string().min(2, "Nombre requerido"),
@@ -63,8 +69,8 @@ const formSchema = z.object({
   // Antropometría
   peso: z.coerce.number().min(1, "Peso requerido"),
   talla: z.coerce.number().min(1, "Talla requerida"),
-  circunferenciaCintura: z.coerce.number().optional(),
-  circunferenciaCadera: z.coerce.number().optional(),
+  circunferenciaCintura: optionalNumber,
+  circunferenciaCadera: optionalNumber,
   actividadFisica: z.string(),
 
   // Nutrición
@@ -86,12 +92,12 @@ const formSchema = z.object({
   consumoAlcohol: z.enum(["nunca", "ocasional", "frecuente"]).default("nunca"),
 
   // Bioquímica (Opcional)
-  glucosa: z.coerce.number().optional(),
-  hemoglobina: z.coerce.number().optional(),
-  colesterolTotal: z.coerce.number().optional(),
-  trigliceridos: z.coerce.number().optional(),
-  hdl: z.coerce.number().optional(),
-  ldl: z.coerce.number().optional(),
+  glucosa: optionalNumber,
+  hemoglobina: optionalNumber,
+  colesterolTotal: optionalNumber,
+  trigliceridos: optionalNumber,
+  hdl: optionalNumber,
+  ldl: optionalNumber,
 });
 
 // Defined locally, will sync with the main list
@@ -171,8 +177,8 @@ export default function NuevoPacientePage() {
       motivoConsulta: "",
       peso: 70.0,
       talla: 170.0,
-      circunferenciaCintura: undefined,
-      circunferenciaCadera: undefined,
+      circunferenciaCintura: "" as any,
+      circunferenciaCadera: "" as any,
       actividadFisica: "moderada",
       formulaGet: "mifflin",
       objetivoPeso: "mantenimiento",
@@ -186,6 +192,12 @@ export default function NuevoPacientePage() {
       horasSueno: 7,
       tabaquismo: false,
       consumoAlcohol: "nunca",
+      glucosa: "" as any,
+      hemoglobina: "" as any,
+      colesterolTotal: "" as any,
+      trigliceridos: "" as any,
+      hdl: "" as any,
+      ldl: "" as any,
     },
   });
 
@@ -219,8 +231,8 @@ export default function NuevoPacientePage() {
             motivoConsulta: patient.historiaClinica?.motivoConsulta || "",
             peso: ultimaMedida?.peso || 70.0,
             talla: ultimaMedida?.talla || 170.0,
-            circunferenciaCintura: undefined,
-            circunferenciaCadera: undefined,
+            circunferenciaCintura: ultimaMedida?.perimetros?.cintura ?? ("" as any),
+            circunferenciaCadera: ultimaMedida?.perimetros?.cadera ?? ("" as any),
             actividadFisica: "moderada",
             formulaGet: "mifflin",
             objetivoPeso: patient.historiaClinica?.objetivos || "mantenimiento",
@@ -234,12 +246,12 @@ export default function NuevoPacientePage() {
             horasSueno: patient.historiaClinica?.estiloVida?.suenoHoras || 7,
             tabaquismo: patient.historiaClinica?.estiloVida?.fuma || false,
             consumoAlcohol: patient.historiaClinica?.estiloVida?.alcohol || "nunca",
-            glucosa: undefined,
-            hemoglobina: undefined,
-            colesterolTotal: undefined,
-            trigliceridos: undefined,
-            hdl: undefined,
-            ldl: undefined,
+            glucosa: patient.historiaClinica?.bioquimicaReciente?.glucosa ?? ("" as any),
+            hemoglobina: patient.historiaClinica?.bioquimicaReciente?.hemoglobina ?? ("" as any),
+            colesterolTotal: patient.historiaClinica?.bioquimicaReciente?.colesterolTotal ?? ("" as any),
+            trigliceridos: patient.historiaClinica?.bioquimicaReciente?.trigliceridos ?? ("" as any),
+            hdl: patient.historiaClinica?.bioquimicaReciente?.hdl ?? ("" as any),
+            ldl: patient.historiaClinica?.bioquimicaReciente?.ldl ?? ("" as any),
           });
         }
         setIsLoadingPatient(false);
@@ -319,6 +331,8 @@ export default function NuevoPacientePage() {
           telefono: data.telefono || "",
           fechaNacimiento: new Date(data.fechaNacimiento).toISOString(),
           sexo: data.sexo as "masculino" | "femenino",
+          peso: data.peso,
+          talla: data.talla,
         },
         historiaClinica: {
           motivoConsulta: data.motivoConsulta || "",

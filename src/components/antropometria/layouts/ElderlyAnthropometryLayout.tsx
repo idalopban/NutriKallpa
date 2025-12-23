@@ -18,6 +18,8 @@ interface ElderlyAnthropometryLayoutProps {
     patientName: string;
     patientBirthDate: string;
     patientSex: 'masculino' | 'femenino';
+    initialWeight?: number;
+    initialHeight?: number;
     medidas: MedidasAntropometricas[];
     onSave: (data: FullMeasurementData) => void;
     onDeleteMedida?: (id: string) => void;
@@ -28,6 +30,8 @@ export function ElderlyAnthropometryLayout({
     patientName,
     patientBirthDate,
     patientSex,
+    initialWeight,
+    initialHeight,
     medidas,
     onSave,
     onDeleteMedida
@@ -48,11 +52,11 @@ export function ElderlyAnthropometryLayout({
         // Estimación Talla
         kneeHeight: '',
         demiSpan: '',
-        estimatedHeight: 0,
+        estimatedHeight: initialHeight || 0,
 
         // CP/IMC
         calfCircumference: '',
-        weight: '',
+        weight: initialWeight?.toString() || '',
         muac: '', // Mid-Upper Arm Circumference
     });
 

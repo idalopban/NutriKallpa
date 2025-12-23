@@ -28,7 +28,7 @@ import {
     type Sex,
     type GrowthAssessment,
 } from '@/lib/growth-standards';
-import { calculateChronologicalAge, calculateExactAgeInDays } from '@/lib/clinical-calculations';
+import { calculateChronologicalAge, calculateExactAgeInDays, formatClinicalAge } from '@/lib/clinical-calculations';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -40,6 +40,8 @@ interface NewPediatricMeasurementFormProps {
     patientName: string;
     patientBirthDate: Date | string;
     patientSex: Sex;
+    initialWeight?: number;
+    initialHeight?: number;
     onSave: (data: PediatricMeasurementData) => void;
     onCancel?: () => void;
     className?: string;
@@ -113,6 +115,8 @@ export function NewPediatricMeasurementForm({
     patientName,
     patientBirthDate,
     patientSex,
+    initialWeight,
+    initialHeight,
     onSave,
     onCancel,
     className,
@@ -291,8 +295,16 @@ export function NewPediatricMeasurementForm({
         resolver: zodResolver(measurementSchema),
         defaultValues: {
             dateRecorded: new Date().toISOString().split('T')[0],
+            weightKg: initialWeight || 0,
+            heightCm: initialHeight || 0,
         },
     });
+
+    // Sync initial values when they change (e.g. patient selection changes)
+    useEffect(() => {
+        if (initialWeight !== undefined) setValue('weightKg', initialWeight);
+        if (initialHeight !== undefined) setValue('heightCm', initialHeight);
+    }, [initialWeight, initialHeight, setValue]);
 
     const watchedValues = watch();
 
@@ -385,8 +397,7 @@ export function NewPediatricMeasurementForm({
                         <div>
                             <p className="text-xs text-slate-500">Edad</p>
                             <p className="font-semibold text-slate-800 dark:text-white">
-                                {Math.floor(ageInMonths)} meses
-                                {ageInMonths < 24 && <span className="text-xs text-slate-400 ml-1">({ageInDays} días)</span>}
+                                {formatClinicalAge(patientBirthDate)}
                             </p>
                         </div>
                         <div>

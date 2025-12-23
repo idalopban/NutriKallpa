@@ -170,6 +170,8 @@ export function SchoolAnthropometryLayout({
                                     patientName={patientName}
                                     patientBirthDate={patientBirthDate}
                                     patientSex={sex}
+                                    initialWeight={initialWeight}
+                                    initialHeight={initialHeight}
                                     onSave={onSavePediatric}
                                 />
                             </CardContent>

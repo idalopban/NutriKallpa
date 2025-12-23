@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, memo } from 'react';
+import { cn } from '@/lib/utils';
 import {
     ComposedChart,
     Line,
@@ -15,6 +16,7 @@ import {
     ReferenceLine,
 } from 'recharts';
 import { generatePercentileCurves, type Sex, type GrowthIndicator } from '@/lib/growth-standards';
+import { formatClinicalAgeFromMonths } from '@/lib/clinical-calculations';
 
 // ============================================================================
 // TYPES
@@ -87,12 +89,7 @@ function CustomTooltip({ active, payload, label, unit }: CustomTooltipProps) {
 
     if (patientPoint) {
         const data = patientPoint.payload;
-        // Show days if age < 1 month. Use explicit ageInDays if available, otherwise fallback.
-        const ageDisplay = data.ageInDays !== undefined
-            ? `${Math.floor(data.ageInDays)} días`
-            : data.ageInMonths < 1
-                ? `${Math.round(data.ageInMonths * 30.4375)} días`
-                : `${data.ageInMonths} meses`;
+        const ageDisplay = formatClinicalAgeFromMonths(data.ageInMonths, data.ageInDays);
 
         return (
             <div className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
@@ -108,10 +105,11 @@ function CustomTooltip({ active, payload, label, unit }: CustomTooltipProps) {
                     </p>
                 )}
                 {data.diagnosis && (
-                    <p className="text-sm font-medium mt-1" style={{
-                        color: data.zScore > 2 || data.zScore < -2 ? '#ef4444' :
-                            data.zScore > 1 || data.zScore < -1 ? '#f59e0b' : '#22c55e'
-                    }}>
+                    <p className={cn(
+                        "text-sm font-medium mt-1",
+                        (data.zScore > 2 || data.zScore < -2) ? "text-red-500" :
+                            (data.zScore > 1 || data.zScore < -1) ? "text-amber-500" : "text-green-500"
+                    )}>
                         {data.diagnosis}
                     </p>
                 )}
@@ -125,9 +123,7 @@ function CustomTooltip({ active, payload, label, unit }: CustomTooltipProps) {
         const ageVal = typeof label === 'number' ? label : parseFloat(String(label));
         const finalAge = isNaN(ageVal) ? 0 : ageVal;
 
-        const ageDisplay = finalAge < 1
-            ? `${Math.round(finalAge * 30.4375)} días`
-            : `${finalAge} meses`;
+        const ageDisplay = formatClinicalAgeFromMonths(finalAge);
 
         return (
             <div className="bg-white dark:bg-slate-800 p-2 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 text-xs">
@@ -234,7 +230,7 @@ function PediatricGrowthChartComponent({
             </div>
 
             {/* Chart */}
-            <div style={{ width: '100%', height: 400 }}>
+            <div className="w-full h-[400px]">
                 <ResponsiveContainer>
                     <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -244,6 +240,7 @@ function PediatricGrowthChartComponent({
                             type="number"
                             domain={[startMonth, endMonth]}
                             ticks={(() => {
+                                // School age ticks (every 3 months)
                                 if (endMonth > 60) {
                                     const ticks = [];
                                     for (let m = startMonth; m <= endMonth; m += 3) {
@@ -251,20 +248,55 @@ function PediatricGrowthChartComponent({
                                     }
                                     return ticks;
                                 }
-                                return undefined; // Default behavior for infant charts
+                                // Infant ticks (weekly in first month + monthly)
+                                if (endMonth <= 24 && startMonth === 0) {
+                                    const ticks = [0.23, 0.46, 0.69]; // approx 7, 14, 21 days
+                                    for (let m = 0; m <= endMonth; m++) {
+                                        ticks.push(m);
+                                    }
+                                    return ticks.sort((a, b) => a - b);
+                                }
+                                return undefined;
                             })()}
                             tick={((props: any) => {
                                 const { x, y, payload } = props;
                                 const month = payload.value;
 
+                                // Infant / Preschool formatting (<= 5 years)
                                 if (endMonth <= 60) {
+                                    let label = `${month}`;
+                                    let isSpecial = false;
+                                    let isWeekly = false;
+
+                                    if (endMonth <= 24 && startMonth === 0) {
+                                        if (month === 0.23) { label = "7d"; isWeekly = true; }
+                                        else if (month === 0.46) { label = "14d"; isWeekly = true; }
+                                        else if (month === 0.69) { label = "21d"; isWeekly = true; }
+                                        else if (month === 12) { label = "1 año"; isSpecial = true; }
+                                        else if (month === 24) { label = "2 años"; isSpecial = true; }
+                                        else {
+                                            label = `${Math.round(month)}`;
+                                        }
+                                    }
+
                                     return (
-                                        <text x={x} y={y} dy={16} textAnchor="middle" fill="#94a3b8" fontSize={12}>
-                                            {month}
-                                        </text>
+                                        <g transform={`translate(${x},${y})`}>
+                                            <text
+                                                x={0}
+                                                y={0}
+                                                dy={isWeekly ? 12 : 18}
+                                                textAnchor="middle"
+                                                fill={isSpecial ? "#475569" : isWeekly ? "#94a3b8" : "#64748b"}
+                                                fontSize={isSpecial ? 11 : isWeekly ? 9 : 10}
+                                                fontWeight={isSpecial ? "bold" : "normal"}
+                                            >
+                                                {label}
+                                            </text>
+                                        </g>
                                     );
                                 }
 
+                                // School age formatting ( > 5 years)
                                 const isYear = month % 12 === 0;
                                 return (
                                     <g transform={`translate(${x},${y})`}>
@@ -283,6 +315,7 @@ function PediatricGrowthChartComponent({
                                 );
                             }) as any}
                             height={60}
+                            interval={0}
                             label={{
                                 value: endMonth > 60 ? 'Edad (meses y años cumplidos)' : 'Edad (meses)',
                                 position: 'insideBottom',
@@ -379,9 +412,9 @@ function PediatricGrowthChartComponent({
                         {/* First Month Weekly Markers (7, 14, 21 days) */}
                         {startMonth === 0 && (
                             <>
-                                <ReferenceLine x={0.23} stroke="#64748b" strokeDasharray="3 3" label={{ value: "7d", position: 'insideBottom', fill: '#64748b', fontSize: 10, dy: -10 }} isFront={true} />
-                                <ReferenceLine x={0.46} stroke="#64748b" strokeDasharray="3 3" label={{ value: "14d", position: 'insideBottom', fill: '#64748b', fontSize: 10, dy: -10 }} isFront={true} />
-                                <ReferenceLine x={0.69} stroke="#64748b" strokeDasharray="3 3" label={{ value: "21d", position: 'insideBottom', fill: '#64748b', fontSize: 10, dy: -10 }} isFront={true} />
+                                <ReferenceLine x={0.23} stroke="#94a3b8" strokeDasharray="2 2" isFront={false} />
+                                <ReferenceLine x={0.46} stroke="#94a3b8" strokeDasharray="2 2" isFront={false} />
+                                <ReferenceLine x={0.69} stroke="#94a3b8" strokeDasharray="2 2" isFront={false} />
                             </>
                         )}
                     </ComposedChart>

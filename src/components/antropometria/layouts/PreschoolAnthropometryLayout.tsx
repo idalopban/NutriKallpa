@@ -131,6 +131,8 @@ export function PreschoolAnthropometryLayout({
                                     patientName={patientName}
                                     patientBirthDate={patientBirthDate}
                                     patientSex={sex}
+                                    initialWeight={initialWeight}
+                                    initialHeight={initialHeight}
                                     onSave={onSavePediatric}
                                 />
                             </CardContent>
