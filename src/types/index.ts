@@ -21,6 +21,7 @@ export interface User {
   telefono?: string;
   bio?: string;
   photoUrl?: string;
+  isActive?: boolean; // Account activation status (controlled by admin)
   // Nutritionist / profile preferences
   clinicName?: string;
   clinicAddress?: string;

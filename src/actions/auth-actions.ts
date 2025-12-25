@@ -43,6 +43,7 @@ interface DBUser {
   clinic_phone?: string;
   subscription_expires_at?: string;
   subscription_status?: 'active' | 'expired' | 'trial' | 'unlimited';
+  is_active?: boolean; // Account activation status (controlled by admin)
   created_at?: string;
   updated_at?: string;
 }
@@ -124,6 +125,16 @@ export async function loginUser(email: string, password: string) {
     // 6. SUCCESS: Record successful attempt (clears rate limit)
     recordAttempt('login', normalizedEmail, true);
     logger.auth.loginAttempt(normalizedEmail, true);
+
+    // 6.3 CHECK ACCOUNT ACTIVATION STATUS
+    if (user.is_active === false) {
+      logger.warn('Deactivated account login attempt', { action: 'login', userId: user.id.slice(0, 8) + '...' });
+      return {
+        success: false,
+        error: "Tu cuenta está desactivada. Contacta al administrador.",
+        accountDeactivated: true
+      };
+    }
 
     // 6.5 CHECK SUBSCRIPTION STATUS (Skip for admins)
     if (user.rol !== 'admin' && user.subscription_status !== 'unlimited') {
@@ -625,7 +636,7 @@ export async function getAllUsers(callerUserId?: string) {
 
     const { data: users, error } = await client
       .from('users')
-      .select('id, email, nombre, rol, especialidad, cmp, telefono, created_at')
+      .select('id, email, nombre, rol, especialidad, cmp, telefono, is_active, created_at')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -714,6 +725,71 @@ export async function deleteUser(userId: string, adminEmail: string, callerUserI
     return { success: true, message: "Usuario eliminado correctamente" };
   } catch (error: any) {
     console.error('[DELETE_USER] Unexpected error:', error);
+    return { success: false, error: "Error del servidor" };
+  }
+}
+
+/**
+ * Toggle user account activation status (admin only)
+ * @param userId - ID of user to toggle
+ * @param isActive - New activation status
+ * @param adminEmail - Email of the admin making the request
+ */
+export async function toggleUserStatus(userId: string, isActive: boolean, adminEmail: string) {
+  console.log('[TOGGLE_USER_STATUS] Starting:', { userId, isActive, adminEmail });
+
+  if (!userId) {
+    return { success: false, error: "ID de usuario requerido" };
+  }
+
+  try {
+    const supabase = createSupabaseAdmin();
+
+    // Check if the user exists and is not the current admin
+    const { data: userToToggle, error: fetchError } = await supabase
+      .from('users')
+      .select('email, rol')
+      .eq('id', userId)
+      .single();
+
+    if (fetchError || !userToToggle) {
+      console.error('[TOGGLE_USER_STATUS] User not found:', fetchError);
+      return { success: false, error: "Usuario no encontrado" };
+    }
+
+    // Prevent toggling yourself
+    if (userToToggle.email === adminEmail) {
+      return { success: false, error: "No puedes desactivar tu propia cuenta" };
+    }
+
+    // Prevent deactivating other admins
+    if (userToToggle.rol === 'admin' && !isActive) {
+      return { success: false, error: "No se puede desactivar a otro administrador" };
+    }
+
+    // Update the user's is_active status
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        is_active: isActive,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+    if (updateError) {
+      console.error('[TOGGLE_USER_STATUS] Update error:', updateError);
+      return { success: false, error: `Error al actualizar estado: ${updateError.message}` };
+    }
+
+    const statusText = isActive ? 'activada' : 'desactivada';
+    console.log(`[SUCCESS] Cuenta de ${userToToggle.email} ${statusText}`);
+    return {
+      success: true,
+      message: `Cuenta ${statusText} correctamente`,
+      isActive
+    };
+  } catch (error: any) {
+    console.error('[TOGGLE_USER_STATUS] Unexpected error:', error);
     return { success: false, error: "Error del servidor" };
   }
 }

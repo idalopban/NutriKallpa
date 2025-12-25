@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
-import { getAllUsers, deleteUser, getInvitationCodesFromDB, createInvitationCode, deleteInvitationCodeFromDB } from "@/actions/auth-actions";
+import { getAllUsers, deleteUser, getInvitationCodesFromDB, createInvitationCode, deleteInvitationCodeFromDB, toggleUserStatus } from "@/actions/auth-actions";
 import type { User, InvitationCode, UserRole } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +40,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Copy, Plus, RefreshCw, Shield, Trash2, UserCog, Loader2, Download, FileText, Sparkles } from "lucide-react";
+import { Copy, Plus, RefreshCw, Shield, Trash2, UserCog, Loader2, Download, FileText, Sparkles, Power } from "lucide-react";
 import { generateInvitationCodesPDF } from "@/lib/InvitationCodesPDFGenerator";
 
 export default function AdminPage() {
@@ -302,6 +302,20 @@ export default function AdminPage() {
         refreshData();
     };
 
+    const handleToggleUserStatus = async (userId: string, currentStatus: boolean | undefined) => {
+        if (!user?.email) return;
+
+        const newStatus = !(currentStatus ?? true);
+        const result = await toggleUserStatus(userId, newStatus, user.email);
+
+        if (result.success) {
+            toast.success(result.message);
+            refreshData();
+        } else {
+            toast.error(result.error || "Error al cambiar estado del usuario");
+        }
+    };
+
     if (isLoading) {
         return <div className="p-8 text-center">Cargando panel de administración...</div>;
     }
@@ -369,6 +383,7 @@ export default function AdminPage() {
                                         <TableHead>Nombre</TableHead>
                                         <TableHead>Email</TableHead>
                                         <TableHead>Rol</TableHead>
+                                        <TableHead>Estado</TableHead>
                                         <TableHead>Especialidad</TableHead>
                                         <TableHead className="text-right">Acciones</TableHead>
                                     </TableRow>
@@ -395,6 +410,18 @@ export default function AdminPage() {
                                                     {u.rol === 'admin' ? 'Administrador' : 'Nutricionista'}
                                                 </span>
                                             </TableCell>
+                                            <TableCell>
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${(u as any).isActive !== false && (u as any).is_active !== false
+                                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                                        : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
+                                                    }`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${(u as any).isActive !== false && (u as any).is_active !== false
+                                                            ? 'bg-emerald-500'
+                                                            : 'bg-red-500'
+                                                        }`}></span>
+                                                    {(u as any).isActive !== false && (u as any).is_active !== false ? 'Activo' : 'Desactivado'}
+                                                </span>
+                                            </TableCell>
                                             <TableCell>{u.especialidad || "-"}</TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex items-center justify-end gap-1">
@@ -407,6 +434,27 @@ export default function AdminPage() {
                                                         }}
                                                     >
                                                         Editar
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleToggleUserStatus(u.id, (u as any).isActive ?? (u as any).is_active)}
+                                                        className={`${(u as any).isActive !== false && (u as any).is_active !== false
+                                                                ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50'
+                                                                : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
+                                                            }`}
+                                                        disabled={u.email === user?.email || u.rol === 'admin'}
+                                                        title={
+                                                            u.email === user?.email
+                                                                ? "No puedes desactivar tu propia cuenta"
+                                                                : u.rol === 'admin'
+                                                                    ? "No se puede desactivar a un administrador"
+                                                                    : (u as any).isActive !== false && (u as any).is_active !== false
+                                                                        ? "Desactivar cuenta"
+                                                                        : "Activar cuenta"
+                                                        }
+                                                    >
+                                                        <Power className="h-4 w-4" />
                                                     </Button>
                                                     <Button
                                                         variant="ghost"
