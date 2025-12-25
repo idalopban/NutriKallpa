@@ -42,7 +42,8 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 
-import { parseAlimentosCSV, type Alimento } from "@/lib/csv-parser";
+import { type Alimento } from "@/lib/csv-parser";
+import { getAllFoods } from "@/lib/food-service";
 import { getPlanById } from "@/lib/diet-service";
 import { getPacientes, getMedidasByPaciente } from "@/lib/storage";
 import { usePatientStore, usePatientNutrition } from "@/store/usePatientStore";
@@ -224,8 +225,8 @@ function DietasContent() {
             setWeeklyPlan(initialPlan);
         }
 
-        // Load foods
-        parseAlimentosCSV().then(data => {
+        // Load foods using server-side cached service
+        getAllFoods().then(data => {
             setAlimentos(data);
             setLoading(false);
         });

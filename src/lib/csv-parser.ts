@@ -1,26 +1,93 @@
+// ============================================================================
+// BRANDED TYPES FOR NUTRITIONAL UNITS
+// Prevents accidental unit confusion (50g protein ≠ 50mg)
+// These are compile-time only - no runtime overhead
+// ============================================================================
+
+/** Represents a value in grams */
+export type Grams = number & { readonly __brand: 'grams' };
+
+/** Represents a value in kilocalories */
+export type Kcal = number & { readonly __brand: 'kcal' };
+
+/** Represents a value in milligrams */
+export type Milligrams = number & { readonly __brand: 'mg' };
+
+/** Represents a value in micrograms */
+export type Micrograms = number & { readonly __brand: 'µg' };
+
+// Helper functions to create branded values (zero runtime cost after compilation)
+export const grams = (value: number): Grams => value as Grams;
+export const kcal = (value: number): Kcal => value as Kcal;
+export const mg = (value: number): Milligrams => value as Milligrams;
+export const mcg = (value: number): Micrograms => value as Micrograms;
+
+// ============================================================================
+// NUTRITIONAL ROUNDING UTILITIES
+// Prevents floating-point accumulation errors in macro calculations
+// ============================================================================
+
+/**
+ * Rounds a nutritional value to the specified decimals.
+ * Use at the END of calculations, not in intermediate steps.
+ * 
+ * @param value - The value to round
+ * @param decimals - Number of decimal places (default: 1)
+ * @returns Rounded value
+ */
+export function roundNutritional(value: number, decimals: number = 1): number {
+    const factor = Math.pow(10, decimals);
+    return Math.round(value * factor) / factor;
+}
+
+/**
+ * Rounds calories to whole number (no decimals needed for kcal)
+ */
+export function roundCalories(value: number): number {
+    return Math.round(value);
+}
+
+/**
+ * Rounds macros to 1 decimal (standard nutritional precision)
+ */
+export function roundMacro(value: number): number {
+    return roundNutritional(value, 1);
+}
+
+/**
+ * Rounds micros to 2 decimals (for vitamins/minerals)
+ */
+export function roundMicro(value: number): number {
+    return roundNutritional(value, 2);
+}
+
+// ============================================================================
+// ALIMENTO INTERFACE (Food Data Structure)
+// ============================================================================
+
 export interface Alimento {
     codigo: string;
     nombre: string;
-    energia: number; // kcal
-    agua: number; // g
-    proteinas: number; // g
-    grasa: number; // g
-    carbohidratos: number; // g
-    fibra: number; // g
-    cenizas: number; // g
-    calcio: number; // mg
-    fosforo: number; // mg
-    zinc: number; // mg
-    hierro: number; // mg
-    betaCaroteno: number; // µg
-    vitaminaA: number; // µg
-    tiamina: number; // mg (B1)
-    riboflavina: number; // mg (B2)
-    niacina: number; // mg (B3)
-    vitaminaC: number; // mg
-    acidoFolico: number; // µg
-    sodio: number; // mg
-    potasio: number; // mg
+    energia: number; // kcal (Branded: Kcal)
+    agua: number; // g (Branded: Grams)
+    proteinas: number; // g (Branded: Grams)
+    grasa: number; // g (Branded: Grams)
+    carbohidratos: number; // g (Branded: Grams)
+    fibra: number; // g (Branded: Grams)
+    cenizas: number; // g (Branded: Grams)
+    calcio: number; // mg (Branded: Milligrams)
+    fosforo: number; // mg (Branded: Milligrams)
+    zinc: number; // mg (Branded: Milligrams)
+    hierro: number; // mg (Branded: Milligrams)
+    betaCaroteno: number; // µg (Branded: Micrograms)
+    vitaminaA: number; // µg (Branded: Micrograms)
+    tiamina: number; // mg (B1) (Branded: Milligrams)
+    riboflavina: number; // mg (B2) (Branded: Milligrams)
+    niacina: number; // mg (B3) (Branded: Milligrams)
+    vitaminaC: number; // mg (Branded: Milligrams)
+    acidoFolico: number; // µg (Branded: Micrograms)
+    sodio: number; // mg (Branded: Milligrams)
+    potasio: number; // mg (Branded: Milligrams)
 }
 
 export async function parseAlimentosCSV(): Promise<Alimento[]> {

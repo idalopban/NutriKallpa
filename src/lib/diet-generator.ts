@@ -1,4 +1,5 @@
 import { Alimento } from "./csv-parser";
+import { roundCalories, roundMacro, roundMicro } from "./csv-parser";
 import { PERUVIAN_RECIPES, PeruvianRecipe, RecipeComponent, MealType, Category, FITNESS_DESSERT_RECIPES } from "./peruvian-recipes";
 import { Pathologies } from "@/types";
 
@@ -337,7 +338,30 @@ export function calculateMealStats(items: MealItem[]): DailyStats {
         stats.micros.potasio += (f.potasio || 0) * ratio;
     });
 
-    return stats;
+    // Apply rounding at the END to prevent floating-point accumulation errors
+    // Audit Fix: Ensures clean values like 0.1 + 0.2 = 0.3 (not 0.30000000000000004)
+    return {
+        calories: roundCalories(stats.calories),
+        macros: {
+            protein: roundMacro(stats.macros.protein),
+            carbs: roundMacro(stats.macros.carbs),
+            fat: roundMacro(stats.macros.fat),
+        },
+        micros: {
+            calcio: roundMicro(stats.micros.calcio),
+            fosforo: roundMicro(stats.micros.fosforo),
+            zinc: roundMicro(stats.micros.zinc),
+            hierro: roundMicro(stats.micros.hierro),
+            vitaminaA: roundMicro(stats.micros.vitaminaA),
+            tiamina: roundMicro(stats.micros.tiamina),
+            riboflavina: roundMicro(stats.micros.riboflavina),
+            niacina: roundMicro(stats.micros.niacina),
+            vitaminaC: roundMicro(stats.micros.vitaminaC),
+            acidoFolico: roundMicro(stats.micros.acidoFolico),
+            sodio: roundMicro(stats.micros.sodio),
+            potasio: roundMicro(stats.micros.potasio),
+        }
+    };
 }
 
 export function calculateDailyStats(meals: Meal[]): DailyStats {

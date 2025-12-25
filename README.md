@@ -105,7 +105,7 @@ npm run test -- --ui
 
 - **Autenticación** - Login con email/contraseña y Google OAuth
 - **Gestión de Pacientes** - CRUD completo con historial clínico
-- **Antropometría ISAK** - 8 pliegues, perímetros y diámetros
+- **Antropometría** - 8 pliegues, perímetros y diámetros
 - **Composición Corporal** - Modelos 2C y 5 componentes (Kerr)
 - **Somatotipo Heath-Carter** - Clasificación en 13 categorías
 - **Somatocarta Visual** - Gráfico interactivo de triángulo de Reuleaux

@@ -349,7 +349,7 @@ function HomeContent() {
             <div className="grid sm:grid-cols-2 gap-4 pt-4">
               {[
                 { icon: Users, title: "Gestión de Pacientes", desc: "Historial clínico digital completo", color: "text-[#6cba00]", bg: "bg-[#6cba00]/20" },
-                { icon: Activity, title: "Antropometría ISAK", desc: "Cálculos de composición corporal", color: "text-[#ff8508]", bg: "bg-[#ff8508]/20" },
+                { icon: Activity, title: "Antropometría", desc: "Cálculos de composición corporal", color: "text-[#ff8508]", bg: "bg-[#ff8508]/20" },
                 { icon: TrendingUp, title: "Seguimiento", desc: "Gráficos de evolución detallados", color: "text-purple-500 dark:text-purple-400", bg: "bg-purple-500/20" },
                 { icon: Heart, title: "Planes Alimenticios", desc: "Diseño de dietas personalizadas", color: "text-red-500 dark:text-red-400", bg: "bg-red-500/20" }
               ].map((feature, idx) => (

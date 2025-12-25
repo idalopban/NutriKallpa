@@ -24,7 +24,8 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
-import { parseAlimentosCSV, type Alimento } from "@/lib/csv-parser";
+import { type Alimento } from "@/lib/csv-parser";
+import { getAllFoods } from "@/lib/food-service";
 import { usePatientStore, usePatientNutrition } from "@/store/usePatientStore";
 import { PatientNutritionConfig } from "@/components/patient/PatientNutritionConfig";
 import type { Paciente } from "@/types";
@@ -68,7 +69,7 @@ function DietasContent() {
             // Load patient from centralized store
             loadPatient(params.id as string);
 
-            parseAlimentosCSV().then(data => {
+            getAllFoods().then(data => {
                 setAlimentos(data);
                 setLoading(false);
             });
