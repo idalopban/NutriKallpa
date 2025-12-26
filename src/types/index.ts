@@ -271,11 +271,24 @@ export function getAnthroNumber(value: AnthroValue | undefined, defaultValue: nu
   return value.final ?? defaultValue;
 }
 
+/**
+ * Pliegues Cutáneos (Skinfolds) - ISAK Protocol
+ * 
+ * NOTA IMPORTANTE sobre nomenclatura:
+ * - supraspinale (Supraespinal): Línea axilar media-anterior, 5-7cm sobre cresta ilíaca
+ *   → Usado para Somatotipo Heath-Carter
+ * - iliac_crest (Cresta Ilíaca): Línea axilar anterior, justo sobre cresta
+ *   → Usado para algunas fórmulas de %GC
+ * 
+ * Ambos sitios son diferentes y no deben confundirse.
+ */
 export interface PlieguesCutaneos {
   triceps?: AnthroValue;
   subscapular?: AnthroValue;
   biceps?: AnthroValue;
+  /** Pliegue Cresta Ilíaca (Iliac Crest) - Línea axilar anterior */
   iliac_crest?: AnthroValue;
+  /** Pliegue Supraespinal (Supraspinale) - Para somatotipo Heath-Carter */
   supraspinale?: AnthroValue;
   abdominal?: AnthroValue;
   thigh?: AnthroValue;
@@ -306,21 +319,34 @@ export interface MedidasAntropometricas {
   pacienteId: string;
   fecha: string | Date;
 
-  // Basic
+  // Basic measurements
   peso: number;
   talla: number;
+  /** Talla Sentado (Sitting Height) - Para Índice Córmico */
+  tallaSentado?: number;
 
-  // Detailed
+  // Detailed measurements
   pliegues?: PlieguesCutaneos;
   perimetros?: Perimetros;
   diametros?: Diametros;
 
-  imc?: number; // Calculated result
+  // Calculated results
+  imc?: number;
+  /** Índice Córmico = (tallaSentado / talla) × 100 */
+  cormicIndex?: number;
+
+  // Measurement quality (TEM-based)
+  measurementQuality?: {
+    overallRating: 'excellent' | 'acceptable' | 'poor';
+    temPercent: number; // Average TEM %
+    meetsISAKStandard: boolean;
+    sitesNeedingRemeasurement?: string[];
+  };
 
   // Metadata
   edad: number;
   sexo: "masculino" | "femenino" | "otro";
-  protocolo?: "isak_l1" | "isak_l2" | "basic";
+  protocolo?: "isak_l1" | "isak_l2" | "isak_l3" | "basic";
   tipoPaciente?: "adulto" | "pediatrico" | "adulto_mayor" | "general" | "atleta" | "fitness" | "control" | "rapida";
 
   createdAt?: Date | string;

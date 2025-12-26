@@ -131,11 +131,30 @@ export interface FiveComponentInput {
     age: number;
     gender: 'male' | 'female';
 
+    /** 
+     * Sitting Height (Talla Sentado) - cm
+     * Used to calculate Cormic Index = (sittingHeight / height) × 100
+     * Important for detecting skeletal proportions in athletes
+     */
+    sittingHeight?: number;
+
     // Skinfolds (mm)
     triceps: number;
     subscapular: number;
     biceps: number;
-    suprailiac: number;      // Supraespinal / Cresta Iliaca
+    /**
+     * NOTA IMPORTANTE - Nomenclatura de pliegues:
+     * Este campo se usa para el pliegue SUPRAESPINAL (supraspinale) en el modelo Kerr.
+     * 
+     * - Supraespinal: Línea axilar media-anterior, 5-7cm sobre cresta ilíaca
+     *   → Usado para Fraccionamiento 5C y Somatotipo Heath-Carter
+     * 
+     * - Cresta Ilíaca: Línea axilar anterior, justo sobre cresta
+     *   → Usado en algunas fórmulas de %GC (Jackson-Pollock 7 pliegues)
+     * 
+     * Para la mayoría de aplicaciones ISAK, usar el sitio SUPRAESPINAL.
+     */
+    suprailiac: number;      // Supraespinal para Kerr/Heath-Carter
     abdominal: number;
     thigh: number;           // Muslo Frontal
     calf: number;            // Pantorrilla Medial
@@ -156,6 +175,21 @@ export interface FiveComponentInput {
     ankleBreadth?: number;     // Tobillo (optional)
     biacromialBreadth?: number;  // Biacromial (optional)
     biiliocristalBreadth?: number; // Biiliocrestídeo (optional)
+
+    /**
+     * Measurement replications for TEM calculation
+     * Each skinfold site should have 2-3 measurements
+     * TEM is calculated using Dahlberg formula
+     */
+    measurementReplications?: {
+        triceps?: number[];
+        subscapular?: number[];
+        biceps?: number[];
+        suprailiac?: number[];
+        abdominal?: number[];
+        thigh?: number[];
+        calf?: number[];
+    };
 }
 
 export interface MassResult {
@@ -179,6 +213,8 @@ export interface FiveComponentResult {
         bone: number;
         residual: number;
     };
+    /** Indicates if residual mass was estimated (fallback) vs calculated from trunk measurements */
+    residualIsEstimated?: boolean;
 }
 
 // ===========================================
@@ -512,7 +548,7 @@ function calculateResidualMass(
     zAdipose: number,
     zMuscle: number,
     zBone: number
-): { mass: number; zScore: number } {
+): { mass: number; zScore: number; isEstimated: boolean } {
     const h = data.height;
     const b = PHANTOM.breadths;
 
@@ -527,18 +563,21 @@ function calculateResidualMass(
     }
 
     let meanZ: number;
+    let isEstimated: boolean;
 
     if (trunkZScores.filter(z => z !== null).length >= 2) {
-        // Use trunk measurements
+        // Use trunk measurements - precise calculation
         meanZ = getMeanZScore(trunkZScores);
+        isEstimated = false;
     } else {
-        // Fallback: use average of other components' Z-scores
+        // Fallback: use average of other components' Z-scores - estimation
         meanZ = (zAdipose + zMuscle + zBone) / 3;
+        isEstimated = true;
     }
 
     const mass = calculatePhantomMass(meanZ, PHANTOM.masses.residual.p, PHANTOM.masses.residual.s, h);
 
-    return { mass, zScore: meanZ };
+    return { mass, zScore: meanZ, isEstimated };
 }
 
 // ===========================================
@@ -569,7 +608,7 @@ export function calculateFiveComponentFractionation(data: FiveComponentInput): F
     const { mass: adiposeKg, zScore: zAdipose } = calculateAdiposeMass(data);
     const { mass: muscleKg, zScore: zMuscle } = calculateMuscleMass(data);
     const { mass: boneKg, zScore: zBone } = calculateBoneMass(data);
-    const { mass: residualKg, zScore: zResidual } = calculateResidualMass(data, zAdipose, zMuscle, zBone);
+    const { mass: residualKg, zScore: zResidual, isEstimated: residualIsEstimated } = calculateResidualMass(data, zAdipose, zMuscle, zBone);
 
     // Calculate total and adjust to match actual weight
     const totalCalculated = skinKg + adiposeKg + muscleKg + boneKg + residualKg;
@@ -623,7 +662,8 @@ export function calculateFiveComponentFractionation(data: FiveComponentInput): F
             muscle: Math.round(zMuscle * 100) / 100,
             bone: Math.round(zBone * 100) / 100,
             residual: Math.round(zResidual * 100) / 100
-        }
+        },
+        residualIsEstimated
     };
 }
 

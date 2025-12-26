@@ -39,17 +39,49 @@ const DiametrosSchema = z.object({
     biestiloideo: z.number().min(0).max(15).optional(),
 }).optional();
 
+/**
+ * Schema for TEM measurement replications
+ * Each skinfold should have 2-3 measurements for TEM calculation
+ */
+const MeasurementReplicationsSchema = z.object({
+    triceps: z.array(z.number().min(0).max(80)).max(3).optional(),
+    subscapular: z.array(z.number().min(0).max(80)).max(3).optional(),
+    biceps: z.array(z.number().min(0).max(60)).max(3).optional(),
+    supraspinale: z.array(z.number().min(0).max(60)).max(3).optional(),
+    abdominal: z.array(z.number().min(0).max(80)).max(3).optional(),
+    thigh: z.array(z.number().min(0).max(80)).max(3).optional(),
+    calf: z.array(z.number().min(0).max(60)).max(3).optional(),
+}).optional();
+
+/**
+ * Schema for measurement quality (TEM-based)
+ */
+const MeasurementQualitySchema = z.object({
+    overallRating: z.enum(['excellent', 'acceptable', 'poor']).optional(),
+    temPercent: z.number().min(0).max(100).optional(),
+    meetsISAKStandard: z.boolean().optional(),
+    sitesNeedingRemeasurement: z.array(z.string()).optional(),
+}).optional();
+
 export const EvaluacionSchema = z.object({
     pacienteId: z.string().uuid("ID de paciente inválido"),
     peso: z.number().min(1, "El peso es requerido").max(500, "Peso fuera de rango"),
     talla: z.number().min(30, "Talla mínima 30cm").max(300, "Talla fuera de rango"),
+    // NEW: Sitting height for Cormic Index
+    tallaSentado: z.number().min(30).max(150).optional(),
     edad: z.number().min(0, "Edad inválida").max(150, "Edad fuera de rango"),
     sexo: z.enum(["masculino", "femenino", "otro"]).optional(),
     imc: z.number().optional(),
+    // NEW: Cormic Index calculated field
+    cormicIndex: z.number().min(40).max(60).optional(),
     tipoPaciente: z.string().optional(),
     pliegues: PlieguesSchema,
     perimetros: PerimetrosSchema,
     diametros: DiametrosSchema,
+    // NEW: TEM measurement replications
+    measurementReplications: MeasurementReplicationsSchema,
+    // NEW: Measurement quality indicator
+    measurementQuality: MeasurementQualitySchema,
 });
 
 export type EvaluacionInput = z.infer<typeof EvaluacionSchema>;

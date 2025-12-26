@@ -1,10 +1,40 @@
 export type MealType = 'desayuno' | 'almuerzo' | 'cena' | 'snack';
 export type Category = 'proteina' | 'carbohidrato' | 'grasa' | 'verdura' | 'fruta' | 'lacteo' | 'miscelaneo';
 
+// Texture levels for dysphagia patients (IDDSI Framework inspired)
+export type TextureLevel = 'normal' | 'soft' | 'minced' | 'puree' | 'liquid';
+
+// Preparation methods for cooking loss calculation
+export type PreparationMethod = 'raw' | 'boiled' | 'grilled' | 'fried' | 'sauteed' | 'baked' | 'steamed';
+
+/**
+ * Cooking loss factors by preparation method
+ * Factor represents the percentage of weight retained after cooking
+ * e.g., 0.75 means 25% weight loss, final portion = raw weight * 0.75
+ */
+export const COOKING_LOSS_FACTORS: Record<PreparationMethod, Record<Category, number>> = {
+    raw: { proteina: 1.0, carbohidrato: 1.0, grasa: 1.0, verdura: 1.0, fruta: 1.0, lacteo: 1.0, miscelaneo: 1.0 },
+    boiled: { proteina: 0.80, carbohidrato: 0.95, grasa: 0.90, verdura: 0.85, fruta: 1.0, lacteo: 1.0, miscelaneo: 1.0 },
+    grilled: { proteina: 0.75, carbohidrato: 0.90, grasa: 0.70, verdura: 0.80, fruta: 1.0, lacteo: 1.0, miscelaneo: 0.95 },
+    fried: { proteina: 0.70, carbohidrato: 0.85, grasa: 0.65, verdura: 0.75, fruta: 0.90, lacteo: 1.0, miscelaneo: 0.90 },
+    sauteed: { proteina: 0.75, carbohidrato: 0.90, grasa: 0.75, verdura: 0.80, fruta: 0.95, lacteo: 1.0, miscelaneo: 0.95 },
+    baked: { proteina: 0.78, carbohidrato: 0.92, grasa: 0.80, verdura: 0.82, fruta: 0.90, lacteo: 1.0, miscelaneo: 0.95 },
+    steamed: { proteina: 0.85, carbohidrato: 0.95, grasa: 0.90, verdura: 0.88, fruta: 1.0, lacteo: 1.0, miscelaneo: 1.0 },
+};
+
+/**
+ * Get the cooking loss factor for a specific method and category
+ */
+export function getCookingLossFactor(method: PreparationMethod, category: Category): number {
+    return COOKING_LOSS_FACTORS[method]?.[category] ?? 1.0;
+}
+
 export interface RecipeComponent {
     category: Category;
     searchTerms: string[]; // El sistema buscará en el CSV en este orden hasta encontrar match
     ratio: number; // Peso relativo del ingrediente en el plato (0.0 - 1.0)
+    preparationMethod?: PreparationMethod; // For cooking loss calculation
+    cookingLossFactor?: number; // Override default factor (0.0 - 1.0)
 }
 
 export interface PeruvianRecipe {
@@ -12,6 +42,8 @@ export interface PeruvianRecipe {
     name: string;
     mealTypes: MealType[];
     ingredients: RecipeComponent[];
+    textureLevel?: TextureLevel; // For dysphagia filtering, default is 'normal'
+    economyTier?: 'budget' | 'moderate' | 'premium'; // For cost-conscious filtering
 }
 
 // Simplified snack recipe interface for fitness desserts

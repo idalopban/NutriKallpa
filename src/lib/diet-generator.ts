@@ -1,14 +1,16 @@
 import { Alimento } from "./csv-parser";
 import { roundCalories, roundMacro, roundMicro } from "./csv-parser";
-import { PERUVIAN_RECIPES, PeruvianRecipe, RecipeComponent, MealType, Category, FITNESS_DESSERT_RECIPES } from "./peruvian-recipes";
+import { PERUVIAN_RECIPES, PeruvianRecipe, RecipeComponent, MealType, Category, FITNESS_DESSERT_RECIPES, TextureLevel, getCookingLossFactor, PreparationMethod } from "./peruvian-recipes";
 import { Pathologies } from "@/types";
+import { TrainingIntensity, calculatePeriodizedMacros, SportCategory } from "./sports-periodization";
 
 // --- TYPES ---
 
 export interface MealItem {
     id: string; // Unique ID for UI handling
     food: Alimento;
-    quantity: number; // grams
+    quantity: number; // grams (raw weight before cooking)
+    cookedQuantity?: number; // grams after cooking loss applied
     category: Category;
 }
 
@@ -27,6 +29,9 @@ export interface NutritionalGoals {
     calories: number;
     macros: MacroSplit;
     micros: Partial<Record<keyof Alimento, number>>; // Minimum targets
+    // Sports periodization fields
+    trainingIntensity?: TrainingIntensity;
+    sportCategory?: SportCategory;
 }
 
 export interface DailyStats {
@@ -58,13 +63,24 @@ export interface DailyPlan {
     stats: DailyStats;
     goals: NutritionalGoals;
     safetyWarnings?: string[]; // Audit Fix: Warn about potential conflicts
+    periodizationInfo?: { // NEW: Include periodization context
+        intensity: TrainingIntensity;
+        carbsGKg?: number;
+        proteinGKg?: number;
+    };
 }
 
 export interface UserPreferences {
     likedFoods: string[];
     dislikedFoods: string[];
     pathologies?: string[]; // Audit Fix: Medical Constraints
-    allergies?: AllergyEntrySimple[]; // New: Allergies with severity
+    allergies?: AllergyEntrySimple[]; // Allergies with severity
+    // NEW: Texture modification for dysphagia patients (IDDSI Framework)
+    textureRequirement?: TextureLevel;
+    // NEW: Sports periodization support
+    trainingIntensity?: TrainingIntensity;
+    sportCategory?: SportCategory;
+    bodyWeightKg?: number; // For g/kg calculations
 }
 
 // Simplified allergy entry for diet generator (matches types/index.ts AllergyEntry)
@@ -302,6 +318,52 @@ function getSnackCap(foodName: string, category?: string): number {
     return 200; // Default snack portion
 }
 
+// --- COOKING LOSS CALCULATION ---
+
+/**
+ * Calculate the cooked quantity from raw quantity using cooking loss factors
+ * @param rawQuantity - Raw weight in grams
+ * @param category - Food category
+ * @param preparationMethod - How the food is prepared (default: 'boiled')
+ * @returns Cooked weight in grams
+ */
+export function calculateCookedQuantity(
+    rawQuantity: number,
+    category: Category,
+    preparationMethod: PreparationMethod = 'boiled'
+): number {
+    const factor = getCookingLossFactor(preparationMethod, category);
+    return Math.round(rawQuantity * factor);
+}
+
+/**
+ * Apply cooking loss to all items in a meal
+ * @param items - Array of meal items
+ * @param defaultMethod - Default preparation method
+ * @returns Items with cookedQuantity calculated
+ */
+export function applyCookingLoss(
+    items: MealItem[],
+    defaultMethod: PreparationMethod = 'boiled'
+): MealItem[] {
+    return items.map(item => {
+        // Skip items that already have cookedQuantity or are eaten raw (fruits, dairy)
+        if (item.cookedQuantity !== undefined) {
+            return item;
+        }
+
+        // Categories typically eaten raw
+        const rawCategories: Category[] = ['fruta', 'lacteo'];
+        if (rawCategories.includes(item.category)) {
+            return { ...item, cookedQuantity: item.quantity };
+        }
+
+        // Calculate cooked quantity
+        const cookedQty = calculateCookedQuantity(item.quantity, item.category, defaultMethod);
+        return { ...item, cookedQuantity: cookedQty };
+    });
+}
+
 // --- CALCULATIONS ---
 
 export function calculateMealStats(items: MealItem[]): DailyStats {
@@ -316,7 +378,9 @@ export function calculateMealStats(items: MealItem[]): DailyStats {
     };
 
     items.forEach(item => {
-        const ratio = item.quantity / 100;
+        // QA Fix: Use cooked quantity if available (for cooking loss adjustment)
+        const effectiveQuantity = item.cookedQuantity ?? item.quantity;
+        const ratio = effectiveQuantity / 100;
         const f = item.food;
 
         stats.calories += f.energia * ratio;
@@ -482,6 +546,12 @@ export function generateSmartDailyPlan(
         // 1. Filter Foods based on Preferences & SAFETY (Pathologies)
         let filteredFoods = [...availableFoods];
         const safetyWarnings: string[] = [];
+
+        // QA Fix: Validate minimum safe calorie threshold
+        const MIN_SAFE_CALORIES = 1000;
+        if (goals.calories < MIN_SAFE_CALORIES) {
+            safetyWarnings.push(`🔴 ALERTA: Meta calórica (${goals.calories} kcal) por debajo del mínimo seguro (${MIN_SAFE_CALORIES} kcal). Riesgo de déficit peligroso.`);
+        }
 
         // A. FILTER: Disliked Foods
         if (preferences?.dislikedFoods && preferences.dislikedFoods.length > 0) {
