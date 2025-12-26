@@ -298,6 +298,11 @@
   .mobile-safe {
     @apply max-w-full overflow-x-hidden;
   }
+
+  /* Dynamic width using CSS custom property (for stacked bar charts) */
+  .dynamic-width {
+    width: var(--bar-width, 0%);
+  }
 }
 
 /* ============================================
@@ -338,6 +343,26 @@
   textarea {
     font-size: 16px;
   }
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-4px);
+  }
+
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.3s ease-in-out;
 }
 
 @keyframes gradient-x {

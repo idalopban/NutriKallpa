@@ -15,7 +15,8 @@ import {
   type TipoPaciente
 } from "@/lib/calculos-nutricionales"
 import { formatClinicalAge } from "@/lib/clinical-calculations"
-import { saveMedidas } from "@/lib/storage"
+import { saveEvaluation } from "@/actions/anthropometry-actions"
+import { useToast } from "@/hooks/use-toast"
 import type { MedidasAntropometricas, Somatotipo, Paciente, ResultadoFormula } from "@/types"
 import { getAnthroNumber } from "@/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -85,7 +86,9 @@ export function FormularioMedidas({ paciente, onSuccess }: FormularioMedidasProp
     todasLasFormulas?: ResultadoFormula[]
   }>({})
 
+  const { toast } = useToast()
   const [tipoPaciente, setTipoPaciente] = useState<TipoPaciente>("general")
+  const [isSaving, setIsSaving] = useState(false)
 
   // Sections state
   const [openSections, setOpenSections] = useState({
@@ -198,7 +201,8 @@ export function FormularioMedidas({ paciente, onSuccess }: FormularioMedidasProp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(valores), paciente, tipoPaciente])
 
-  const onSubmit = (data: MedidasFormValues) => {
+  const onSubmit = async (data: MedidasFormValues) => {
+    setIsSaving(true)
     try {
       const edadReal = calcularEdad(paciente.datosPersonales.fechaNacimiento)
       const sexoReal = paciente.datosPersonales.sexo || 'otro'
@@ -211,7 +215,7 @@ export function FormularioMedidas({ paciente, onSuccess }: FormularioMedidasProp
         imc: resultados?.imc?.valor || 0,
         edad: edadReal,
         sexo: sexoReal,
-        tipoPaciente: tipoPaciente, // Guardamos el perfil seleccionado
+        tipoPaciente: tipoPaciente,
         peso: data.peso,
         talla: data.talla,
         pliegues: {
@@ -241,16 +245,38 @@ export function FormularioMedidas({ paciente, onSuccess }: FormularioMedidasProp
         updatedAt: new Date().toISOString(),
       }
 
-      saveMedidas(datosFinales);
+      // Use Server Action for secure saving
+      const result = await saveEvaluation(datosFinales, {
+        bodyFatPercent: resultados?.grasa,
+        somatotypeEndo: resultados?.somato?.endo,
+        somatotypeMeso: resultados?.somato?.meso,
+        somatotypeEcto: resultados?.somato?.ecto,
+      })
 
-      if (onSuccess) {
-        onSuccess(datosFinales)
+      if (result.success) {
+        toast({
+          title: "✅ Evaluación guardada",
+          description: result.message || "Las medidas se guardaron correctamente",
+        })
+        if (onSuccess) {
+          onSuccess(datosFinales)
+        }
       } else {
-        alert("Medidas guardadas correctamente")
+        toast({
+          title: "❌ Error al guardar",
+          description: result.error || "Ocurrió un error inesperado",
+          variant: "destructive",
+        })
       }
     } catch (error) {
-      console.error("Error al guardar medidas:", error);
-      alert("Error al guardar las medidas. Revisa la consola.");
+      console.error("Error al guardar medidas:", error)
+      toast({
+        title: "❌ Error del servidor",
+        description: "No se pudo conectar con el servidor",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -570,16 +596,16 @@ export function FormularioMedidas({ paciente, onSuccess }: FormularioMedidasProp
             <Button
               type="submit"
               size="lg"
-              className="w-full bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/20 h-12 text-base font-semibold transition-all duration-300 transform hover:scale-[1.02]"
-              disabled={isSubmitting}
+              className="w-full bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/20 h-12 text-base font-semibold transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isSubmitting || isSaving}
             >
-              {isSubmitting ? (
+              {(isSubmitting || isSaving) ? (
                 <>
-                  <Activity className="mr-2 h-4 w-4 animate-spin" /> Procesando...
+                  <Activity className="mr-2 h-4 w-4 animate-spin" /> Guardando...
                 </>
               ) : (
                 <>
-                  <SaveIcon className="mr-2 h-4 w-4" /> Guardar
+                  <SaveIcon className="mr-2 h-4 w-4" /> Guardar Evaluación
                 </>
               )}
             </Button>

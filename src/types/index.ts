@@ -98,9 +98,40 @@ export interface HistoriaClinica {
 /* CONFIGURACIÓN NUTRICIONAL                                                 */
 /* -------------------------------------------------------------------------- */
 
+// Activity levels with as const for better autocomplete and type safety
+export const ACTIVITY_LEVELS = {
+  SEDENTARY: 'sedentary',
+  LIGHT: 'light',
+  MODERATE: 'moderate',
+  ACTIVE: 'active',
+  VERY_ACTIVE: 'very_active',
+  INTENSE: 'intense',
+} as const;
+export type ActivityLevel = typeof ACTIVITY_LEVELS[keyof typeof ACTIVITY_LEVELS];
+
+// Legacy type for backwards compatibility
 export type NivelActividad = 'sedentaria' | 'sedentario' | 'ligera' | 'moderada' | 'activa' | 'muy_activa' | 'intensa' | 'muy_intensa';
+
+// Weight objectives with as const
+export const WEIGHT_OBJECTIVES = {
+  LOSE: 'lose',
+  MAINTAIN: 'maintain',
+  GAIN: 'gain',
+} as const;
+export type WeightObjective = typeof WEIGHT_OBJECTIVES[keyof typeof WEIGHT_OBJECTIVES];
+
+// Legacy type for backwards compatibility
 export type ObjetivoPeso = 'perdida' | 'perder' | 'mantenimiento' | 'ganar' | 'ganancia';
-export type FormulaGET = 'harris' | 'mifflin' | 'katch' | 'fao';
+
+// GET formulas with as const
+export const GET_FORMULAS = {
+  HARRIS_BENEDICT: 'harris',
+  MIFFLIN: 'mifflin',
+  KATCH_MCARDLE: 'katch',
+  FAO: 'fao',
+} as const;
+export type GETFormula = typeof GET_FORMULAS[keyof typeof GET_FORMULAS];
+export type FormulaGET = 'harris' | 'mifflin' | 'katch' | 'fao'; // Legacy
 
 export interface ConfiguracionNutricional {
   nivelActividad?: NivelActividad;

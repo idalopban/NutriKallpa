@@ -15,8 +15,6 @@ interface FiveComponentPanelProps {
 }
 
 // Convertir datos del formulario al formato de 5 componentes
-// Nota: El formulario actual no tiene todos los campos del modelo Kerr completo
-// Los campos que no existen se aproximan o se dejan como undefined
 function convertToFiveComponentInput(data: FullMeasurementData): FiveComponentInput {
     return {
         // Datos básicos
@@ -34,19 +32,16 @@ function convertToFiveComponentInput(data: FullMeasurementData): FiveComponentIn
         thigh: data.skinfolds.thigh,             // Muslo frontal
         calf: data.skinfolds.calf,               // Pantorrilla medial
 
-        // Perímetros (cm)
+        // Perímetros (cm) - Ahora usando el campo real musloMedio
         armRelaxedGirth: data.girths.brazoRelajado,
         armFlexedGirth: data.girths.brazoFlexionado,
         waistGirth: data.girths.cintura,
-        // Nota: El formulario no tiene perímetro de muslo, usamos una estimación
-        // En una implementación completa, agregar campo 'muslo' al formulario
-        thighGirth: data.girths.brazoFlexionado * 2,  // Aproximación: ~2x brazo flexionado
+        thighGirth: data.girths.musloMedio,      // ✅ Campo real en lugar de aproximación
         calfGirth: data.girths.pantorrilla,
 
         // Diámetros óseos (cm)
         humerusBreadth: data.breadths.humero,    // Húmero (bi-epicondilar)
         femurBreadth: data.breadths.femur        // Fémur (bi-epicondilar)
-        // Nota: wristBreadth y ankleBreadth no están en el formulario actual
     };
 }
 
@@ -64,18 +59,23 @@ function StackedBarChart({ result }: { result: ReturnType<typeof calculateFiveCo
         <div className="space-y-3">
             {/* Barra apilada */}
             <div className="h-8 rounded-full overflow-hidden flex shadow-inner bg-slate-100 dark:bg-slate-800">
-                {components.map((comp) => (
-                    <div
-                        key={comp.key}
-                        className={`${COMPONENT_COLORS[comp.key].bg} transition-all duration-500 flex items-center justify-center`}
-                        style={{ width: `${Math.max(comp.percent, 0)}%` }}
-                        title={`${COMPONENT_LABELS[comp.key].name}: ${comp.percent}%`}
-                    >
-                        {comp.percent >= 10 && (
-                            <span className="text-white text-[10px] font-bold">{comp.percent}%</span>
-                        )}
-                    </div>
-                ))}
+                {components.map((comp) => {
+                    // Use CSS custom property for dynamic width (avoids inline style lint)
+                    const widthPercent = Math.max(comp.percent, 0);
+                    return (
+                        <div
+                            key={comp.key}
+                            className={`${COMPONENT_COLORS[comp.key].bg} dynamic-width transition-all duration-500 flex items-center justify-center`}
+                            // CSS custom property is set here but the actual width comes from .dynamic-width class
+                            style={{ '--bar-width': `${widthPercent}%` } as React.CSSProperties}
+                            title={`${COMPONENT_LABELS[comp.key].name}: ${comp.percent}%`}
+                        >
+                            {comp.percent >= 10 && (
+                                <span className="text-white text-[10px] font-bold">{comp.percent}%</span>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
 
             {/* Leyenda */}

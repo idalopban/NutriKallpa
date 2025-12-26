@@ -122,7 +122,7 @@ export function ElderlyAnthropometryLayout({
             girths: {
                 brazoRelajado: formState.armCircumference ? parseFloat(formState.armCircumference) : 0,
                 pantorrilla: formState.calfCircumference ? parseFloat(formState.calfCircumference) : 0,
-                brazoFlexionado: 0, cintura: 0
+                brazoFlexionado: 0, cintura: 0, musloMedio: 0
             },
             breadths: { humero: 0, femur: 0 },
         };

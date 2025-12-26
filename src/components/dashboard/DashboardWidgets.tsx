@@ -47,7 +47,7 @@ export function Banner({ userName }: BannerProps) {
         subGreeting = "Que tengas una buena tarde!";
     } else if (hour >= 18 || hour < 6) {
         greeting = "Buenas noches";
-        subGreeting = "Que tengas una buena noche!";
+        subGreeting = "Que tenga una buena noche!";
     }
 
     return (

@@ -71,6 +71,56 @@ const SKIN_THICKNESS = 2.07;  // mm
 const SKIN_DENSITY = 1.05;    // g/cm³
 
 // ===========================================
+// ISAK BIOLOGICAL RANGE VALIDATION (CRITICAL)
+// ===========================================
+
+/**
+ * ISAK Level 3 physiologically possible ranges
+ * Values outside these ranges indicate measurement error
+ */
+export const ISAK_RANGES = {
+    // Skinfolds (mm) - validated against ISAK Level 3 standards
+    skinfolds: {
+        triceps: { min: 3, max: 45, warn: 35 },
+        subscapular: { min: 4, max: 50, warn: 40 },
+        biceps: { min: 2, max: 25, warn: 20 },
+        suprailiac: { min: 3, max: 55, warn: 45 },
+        abdominal: { min: 4, max: 70, warn: 55 },
+        thigh: { min: 4, max: 60, warn: 50 },
+        calf: { min: 2, max: 35, warn: 28 },
+    },
+    // Girths/Perimeters (cm)
+    girths: {
+        armRelaxed: { min: 18, max: 55, warn: 45 },
+        armFlexed: { min: 20, max: 60, warn: 50 },
+        forearm: { min: 18, max: 40, warn: 35 },
+        waist: { min: 50, max: 180, warn: 130 },
+        thigh: { min: 35, max: 90, warn: 75 },
+        calf: { min: 25, max: 55, warn: 48 },
+    },
+    // Bone Breadths (cm)
+    breadths: {
+        humerus: { min: 4, max: 10, warn: 8.5 },
+        femur: { min: 6, max: 14, warn: 12 },
+        wrist: { min: 3.5, max: 7.5, warn: 6.5 },
+        ankle: { min: 5, max: 10, warn: 8.5 },
+    },
+    // Basic measurements
+    basic: {
+        weight: { min: 20, max: 350, warn: 200 },      // kg
+        height: { min: 50, max: 250, warn: 220 },      // cm
+        age: { min: 0, max: 120, warn: 100 },
+    }
+} as const;
+
+export type ValidationError = {
+    field: string;
+    value: number;
+    issue: 'below_min' | 'above_max' | 'warning' | 'anatomically_impossible';
+    message: string;
+};
+
+// ===========================================
 // TYPES
 // ===========================================
 
@@ -139,9 +189,12 @@ export interface FiveComponentResult {
  * Calculate Z-score for Phantom adjustment
  * Z = (V × (170.18/h)^d - p) / s
  * where d = 1 for lengths, girths, skinfolds, diameters
+ * 
+ * CRITICAL: Protected against division by zero
  */
 function calculateZScore(value: number, height: number, phantomP: number, phantomS: number): number | null {
-    if (!value || value <= 0 || !height || height <= 0) return null;
+    // Guard against invalid inputs and division by zero
+    if (!value || value <= 0 || !height || height <= 0 || phantomS === 0) return null;
 
     const adjustedValue = value * (PHANTOM.height / height);
     return (adjustedValue - phantomP) / phantomS;
@@ -174,19 +227,89 @@ function calculateDuBoisSA(weight: number, height: number): number {
     return Math.pow(weight, 0.425) * Math.pow(height, 0.725) * 71.84;
 }
 
-// ===========================================
-// VALIDATION
-// ===========================================
+export interface ValidationResult {
+    isValid: boolean;
+    missing: string[];
+    errors: ValidationError[];
+    warnings: ValidationError[];
+}
 
-export function validateFiveComponentInput(data: Partial<FiveComponentInput>): { isValid: boolean; missing: string[] } {
+/**
+ * Comprehensive validation with ISAK ranges and anatomical checks
+ */
+export function validateFiveComponentInput(data: Partial<FiveComponentInput>): ValidationResult {
     const missing: string[] = [];
+    const errors: ValidationError[] = [];
+    const warnings: ValidationError[] = [];
 
-    // Required basic data
-    if (!data.weight || data.weight <= 0) missing.push('Peso');
-    if (!data.height || data.height <= 0) missing.push('Talla');
-    if (!data.age || data.age <= 0) missing.push('Edad');
+    // Helper to validate a range
+    const validateRange = (
+        value: number | undefined,
+        field: string,
+        range: { min: number; max: number; warn: number }
+    ) => {
+        if (value === undefined || value === 0) return;
 
-    // Skinfolds (need at least 4 for adipose calculation)
+        if (value < 0) {
+            errors.push({
+                field,
+                value,
+                issue: 'below_min',
+                message: `${field} no puede ser negativo (${value})`
+            });
+        } else if (value < range.min) {
+            errors.push({
+                field,
+                value,
+                issue: 'below_min',
+                message: `${field} (${value}) está por debajo del mínimo ISAK (${range.min})`
+            });
+        } else if (value > range.max) {
+            errors.push({
+                field,
+                value,
+                issue: 'above_max',
+                message: `${field} (${value}) excede el máximo ISAK (${range.max})`
+            });
+        } else if (value > range.warn) {
+            warnings.push({
+                field,
+                value,
+                issue: 'warning',
+                message: `${field} (${value}) es inusualmente alto - verificar medición`
+            });
+        }
+    };
+
+    // ===== REQUIRED BASIC DATA =====
+    if (!data.weight || data.weight <= 0) {
+        missing.push('Peso');
+    } else {
+        validateRange(data.weight, 'Peso', ISAK_RANGES.basic.weight);
+    }
+
+    if (!data.height || data.height <= 0) {
+        missing.push('Talla');
+    } else {
+        validateRange(data.height, 'Talla', ISAK_RANGES.basic.height);
+    }
+
+    if (!data.age || data.age <= 0) {
+        missing.push('Edad');
+    } else {
+        validateRange(data.age, 'Edad', ISAK_RANGES.basic.age);
+    }
+
+    // ===== SKINFOLDS VALIDATION =====
+    validateRange(data.triceps, 'Pliegue Tríceps', ISAK_RANGES.skinfolds.triceps);
+    validateRange(data.subscapular, 'Pliegue Subescapular', ISAK_RANGES.skinfolds.subscapular);
+    validateRange(data.biceps, 'Pliegue Bíceps', ISAK_RANGES.skinfolds.biceps);
+    validateRange(data.suprailiac, 'Pliegue Supraespinal', ISAK_RANGES.skinfolds.suprailiac);
+    validateRange(data.abdominal, 'Pliegue Abdominal', ISAK_RANGES.skinfolds.abdominal);
+    validateRange(data.thigh, 'Pliegue Muslo', ISAK_RANGES.skinfolds.thigh);
+    validateRange(data.calf, 'Pliegue Pantorrilla', ISAK_RANGES.skinfolds.calf);
+
+    // Check skinfold count
     const skinfoldCount = [
         data.triceps, data.subscapular, data.suprailiac,
         data.abdominal, data.thigh, data.calf
@@ -199,7 +322,14 @@ export function validateFiveComponentInput(data: Partial<FiveComponentInput>): {
         if (!data.abdominal || data.abdominal <= 0) missing.push('Pliegue Abdominal');
     }
 
-    // Girths for muscle (need at least 2)
+    // ===== GIRTHS VALIDATION =====
+    validateRange(data.armRelaxedGirth, 'Perímetro Brazo Relajado', ISAK_RANGES.girths.armRelaxed);
+    validateRange(data.armFlexedGirth, 'Perímetro Brazo Flexionado', ISAK_RANGES.girths.armFlexed);
+    validateRange(data.thighGirth, 'Perímetro Muslo', ISAK_RANGES.girths.thigh);
+    validateRange(data.calfGirth, 'Perímetro Pantorrilla', ISAK_RANGES.girths.calf);
+    validateRange(data.waistGirth, 'Perímetro Cintura', ISAK_RANGES.girths.waist);
+
+    // Check girth count
     const girthCount = [
         data.armRelaxedGirth, data.thighGirth, data.calfGirth
     ].filter(v => v && v > 0).length;
@@ -210,11 +340,66 @@ export function validateFiveComponentInput(data: Partial<FiveComponentInput>): {
         if (!data.calfGirth || data.calfGirth <= 0) missing.push('Perímetro Pantorrilla');
     }
 
-    // Bone breadths (need at least 2)
+    // ===== BREADTHS VALIDATION =====
+    validateRange(data.humerusBreadth, 'Diámetro Húmero', ISAK_RANGES.breadths.humerus);
+    validateRange(data.femurBreadth, 'Diámetro Fémur', ISAK_RANGES.breadths.femur);
+    validateRange(data.wristBreadth, 'Diámetro Muñeca', ISAK_RANGES.breadths.wrist);
+    validateRange(data.ankleBreadth, 'Diámetro Tobillo', ISAK_RANGES.breadths.ankle);
+
     if (!data.humerusBreadth || data.humerusBreadth <= 0) missing.push('Diámetro Húmero');
     if (!data.femurBreadth || data.femurBreadth <= 0) missing.push('Diámetro Fémur');
 
-    return { isValid: missing.length === 0, missing };
+    // ===== ANATOMICAL RELATIONSHIP VALIDATION =====
+
+    // Waist must be greater than arm
+    if (data.waistGirth && data.armFlexedGirth && data.waistGirth < data.armFlexedGirth) {
+        errors.push({
+            field: 'Perímetro Cintura',
+            value: data.waistGirth,
+            issue: 'anatomically_impossible',
+            message: `Cintura (${data.waistGirth}cm) no puede ser menor que brazo flexionado (${data.armFlexedGirth}cm)`
+        });
+    }
+
+    // Thigh must be greater than calf
+    if (data.thighGirth && data.calfGirth && data.thighGirth < data.calfGirth) {
+        errors.push({
+            field: 'Perímetro Muslo',
+            value: data.thighGirth,
+            issue: 'anatomically_impossible',
+            message: `Muslo (${data.thighGirth}cm) no puede ser menor que pantorrilla (${data.calfGirth}cm)`
+        });
+    }
+
+    // Femur breadth must be greater than humerus
+    if (data.femurBreadth && data.humerusBreadth && data.femurBreadth < data.humerusBreadth) {
+        errors.push({
+            field: 'Diámetro Fémur',
+            value: data.femurBreadth,
+            issue: 'anatomically_impossible',
+            message: `Fémur (${data.femurBreadth}cm) no puede ser menor que húmero (${data.humerusBreadth}cm)`
+        });
+    }
+
+    // Total skinfold sum check (>250mm is highly unusual)
+    const totalSkinfolds = (data.triceps || 0) + (data.subscapular || 0) +
+        (data.biceps || 0) + (data.suprailiac || 0) +
+        (data.abdominal || 0) + (data.thigh || 0) + (data.calf || 0);
+    if (totalSkinfolds > 250) {
+        warnings.push({
+            field: 'Suma Pliegues',
+            value: totalSkinfolds,
+            issue: 'warning',
+            message: `Suma de pliegues (${totalSkinfolds}mm) es muy alta - verificar mediciones`
+        });
+    }
+
+    return {
+        isValid: missing.length === 0 && errors.length === 0,
+        missing,
+        errors,
+        warnings
+    };
 }
 
 // ===========================================

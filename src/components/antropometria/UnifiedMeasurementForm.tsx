@@ -34,6 +34,7 @@ export interface GirthData {
     brazoRelajado: number;
     brazoFlexionado: number;
     cintura: number;
+    musloMedio: number;  // Perímetro muslo medio (crítico para modelo 5C)
     pantorrilla: number;
 }
 
@@ -101,8 +102,22 @@ function AccordionSection({
 }
 
 import { processMeasurement } from "@/lib/anthropometry-utils";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ISAK_RANGES } from "@/lib/fiveComponentMath";
 
-// Input Field Component with ISAK Support
+// ISAK Range lookup for skinfolds (maps label to fieldKey)
+const SKINFOLD_FIELD_MAP: Record<string, keyof typeof ISAK_RANGES.skinfolds | null> = {
+    'Tríceps': 'triceps',
+    'Bíceps': 'biceps',
+    'Subescapular': 'subscapular',
+    'Cresta Ilíaca': 'suprailiac',
+    'Supraespinal': 'suprailiac',
+    'Abdominal': 'abdominal',
+    'Muslo Anterior': 'thigh',
+    'Pantorrilla': 'calf',
+};
+
+// Input Field Component with ISAK Validation
 function InputField({
     label,
     value,
@@ -123,6 +138,15 @@ function InputField({
     const [isakMode, setIsakMode] = useState(false);
     const [series, setSeries] = useState<[string, string, string]>(["", "", ""]);
 
+    // Get ISAK range for validation (if applicable)
+    const skinfoldKey = SKINFOLD_FIELD_MAP[label];
+    const isakRange = skinfoldKey && unit === 'mm' ? ISAK_RANGES.skinfolds[skinfoldKey] : null;
+
+    // Validation states
+    const isValid = !isakRange || value === 0 || (value >= isakRange.min && value <= isakRange.max);
+    const isWarning = isakRange && value > isakRange.warn && value <= isakRange.max;
+    const isError = isakRange && value > 0 && (value < isakRange.min || value > isakRange.max);
+
     const handleSeriesChange = (index: 0 | 1 | 2, val: string) => {
         const newSeries = [...series] as [string, string, string];
         newSeries[index] = val;
@@ -132,13 +156,29 @@ function InputField({
         const numbers = newSeries.map(s => parseFloat(s)).filter(n => !isNaN(n));
         if (numbers.length > 0) {
             const result = processMeasurement(numbers);
-            onChange(result); // Update parent with calculated value
+            onChange(result);
         } else {
             onChange(0);
         }
     };
 
     const hasValue = value > 0;
+
+    // Determine input styling based on validation
+    const getInputClassName = () => {
+        const base = "w-full text-sm font-semibold text-center py-2.5 px-3 rounded-lg border-2 transition-all outline-none";
+
+        if (isError) {
+            return `${base} bg-red-50 dark:bg-red-950/30 border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 animate-shake`;
+        }
+        if (isWarning) {
+            return `${base} bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300`;
+        }
+        if (hasValue) {
+            return `${base} bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300`;
+        }
+        return `${base} bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-[#6cba00]/30 focus:border-[#6cba00]`;
+    };
 
     return (
         <div className="space-y-1">
@@ -155,6 +195,10 @@ function InputField({
                             </div>
                         </div>
                     )}
+                    {/* ISAK Range indicator */}
+                    {isakRange && (
+                        <span className="text-[9px] text-slate-400">({isakRange.min}-{isakRange.max})</span>
+                    )}
                 </div>
                 {/* ISAK Toggle */}
                 <button
@@ -169,18 +213,28 @@ function InputField({
             <div className="relative">
                 <input
                     type="number"
+                    inputMode="decimal"
                     step="0.1"
                     min="0"
                     value={value || ""}
                     onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
                     placeholder={placeholder}
-                    readOnly={isakMode} // Read-only in ISAK mode (calculated)
-                    className={`w-full text-sm font-semibold text-center py-2.5 px-3 rounded-lg border-2 transition-all outline-none ${hasValue
-                        ? 'bg-[#6cba00]/5 border-[#6cba00]/30 text-[#6cba00]'
-                        : 'bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200'
-                        } focus:ring-2 focus:ring-[#6cba00]/30 focus:border-[#6cba00] ${isakMode ? 'opacity-80 cursor-not-allowed' : ''}`}
+                    readOnly={isakMode}
+                    className={`${getInputClassName()} ${isakMode ? 'opacity-80 cursor-not-allowed' : ''}`}
                 />
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">{unit}</span>
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <span className="text-[10px] text-slate-400">{unit}</span>
+                    {/* Validation icons */}
+                    {hasValue && isValid && !isWarning && isakRange && (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                    )}
+                    {isWarning && (
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                    )}
+                    {isError && (
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+                    )}
+                </div>
             </div>
 
             {/* ISAK Series Input */}
@@ -190,6 +244,7 @@ function InputField({
                         <div key={i} className="relative">
                             <input
                                 type="number"
+                                inputMode="decimal"
                                 placeholder={`#${i + 1}`}
                                 value={series[i]}
                                 onChange={(e) => handleSeriesChange(i as 0 | 1 | 2, e.target.value)}
@@ -198,6 +253,13 @@ function InputField({
                         </div>
                     ))}
                 </div>
+            )}
+
+            {/* Error message */}
+            {isError && isakRange && (
+                <p className="text-[9px] text-red-600 dark:text-red-400 font-medium">
+                    Fuera de rango ISAK ({isakRange.min}-{isakRange.max} {unit})
+                </p>
             )}
         </div>
     );
@@ -248,9 +310,10 @@ export function UnifiedMeasurementForm({ data, onUpdate }: UnifiedFormProps) {
                             </div>
                             <button
                                 onClick={() => onUpdate({ bioData: { ...data.bioData, usarEstimacion: !data.bioData.usarEstimacion } })}
+                                aria-label={data.bioData.usarEstimacion ? "Desactivar estimación geriátrica" : "Activar estimación geriátrica"}
                                 className={`relative w-11 h-6 rounded-full transition-colors ${data.bioData.usarEstimacion
-                                        ? 'bg-amber-500'
-                                        : 'bg-slate-300 dark:bg-slate-600'
+                                    ? 'bg-amber-500'
+                                    : 'bg-slate-300 dark:bg-slate-600'
                                     }`}
                             >
                                 <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${data.bioData.usarEstimacion ? 'translate-x-5' : ''
@@ -404,10 +467,11 @@ export function UnifiedMeasurementForm({ data, onUpdate }: UnifiedFormProps) {
                     onToggle={() => toggleSection('girths')}
                 >
                     <div className="grid grid-cols-2 gap-3">
-                        <InputField label="Brazo Relajado" value={data.girths.brazoRelajado} onChange={(v) => onUpdate({ girths: { ...data.girths, brazoRelajado: v } })} unit="cm" />
-                        <InputField label="Brazo Flexionado" value={data.girths.brazoFlexionado} onChange={(v) => onUpdate({ girths: { ...data.girths, brazoFlexionado: v } })} unit="cm" />
-                        <InputField label="Cintura" value={data.girths.cintura} onChange={(v) => onUpdate({ girths: { ...data.girths, cintura: v } })} unit="cm" />
-                        <InputField label="Pantorrilla" value={data.girths.pantorrilla} onChange={(v) => onUpdate({ girths: { ...data.girths, pantorrilla: v } })} unit="cm" />
+                        <InputField label="Brazo Relajado" value={data.girths.brazoRelajado} onChange={(v) => onUpdate({ girths: { ...data.girths, brazoRelajado: v } })} unit="cm" description="Perímetro del brazo en posición relajada" />
+                        <InputField label="Brazo Flexionado" value={data.girths.brazoFlexionado} onChange={(v) => onUpdate({ girths: { ...data.girths, brazoFlexionado: v } })} unit="cm" description="Perímetro del brazo en contracción máxima" />
+                        <InputField label="Cintura" value={data.girths.cintura} onChange={(v) => onUpdate({ girths: { ...data.girths, cintura: v } })} unit="cm" description="Punto más estrecho del tronco" />
+                        <InputField label="Muslo Medio" value={data.girths.musloMedio} onChange={(v) => onUpdate({ girths: { ...data.girths, musloMedio: v } })} unit="cm" description="Punto medio entre trocánter y rodilla (crítico para modelo 5C)" />
+                        <InputField label="Pantorrilla" value={data.girths.pantorrilla} onChange={(v) => onUpdate({ girths: { ...data.girths, pantorrilla: v } })} unit="cm" description="Perímetro máximo de la pantorrilla" />
                     </div>
                 </AccordionSection>
 

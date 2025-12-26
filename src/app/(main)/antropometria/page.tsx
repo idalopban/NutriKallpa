@@ -152,7 +152,7 @@ function AntropometriaContent() {
             tipoPaciente: 'pediatrico',
             // Fill basics
             pliegues: { triceps: 0, subscapular: 0, biceps: 0, iliac_crest: 0, supraspinale: 0, abdominal: 0, thigh: 0, calf: 0 },
-            perimetros: { brazoRelajado: 0, brazoFlex: 0, cintura: 0, pantorrilla: 0 },
+            perimetros: { brazoRelajado: 0, brazoFlex: 0, cintura: 0, musloMedio: 0, pantorrilla: 0 },
             diametros: { humero: 0, femur: 0 }
         };
 

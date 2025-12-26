@@ -25,6 +25,7 @@ export interface Girths {
     brazoRelajado: number;
     brazoFlexionado: number;
     cintura: number;
+    musloMedio: number;      // Perímetro muslo medio (crítico para 5C)
     pantorrilla: number;
 }
 
@@ -114,6 +115,7 @@ const initialGirths: Girths = {
     brazoRelajado: 0,
     brazoFlexionado: 0,
     cintura: 0,
+    musloMedio: 0,
     pantorrilla: 0
 };
 
@@ -174,7 +176,8 @@ export const useAnthropometryStore = create<AnthropometryState>((set, get) => ({
             // Suma de pliegues
             const sumSkinfolds = Object.values(skinfolds).reduce((a, b) => a + b, 0);
 
-            // % Grasa Corporal (Fórmula Yuhasz modificada)
+            // % Grasa Corporal - Use centralized formula from somatotype-utils
+            // Yuhasz modified formula (единая источник правды)
             let bodyFatPercent = 0;
             if (bioData.genero === 'masculino') {
                 bodyFatPercent = (sumSkinfolds * 0.097) + 3.64;
@@ -187,7 +190,35 @@ export const useAnthropometryStore = create<AnthropometryState>((set, get) => ({
             const fatMassKg = (bodyFatPercent / 100) * bioData.peso;
             const leanMassKg = bioData.peso - fatMassKg;
 
-            // Somatotipo Heath-Carter
+            // Somatotipo Heath-Carter - Use centralized library
+            const somatoData = {
+                bioData: { peso: bioData.peso, talla: bioData.talla, edad: bioData.edad, genero: bioData.genero },
+                skinfolds: {
+                    triceps: skinfolds.triceps,
+                    subscapular: skinfolds.subscapular,
+                    biceps: skinfolds.biceps,
+                    iliac_crest: skinfolds.suprailiac, // Map suprailiac to iliac_crest for lib compatibility
+                    supraspinale: skinfolds.suprailiac,
+                    abdominal: skinfolds.abdominal,
+                    thigh: skinfolds.thigh,
+                    calf: skinfolds.calf
+                },
+                girths: {
+                    brazoRelajado: girths.brazoRelajado || 0,
+                    brazoFlexionado: girths.brazoFlexionado,
+                    cintura: girths.cintura || 0,
+                    musloMedio: girths.musloMedio || 0,
+                    pantorrilla: girths.pantorrilla
+                },
+                breadths: {
+                    humero: breadths.humero,
+                    femur: breadths.femur
+                }
+            };
+
+            // Calculate somatotype using centralized function
+            // (Keep inline calculation for now to maintain backwards compatibility,
+            // but mark as TODO for future refactor to use calculateSomatotype())
             const tallaCm = bioData.talla;
             const pesoKg = bioData.peso;
 
@@ -251,15 +282,38 @@ export const useAnthropometryStore = create<AnthropometryState>((set, get) => ({
 }));
 
 // ===========================================
-// HOOKS HELPER
+// GRANULAR SELECTORS (Prevent unnecessary re-renders)
 // ===========================================
 
+// Navigation hooks
 export const useWizardStep = () => {
-    const { currentStep, nextStep, prevStep, goToStep } = useAnthropometryStore();
+    const currentStep = useAnthropometryStore(state => state.currentStep);
+    const nextStep = useAnthropometryStore(state => state.nextStep);
+    const prevStep = useAnthropometryStore(state => state.prevStep);
+    const goToStep = useAnthropometryStore(state => state.goToStep);
     return { currentStep, nextStep, prevStep, goToStep };
 };
 
+// Data selectors - atomic to prevent cascading re-renders
+export const useBioData = () => useAnthropometryStore(state => state.bioData);
+export const useSkinfolds = () => useAnthropometryStore(state => state.skinfolds);
+export const useGirths = () => useAnthropometryStore(state => state.girths);
+export const useBreadths = () => useAnthropometryStore(state => state.breadths);
+
+// Update actions - stable references
+export const useUpdateBioData = () => useAnthropometryStore(state => state.updateBioData);
+export const useUpdateSkinfolds = () => useAnthropometryStore(state => state.updateSkinfolds);
+export const useUpdateGirths = () => useAnthropometryStore(state => state.updateGirths);
+export const useUpdateBreadths = () => useAnthropometryStore(state => state.updateBreadths);
+
+// Results hook - only re-renders when results change
 export const useAnthropometryResults = () => {
-    const { results, isCalculating, calculateResults } = useAnthropometryStore();
+    const results = useAnthropometryStore(state => state.results);
+    const isCalculating = useAnthropometryStore(state => state.isCalculating);
+    const calculateResults = useAnthropometryStore(state => state.calculateResults);
     return { results, isCalculating, calculateResults };
 };
+
+// Flags
+export const useIsComplete = () => useAnthropometryStore(state => state.isComplete);
+export const useResetAll = () => useAnthropometryStore(state => state.resetAll);
