@@ -1,5 +1,10 @@
 import type { NextConfig } from "next";
 
+// Allowed origins for CORS - restrictive by default
+const ALLOWED_ORIGINS = process.env.NODE_ENV === 'production'
+  ? (process.env.NEXT_PUBLIC_ALLOWED_ORIGINS || 'https://nutrikallpa.com').split(',')
+  : ['http://localhost:3000', 'http://127.0.0.1:3000'];
+
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
@@ -13,7 +18,8 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Access-Control-Allow-Origin",
-            value: "*",
+            // In production, use specific origin; in dev, allow localhost
+            value: ALLOWED_ORIGINS[0],
           },
           {
             key: "Access-Control-Allow-Methods",
@@ -29,11 +35,23 @@ const nextConfig: NextConfig = {
           },
           {
             key: "X-Frame-Options",
-            value: "ALLOWALL",
+            // Restrictive: only allow same origin framing
+            value: "SAMEORIGIN",
           },
           {
             key: "Content-Security-Policy",
-            value: "frame-ancestors 'self' *",
+            // Restrictive CSP for production
+            value: process.env.NODE_ENV === 'production'
+              ? "frame-ancestors 'self'"
+              : "frame-ancestors 'self' *",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
           },
         ],
       },

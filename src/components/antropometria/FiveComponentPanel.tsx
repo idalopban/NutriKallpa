@@ -171,7 +171,25 @@ export function FiveComponentPanel({ data }: FiveComponentPanelProps) {
                             <MassCard componentKey="muscle" kg={result.muscle.kg} percent={result.muscle.percent} />
                             <MassCard componentKey="bone" kg={result.bone.kg} percent={result.bone.percent} />
                             <MassCard componentKey="skin" kg={result.skin.kg} percent={result.skin.percent} />
-                            <MassCard componentKey="residual" kg={result.residual.kg} percent={result.residual.percent} />
+                            <div className="relative">
+                                <MassCard componentKey="residual" kg={result.residual.kg} percent={result.residual.percent} />
+                                {result.residualIsEstimated && (
+                                    <div className="absolute -top-2 right-2">
+                                        <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full text-[9px] font-medium border border-amber-200 dark:border-amber-800">
+                                            <AlertCircle className="w-3 h-3" />
+                                            <span>Estimado</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            {result.residualIsEstimated && (
+                                <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-800">
+                                    <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                                        <strong>⚠️ Nota:</strong> Masa residual estimada por promedio de otros Z-scores.
+                                        Para mayor precisión, agregue diámetro biacromial y biiliocristal.
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Metodología */}

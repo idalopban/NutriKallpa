@@ -3,37 +3,85 @@
  * 
  * Provides CRUD operations with localStorage as primary for immediate access
  * and Supabase for cloud sync. Background sync keeps data up to date.
+ * 
+ * SECURITY: All medical data is encrypted using AES-256 before storing in localStorage.
  */
 
 import type { User, Paciente, MedidasAntropometricas, Dieta, Alimento, Cita, InvitationCode } from "@/types";
 import * as supabaseStorage from './supabase-storage';
+import { secureStorage, migrateToEncryptedStorage, isEncrypted } from './secure-storage';
 
 const STORAGE_KEYS = {
+  USERS: "nutrikallpa_users_v3",  // v3 = encrypted
+  PACIENTES: "nutrikallpa_pacientes_v3",
+  MEDIDAS: "nutrikallpa_medidas_v3",
+  DIETAS: "nutrikallpa_dietas_v3",
+  ALIMENTOS: "nutrikallpa_alimentos_v3",
+  CURRENT_USER: "nutrikallpa_user_v3",
+  AUTHENTICATED: "nutrikallpa_authenticated_v3",
+  CITAS: "nutrikallpa_citas_v3",
+  INVITATIONS: "nutrikallpa_invitations_v3",
+  LAST_SYNC: "nutrikallpa_last_sync_v3",
+} as const;
+
+// Legacy keys for migration
+const LEGACY_KEYS = {
   USERS: "nutrikallpa_users_v2",
   PACIENTES: "nutrikallpa_pacientes_v2",
   MEDIDAS: "nutrikallpa_medidas_v2",
   DIETAS: "nutrikallpa_dietas_v2",
-  ALIMENTOS: "nutrikallpa_alimentos_v2",
   CURRENT_USER: "nutrikallpa_user_v2",
-  AUTHENTICATED: "nutrikallpa_authenticated_v2",
   CITAS: "nutrikallpa_citas_v2",
   INVITATIONS: "nutrikallpa_invitations_v2",
-  LAST_SYNC: "nutrikallpa_last_sync_v2",
 } as const;
 
 // ============================================================================
-// HELPER: localStorage functions (synchronous)
+// MIGRATION: Migrate legacy unencrypted data to encrypted v3
+// ============================================================================
+
+let migrationDone = false;
+
+function migrateLegacyData(): void {
+  if (typeof window === 'undefined' || migrationDone) return;
+  migrationDone = true;
+
+  // Migrate each legacy key to new encrypted format
+  Object.entries(LEGACY_KEYS).forEach(([keyName, legacyKey]) => {
+    const newKey = STORAGE_KEYS[keyName as keyof typeof STORAGE_KEYS];
+    const legacyData = localStorage.getItem(legacyKey);
+    const newData = localStorage.getItem(newKey);
+
+    // If legacy data exists and new data doesn't, migrate
+    if (legacyData && !newData) {
+      try {
+        const parsed = JSON.parse(legacyData);
+        secureStorage.setItem(newKey, parsed);
+        localStorage.removeItem(legacyKey); // Clean up legacy
+        console.log(`[Storage] Migrated ${keyName} to encrypted storage`);
+      } catch (e) {
+        console.error(`[Storage] Migration failed for ${keyName}:`, e);
+      }
+    }
+  });
+}
+
+// ============================================================================
+// HELPER: Encrypted localStorage functions (synchronous)
 // ============================================================================
 
 function getFromLocalStorage<T>(key: string): T[] {
   if (typeof window === "undefined") return [];
-  const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : [];
+
+  // Ensure migration has run
+  migrateLegacyData();
+
+  const data = secureStorage.getItem<T[]>(key);
+  return data || [];
 }
 
 function saveToLocalStorage<T>(key: string, items: T[]): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(key, JSON.stringify(items));
+  secureStorage.setItem(key, items);
 }
 
 // ============================================================================

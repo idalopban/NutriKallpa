@@ -20,12 +20,27 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "NutriKallpa",
-  description: "NutriKallpa - Plataforma profesional para nutricionistas",
+  description: "NutriKallpa - Plataforma profesional para nutricionistas. Sistema de gestión nutricional con evaluaciones ISAK.",
+  keywords: ["nutrición", "ISAK", "antropometría", "dietas", "nutricionista", "Perú"],
+  authors: [{ name: "NutriKallpa Team" }],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "NutriKallpa",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
     icon: '/logo.png',
     shortcut: '/logo.png',
     apple: '/logo.png',
   },
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+  ],
 };
 
 export default function RootLayout({
