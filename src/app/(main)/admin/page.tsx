@@ -103,7 +103,7 @@ export default function AdminPage() {
 
     const handleGenerateCode = async () => {
         const code = Math.random().toString(36).substring(2, 10).toUpperCase();
-        const result = await createInvitationCode(code, "usuario", 30);
+        const result = await createInvitationCode(code, "usuario", 30, user?.id);
         if (result.success) {
             toast.success("Código de invitación generado correctamente");
             refreshData();
@@ -119,7 +119,7 @@ export default function AdminPage() {
 
     const handleDeleteCode = async (code: string) => {
         if (confirm('¿Estás seguro de que deseas eliminar este código?')) {
-            const result = await deleteInvitationCodeFromDB(code);
+            const result = await deleteInvitationCodeFromDB(code, user?.id);
             if (result.success) {
                 toast.success("Código eliminado correctamente");
                 refreshData();
@@ -143,7 +143,7 @@ export default function AdminPage() {
 
         for (let i = 0; i < bulkQuantity; i++) {
             const code = Math.random().toString(36).substring(2, 10).toUpperCase();
-            const result = await createInvitationCode(code, bulkRole, subscriptionDays);
+            const result = await createInvitationCode(code, bulkRole, subscriptionDays, user?.id);
             if (result.success) {
                 newCodes.push(code);
                 successCount++;
@@ -200,7 +200,7 @@ export default function AdminPage() {
         let errorCount = 0;
 
         for (const inv of unusedCodes) {
-            const result = await deleteInvitationCodeFromDB(inv.code);
+            const result = await deleteInvitationCodeFromDB(inv.code, user?.id);
             if (result.success) {
                 deletedCount++;
             } else {
@@ -412,12 +412,12 @@ export default function AdminPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${(u as any).isActive !== false && (u as any).is_active !== false
-                                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                                                        : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
+                                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                                    : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
                                                     }`}>
                                                     <span className={`w-1.5 h-1.5 rounded-full ${(u as any).isActive !== false && (u as any).is_active !== false
-                                                            ? 'bg-emerald-500'
-                                                            : 'bg-red-500'
+                                                        ? 'bg-emerald-500'
+                                                        : 'bg-red-500'
                                                         }`}></span>
                                                     {(u as any).isActive !== false && (u as any).is_active !== false ? 'Activo' : 'Desactivado'}
                                                 </span>
@@ -440,8 +440,8 @@ export default function AdminPage() {
                                                         size="sm"
                                                         onClick={() => handleToggleUserStatus(u.id, (u as any).isActive ?? (u as any).is_active)}
                                                         className={`${(u as any).isActive !== false && (u as any).is_active !== false
-                                                                ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50'
-                                                                : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
+                                                            ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50'
+                                                            : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
                                                             }`}
                                                         disabled={u.email === user?.email || u.rol === 'admin'}
                                                         title={

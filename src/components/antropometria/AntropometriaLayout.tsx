@@ -37,6 +37,7 @@ interface AntropometriaLayoutProps {
     medidas: MedidasAntropometricas[];
     onSave?: (data: FullMeasurementData) => void;
     onDeleteMedida?: (id: string) => void;
+    patientId?: string;
 }
 
 // Estado inicial
@@ -55,7 +56,8 @@ export function AntropometriaLayout({
     initialHeight = 0,
     medidas,
     onSave,
-    onDeleteMedida
+    onDeleteMedida,
+    patientId
 }: AntropometriaLayoutProps) {
     // Calcular edad a partir de fecha de nacimiento
     const calculateAge = (birthDate?: string): number => {
@@ -223,7 +225,7 @@ export function AntropometriaLayout({
                                     <div className="w-1.5 h-5 bg-purple-500 rounded-full"></div>
                                     Perímetros y Diámetros
                                 </h3>
-                                <UnifiedMeasurementForm data={data} onUpdate={handleDataUpdate} />
+                                <UnifiedMeasurementForm data={data} onUpdate={handleDataUpdate} patientId={patientId} />
                             </div>
                         </div>
 
@@ -245,3 +247,4 @@ export function AntropometriaLayout({
         </div>
     );
 }
+

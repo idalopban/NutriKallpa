@@ -2,7 +2,6 @@
 -- COMVIDA: Database Schema for Secure Authentication
 -- Run this SQL in your PostgreSQL database
 -- ============================================================================
-
 -- 1. Create users table
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -21,7 +20,6 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-
 -- 2. Create invitation_codes table
 CREATE TABLE IF NOT EXISTS invitation_codes (
   code VARCHAR(50) PRIMARY KEY,
@@ -30,37 +28,37 @@ CREATE TABLE IF NOT EXISTS invitation_codes (
   used_by VARCHAR(255),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
 -- 3. Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_invitation_codes_status ON invitation_codes(status);
-
 -- ============================================================================
--- ADMIN USER INSERT
--- Password: admin123 (bcrypt hash with 10 rounds)
+-- DEFAULT ADMIN USER (for initial setup)
+-- ============================================================================
+-- Email: admin@nutrikallpa.com
+-- Password: NutriKallpa2024!
 -- ============================================================================
 INSERT INTO users (
-  email,
-  password_hash,
-  nombre,
-  rol,
-  especialidad,
-  cmp
-) VALUES (
-  'admin@comvida.com',
-  '$2a$10$8K/Mz/PgJgVxHGqQ5dxz8u0zL9f.o2Y4CKxY5a8F1mJqKjQ9e7kHG',
-  'Administrador Principal',
-  'admin',
-  'Gestión del Sistema',
-  '00000'
-) ON CONFLICT (email) DO UPDATE SET
-  password_hash = EXCLUDED.password_hash,
+    email,
+    password_hash,
+    nombre,
+    rol,
+    especialidad,
+    cmp
+  )
+VALUES (
+    'admin@nutrikallpa.com',
+    '$2b$10$9OGISMILIfDak3cyfZXJWObAcasVgr7X64CJrkSEEsk9Qcx22Au4aa',
+    'Administrador NutriKallpa',
+    'admin',
+    'Gestión del Sistema',
+    '00000'
+  ) ON CONFLICT (email) DO
+UPDATE
+SET password_hash = EXCLUDED.password_hash,
   updated_at = NOW();
-
 -- ============================================================================
 -- SAMPLE INVITATION CODES (for testing)
 -- ============================================================================
-INSERT INTO invitation_codes (code, rol, status) VALUES
-  ('ADMIN-2024', 'admin', 'active'),
-  ('USER-2024', 'usuario', 'active')
-ON CONFLICT (code) DO NOTHING;
+INSERT INTO invitation_codes (code, rol, status)
+VALUES ('ADMIN-2024', 'admin', 'active'),
+  ('USER-2024', 'usuario', 'active') ON CONFLICT (code) DO NOTHING;

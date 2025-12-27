@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { NotificationsPopover } from "@/components/dashboard/NotificationsPopover";
 import { SettingsDialog } from "@/components/dashboard/SettingsDialog";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuthStore } from "@/store/useAuthStore";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -208,6 +209,7 @@ export function Header() {
                         );
                     })()
                 )}
+                {mounted && <ThemeToggle />}
                 <NotificationsPopover />
                 <SettingsDialog />
             </div>

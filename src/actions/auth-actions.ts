@@ -831,10 +831,25 @@ export async function getInvitationCodesFromDB() {
 export async function createInvitationCode(
   code: string,
   rol: string = 'usuario',
-  subscriptionDays: number = 30
+  subscriptionDays: number = 30,
+  callerUserId?: string  // Add caller ID for verification
 ) {
   try {
     const supabase = createSupabaseAdmin();
+
+    // SECURITY CHECK: Verify caller is admin before allowing code creation
+    if (callerUserId) {
+      const { data: caller } = await supabase
+        .from('users')
+        .select('rol')
+        .eq('id', callerUserId)
+        .single();
+
+      if (!caller || caller.rol !== 'admin') {
+        console.warn(`[CREATE_INVITATION_CODE] Non-admin user ${callerUserId} attempted to create invitation code`);
+        return { success: false, error: "No autorizado - Se requiere rol de administrador" };
+      }
+    }
 
     const { error } = await supabase
       .from('invitation_codes')
@@ -859,11 +874,25 @@ export async function createInvitationCode(
 }
 
 /**
- * Delete an invitation code from Supabase
+ * Delete an invitation code from Supabase (admin only)
  */
-export async function deleteInvitationCodeFromDB(code: string) {
+export async function deleteInvitationCodeFromDB(code: string, callerUserId?: string) {
   try {
     const supabase = createSupabaseAdmin();
+
+    // SECURITY CHECK: Verify caller is admin before allowing code deletion
+    if (callerUserId) {
+      const { data: caller } = await supabase
+        .from('users')
+        .select('rol')
+        .eq('id', callerUserId)
+        .single();
+
+      if (!caller || caller.rol !== 'admin') {
+        console.warn(`[DELETE_INVITATION_CODE] Non-admin user ${callerUserId} attempted to delete invitation code`);
+        return { success: false, error: "No autorizado - Se requiere rol de administrador" };
+      }
+    }
 
     const { error } = await supabase
       .from('invitation_codes')

@@ -615,7 +615,40 @@ export function generateSmartDailyPlan(
             const targetCalories = goals.calories * target.ratio;
 
             // Select a random recipe for this meal type
-            const possibleRecipes = allRecipesPool.filter(r => r.mealTypes.includes(target.type as MealType));
+            // First filter by meal type
+            let possibleRecipes = allRecipesPool.filter(r => r.mealTypes.includes(target.type as MealType));
+
+            // Filter by medical flags based on patient pathologies
+            if (preferences?.pathologies && preferences.pathologies.length > 0) {
+                const pathologies = preferences.pathologies.map(p => p.toLowerCase());
+
+                // Hipertensión: Evitar recetas altas en sodio
+                if (pathologies.some(p => p.includes('hipertension') || p.includes('renal'))) {
+                    const before = possibleRecipes.length;
+                    possibleRecipes = possibleRecipes.filter(r => !r.highSodium);
+                    if (before !== possibleRecipes.length) {
+                        safetyWarnings.push(`🧂 Hipertensión: ${before - possibleRecipes.length} recetas altas en sodio excluidas.`);
+                    }
+                }
+
+                // Dislipidemia/Obesidad: Evitar recetas altas en grasa
+                if (pathologies.some(p => p.includes('dislipidemia') || p.includes('obesidad') || p.includes('cardiovascular'))) {
+                    const before = possibleRecipes.length;
+                    possibleRecipes = possibleRecipes.filter(r => !r.highFat);
+                    if (before !== possibleRecipes.length) {
+                        safetyWarnings.push(`🍳 Cardiovascular: ${before - possibleRecipes.length} recetas altas en grasa excluidas.`);
+                    }
+                }
+
+                // Gota: Evitar recetas altas en purinas
+                if (pathologies.some(p => p.includes('gota') || p.includes('hiperuricemia'))) {
+                    const before = possibleRecipes.length;
+                    possibleRecipes = possibleRecipes.filter(r => !r.highPurine);
+                    if (before !== possibleRecipes.length) {
+                        safetyWarnings.push(`🦴 Gota: ${before - possibleRecipes.length} recetas altas en purinas excluidas.`);
+                    }
+                }
+            }
 
             let recipe = getRandom(possibleRecipes);
 

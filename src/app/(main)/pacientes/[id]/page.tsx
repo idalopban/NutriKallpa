@@ -40,7 +40,10 @@ import {
 } from "@/lib/calculos-nutricionales";
 import { calculateChronologicalAge, calculateExactAgeInDays, calculateDetailedAge } from "@/lib/clinical-calculations";
 import { calculateZScore } from "@/lib/growth-standards";
+
 import { type PatientDataPoint } from "@/components/pediatrics/PediatricGrowthChart";
+import { BodyCompositionHistoryChart, BodyCompositionRecord } from "@/components/antropometria/BodyCompositionHistoryChart";
+import { calculateFiveComponentFractionation, FiveComponentInput } from "@/lib/fiveComponentMath";
 
 export default function DetallePacientePage() {
     const params = useParams();
@@ -778,89 +781,153 @@ export default function DetallePacientePage() {
                                                         </CardContent>
                                                     </Card>
                                                 )}
+                                                {/* ================================================================================== */}
+                                                {/* ANTROPOMETRÍA TAB */}
+                                                {/* ================================================================================== */}
+                                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-                                                {/* Historial de Evaluaciones */}
-                                                <Card className="border-slate-100 dark:border-slate-700 shadow-sm rounded-xl bg-white dark:bg-slate-800">
-                                                    <CardHeader className="pb-3">
-                                                        <div className="flex items-center justify-between">
-                                                            <CardTitle className="flex items-center gap-2 text-lg text-slate-800 dark:text-slate-100">
-                                                                <History className="w-5 h-5 text-slate-400" />
-                                                                Historial de Evaluaciones
-                                                            </CardTitle>
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="gap-2 text-xs"
-                                                                onClick={() => router.push(`/antropometria?id=${paciente.id}`)}
-                                                            >
-                                                                <Activity className="w-3 h-3" /> Nueva Evaluación
-                                                            </Button>
+                                                    {/* History Chart (P2) */}
+                                                    {medidas.length > 1 && (
+                                                        <div className="mb-6">
+                                                            <BodyCompositionHistoryChart
+                                                                data={medidas
+                                                                    .map(m => {
+                                                                        try {
+                                                                            // Note: This assumes complete ISAK measurements are available
+                                                                            const input: FiveComponentInput = {
+                                                                                // Basic data
+                                                                                gender: paciente.datosPersonales.sexo === 'masculino' ? 'male' : 'female',
+                                                                                weight: m.peso || 0,
+                                                                                height: m.talla || 0,
+                                                                                age: new Date().getFullYear() - new Date(paciente.datosPersonales.fechaNacimiento).getFullYear(),
+
+                                                                                // Skinfolds
+                                                                                triceps: getAnthroNumber(m.pliegues?.triceps),
+                                                                                subscapular: getAnthroNumber(m.pliegues?.subscapular),
+                                                                                biceps: getAnthroNumber(m.pliegues?.biceps),
+                                                                                suprailiac: getAnthroNumber(m.pliegues?.supraspinale), // Map supraspinale to suprailiac field per Interface
+                                                                                abdominal: getAnthroNumber(m.pliegues?.abdominal),
+                                                                                thigh: getAnthroNumber(m.pliegues?.thigh),
+                                                                                calf: getAnthroNumber(m.pliegues?.calf),
+
+                                                                                // Girths
+                                                                                armRelaxedGirth: getAnthroNumber(m.perimetros?.brazoRelajado),
+                                                                                armFlexedGirth: getAnthroNumber(m.perimetros?.brazoFlex),
+                                                                                waistGirth: getAnthroNumber(m.perimetros?.cintura),
+                                                                                thighGirth: getAnthroNumber(m.perimetros?.musloMedio),
+                                                                                calfGirth: getAnthroNumber(m.perimetros?.pantorrilla),
+
+                                                                                // Breadths
+                                                                                humerusBreadth: getAnthroNumber(m.diametros?.humero),
+                                                                                femurBreadth: getAnthroNumber(m.diametros?.femur)
+                                                                            };
+
+                                                                            const result = calculateFiveComponentFractionation(input);
+
+                                                                            return {
+                                                                                date: new Date(m.fecha).toISOString(),
+                                                                                weight: m.peso || 0,
+                                                                                skin: result.skin.kg,
+                                                                                adipose: result.adipose.kg,
+                                                                                muscle: result.muscle.kg,
+                                                                                bone: result.bone.kg,
+                                                                                residual: result.residual.kg
+                                                                            } as BodyCompositionRecord;
+                                                                        } catch (e) {
+                                                                            return null;
+                                                                        }
+                                                                    })
+                                                                    .filter((rec): rec is BodyCompositionRecord => rec !== null)
+                                                                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                                                                }
+                                                                showPercentages={true}
+                                                            />
                                                         </div>
-                                                    </CardHeader>
-                                                    <CardContent>
-                                                        <div className="space-y-2">
-                                                            {medidas.map((medida, index) => (
-                                                                <div
-                                                                    key={medida.id || index}
-                                                                    className={`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer ${selectedEvaluationIndex === index
-                                                                        ? 'bg-[#6cba00]/10 border-[#6cba00] ring-2 ring-[#6cba00]/20'
-                                                                        : index === 0
-                                                                            ? 'bg-[#6cba00]/5 border-[#6cba00]/20 hover:bg-[#6cba00]/10'
-                                                                            : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                                                                        }`}
-                                                                    onClick={() => setSelectedEvaluationIndex(index)}
+                                                    )}
+
+                                                    {/* Historial de Evaluaciones */}
+                                                    <Card className="border-slate-100 dark:border-slate-700 shadow-sm rounded-xl bg-white dark:bg-slate-800">
+                                                        <CardHeader className="pb-3">
+                                                            <div className="flex items-center justify-between">
+                                                                <CardTitle className="flex items-center gap-2 text-lg text-slate-800 dark:text-slate-100">
+                                                                    <History className="w-5 h-5 text-slate-400" />
+                                                                    Historial de Evaluaciones
+                                                                </CardTitle>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="gap-2 text-xs"
+                                                                    onClick={() => router.push(`/antropometria?id=${paciente.id}`)}
                                                                 >
-                                                                    <div className="flex items-center gap-4">
-                                                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${selectedEvaluationIndex === index
-                                                                            ? 'bg-[#6cba00] text-white'
+                                                                    <Activity className="w-3 h-3" /> Nueva Evaluación
+                                                                </Button>
+                                                            </div>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <div className="space-y-2">
+                                                                {medidas.map((medida, index) => (
+                                                                    <div
+                                                                        key={medida.id || index}
+                                                                        className={`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer ${selectedEvaluationIndex === index
+                                                                            ? 'bg-[#6cba00]/10 border-[#6cba00] ring-2 ring-[#6cba00]/20'
                                                                             : index === 0
-                                                                                ? 'bg-[#6cba00]/10 text-[#6cba00]'
-                                                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
-                                                                            }`}>
-                                                                            <Scale className="w-4 h-4" />
+                                                                                ? 'bg-[#6cba00]/5 border-[#6cba00]/20 hover:bg-[#6cba00]/10'
+                                                                                : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                                                                            }`}
+                                                                        onClick={() => setSelectedEvaluationIndex(index)}
+                                                                    >
+                                                                        <div className="flex items-center gap-4">
+                                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${selectedEvaluationIndex === index
+                                                                                ? 'bg-[#6cba00] text-white'
+                                                                                : index === 0
+                                                                                    ? 'bg-[#6cba00]/10 text-[#6cba00]'
+                                                                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                                                                                }`}>
+                                                                                <Scale className="w-4 h-4" />
+                                                                            </div>
+                                                                            <div>
+                                                                                <p className="text-sm font-semibold text-slate-800 dark:text-white">
+                                                                                    {medida.fecha ? new Date(medida.fecha).toLocaleDateString('es-PE', {
+                                                                                        weekday: 'long',
+                                                                                        day: 'numeric',
+                                                                                        month: 'long',
+                                                                                        year: 'numeric'
+                                                                                    }) : 'Sin fecha'}
+                                                                                </p>
+                                                                                <p className="text-xs text-slate-500">
+                                                                                    {index === 0 ? 'Última evaluación' : `Evaluación #${medidas.length - index}`}
+                                                                                    {selectedEvaluationIndex === index && <span className="ml-2 text-[#6cba00] font-medium">• Seleccionada</span>}
+                                                                                </p>
+                                                                            </div>
                                                                         </div>
-                                                                        <div>
-                                                                            <p className="text-sm font-semibold text-slate-800 dark:text-white">
-                                                                                {medida.fecha ? new Date(medida.fecha).toLocaleDateString('es-PE', {
-                                                                                    weekday: 'long',
-                                                                                    day: 'numeric',
-                                                                                    month: 'long',
-                                                                                    year: 'numeric'
-                                                                                }) : 'Sin fecha'}
-                                                                            </p>
-                                                                            <p className="text-xs text-slate-500">
-                                                                                {index === 0 ? 'Última evaluación' : `Evaluación #${medidas.length - index}`}
-                                                                                {selectedEvaluationIndex === index && <span className="ml-2 text-[#6cba00] font-medium">• Seleccionada</span>}
-                                                                            </p>
+                                                                        <div className="flex items-center gap-6 text-sm">
+                                                                            <div className="text-right">
+                                                                                <p className="font-semibold text-slate-800 dark:text-white">{medida.peso || 0} kg</p>
+                                                                                <p className="text-xs text-slate-400">Peso</p>
+                                                                            </div>
+                                                                            <div className="text-right">
+                                                                                <p className={`font-semibold ${getImcColor(medida.imc || 0)}`}>{(medida.imc || 0).toFixed(1)}</p>
+                                                                                <p className="text-xs text-slate-400">IMC</p>
+                                                                            </div>
+                                                                            <ChevronRight className={`w-4 h-4 transition-colors ${selectedEvaluationIndex === index ? 'text-[#6cba00]' : 'text-slate-300'}`} />
                                                                         </div>
                                                                     </div>
-                                                                    <div className="flex items-center gap-6 text-sm">
-                                                                        <div className="text-right">
-                                                                            <p className="font-semibold text-slate-800 dark:text-white">{medida.peso || 0} kg</p>
-                                                                            <p className="text-xs text-slate-400">Peso</p>
-                                                                        </div>
-                                                                        <div className="text-right">
-                                                                            <p className={`font-semibold ${getImcColor(medida.imc || 0)}`}>{(medida.imc || 0).toFixed(1)}</p>
-                                                                            <p className="text-xs text-slate-400">IMC</p>
-                                                                        </div>
-                                                                        <ChevronRight className={`w-4 h-4 transition-colors ${selectedEvaluationIndex === index ? 'text-[#6cba00]' : 'text-slate-300'}`} />
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
+                                                                ))}
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
 
-                                                {/* Action Button */}
-                                                <div className="flex flex-col items-center gap-4 py-6">
-                                                    <Button
-                                                        size="lg"
-                                                        className="gap-3 bg-[#6cba00] hover:bg-[#5aa300] text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-green-500/20"
-                                                        onClick={() => router.push(`/antropometria?id=${paciente.id}`)}
-                                                    >
-                                                        <Activity className="w-5 h-5" />
-                                                        Nueva Evaluación Antropométrica
-                                                    </Button>
+                                                    {/* Action Button */}
+                                                    <div className="flex flex-col items-center gap-4 py-6">
+                                                        <Button
+                                                            size="lg"
+                                                            className="gap-3 bg-[#6cba00] hover:bg-[#5aa300] text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-green-500/20"
+                                                            onClick={() => router.push(`/antropometria?id=${paciente.id}`)}
+                                                        >
+                                                            <Activity className="w-5 h-5" />
+                                                            Nueva Evaluación Antropométrica
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
@@ -883,6 +950,7 @@ export default function DetallePacientePage() {
                                                 Registrar Primera Evaluación
                                             </Button>
                                         </div>
+
                                     );
                                 })()}
                             </TabsContent>
@@ -1154,14 +1222,16 @@ export default function DetallePacientePage() {
                                                         </div>
                                                     </CardContent>
                                                 </Card>
+
                                             );
                                         })}
                                     </div>
-                                )}
-                            </TabsContent>
+                                )
+                                }
+                            </TabsContent >
 
                             {/* Avance */}
-                            <TabsContent value="avance" className="mt-6 focus-visible:outline-none">
+                            < TabsContent value="avance" className="mt-6 focus-visible:outline-none" >
                                 <Card className="border-none shadow-none bg-transparent">
                                     <CardHeader className="px-0 pt-0">
                                         <CardTitle className="text-xl">Evolución del Paciente</CardTitle>
@@ -1171,12 +1241,12 @@ export default function DetallePacientePage() {
                                         <EvolutionSummary patientId={paciente.id} />
                                     </CardContent>
                                 </Card>
-                            </TabsContent>
+                            </TabsContent >
 
-                        </Tabs>
-                    </div>
-                </main>
-            </div>
-        </div>
+                        </Tabs >
+                    </div >
+                </main >
+            </div >
+        </div >
     );
 }

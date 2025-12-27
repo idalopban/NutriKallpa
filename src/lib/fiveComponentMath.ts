@@ -53,7 +53,8 @@ const PHANTOM = {
         biacromial: { p: 38.04, s: 1.92 },    // Biacromial
         biiliocristal: { p: 28.84, s: 1.75 }, // Biiliocrestídeo
         chestTransverse: { p: 27.92, s: 1.74 }, // Tórax transverso
-        chestAP: { p: 17.50, s: 1.38 }        // Tórax antero-posterior
+        chestAP: { p: 17.50, s: 1.38 },       // Tórax antero-posterior
+        headCircumference: { p: 57.20, s: 1.52 } // Perímetro cefálico (adultos)
     },
 
     // Fractional Masses (kg) - Kerr reference values
@@ -138,6 +139,14 @@ export interface FiveComponentInput {
      */
     sittingHeight?: number;
 
+    /** 
+     * Head Circumference (Perímetro Cefálico) - cm
+     * Used for Residual Mass calculation in Kerr 5-Component model
+     * Provides more accurate estimation of bone + viscera mass
+     * Normal adult range: 52-60 cm (males), 51-58 cm (females)
+     */
+    headCircumference?: number;
+
     // Skinfolds (mm)
     triceps: number;
     subscapular: number;
@@ -215,6 +224,12 @@ export interface FiveComponentResult {
     };
     /** Indicates if residual mass was estimated (fallback) vs calculated from trunk measurements */
     residualIsEstimated?: boolean;
+    /** Obesity warning when skinfold sum is too high for reliable measurement */
+    obesityWarning?: {
+        skinfoldSum: number;
+        message: string;
+        alternativeFormulas: string[];
+    };
 }
 
 // ===========================================
@@ -555,6 +570,12 @@ function calculateResidualMass(
     // Try to calculate from trunk measurements if available
     const trunkZScores: (number | null)[] = [];
 
+    // PRIORITY 1: Head Circumference (most accurate for residual mass - bone + viscera)
+    if (data.headCircumference && data.headCircumference > 0) {
+        trunkZScores.push(calculateZScore(data.headCircumference, h, b.headCircumference.p, b.headCircumference.s));
+    }
+
+    // PRIORITY 2: Biacromial and Bi-iliocristal breadths
     if (data.biacromialBreadth && data.biacromialBreadth > 0) {
         trunkZScores.push(calculateZScore(data.biacromialBreadth, h, b.biacromial.p, b.biacromial.s));
     }
@@ -565,8 +586,8 @@ function calculateResidualMass(
     let meanZ: number;
     let isEstimated: boolean;
 
-    if (trunkZScores.filter(z => z !== null).length >= 2) {
-        // Use trunk measurements - precise calculation
+    if (trunkZScores.filter(z => z !== null).length >= 1) {
+        // Use trunk measurements - precise calculation (head circ alone is sufficient)
         meanZ = getMeanZScore(trunkZScores);
         isEstimated = false;
     } else {
@@ -632,6 +653,31 @@ export function calculateFiveComponentFractionation(data: FiveComponentInput): F
     // Approximate body density using Siri inverse: DC = 495 / (%GC + 450)
     const bodyDensity = fatPercent > 0 ? Math.round((495 / (fatPercent + 450)) * 10000) / 10000 : 1.0;
 
+    // Check for obesity (skinfold sum > 150mm)
+    const skinfoldSum = (data.triceps || 0) + (data.subscapular || 0) +
+        (data.biceps || 0) + (data.suprailiac || 0) +
+        (data.abdominal || 0) + (data.thigh || 0) + (data.calf || 0);
+
+    let obesityWarning: FiveComponentResult['obesityWarning'] = undefined;
+
+    if (skinfoldSum > 150) {
+        obesityWarning = {
+            skinfoldSum,
+            message: `⚠️ Suma de pliegues alta (${skinfoldSum}mm). En pacientes con alta adiposidad, la compresibilidad del panículo puede afectar la precisión.`,
+            alternativeFormulas: [
+                'Weltman (1988) - Ecuación específica para obesidad usando circunferencia abdominal',
+                'Peterson (2008) - 4 componentes con correlación con DXA para obesidad',
+                'Bioimpedancia (BIA) - Considerar método alternativo para validación'
+            ]
+        };
+    } else if (skinfoldSum > 120) {
+        obesityWarning = {
+            skinfoldSum,
+            message: `ℹ️ Suma de pliegues moderadamente alta (${skinfoldSum}mm). Verificar técnica de medición.`,
+            alternativeFormulas: []
+        };
+    }
+
     return {
         skin: {
             kg: Math.round(adjustedSkin * 10) / 10,
@@ -663,7 +709,8 @@ export function calculateFiveComponentFractionation(data: FiveComponentInput): F
             bone: Math.round(zBone * 100) / 100,
             residual: Math.round(zResidual * 100) / 100
         },
-        residualIsEstimated
+        residualIsEstimated,
+        obesityWarning
     };
 }
 

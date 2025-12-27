@@ -39,20 +39,34 @@ import {
   AlertCircle
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { calculateSiteTEM, needsThirdMeasurement, getFinalValue, TEM_COLORS, type MeasurementReplication } from "@/lib/tem-calculations"
 
-// --- Zod Schema (ISAK Level 3 Strict) ---
+// Skinfold sites for iteration
+const SKINFOLD_SITES = [
+  "triceps", "subscapular", "biceps", "iliac_crest",
+  "supraspinale", "abdominal", "thigh", "calf"
+] as const
+
+// --- Zod Schema (ISAK Level 3 Strict with TEM support) ---
+const skinfoldTakeSchema = z.object({
+  val1: z.number().min(0),
+  val2: z.number().min(0),
+  val3: z.number().min(0).optional(),
+}).optional()
+
 const medidasSchema = z.object({
   peso: z.number().min(1, "El peso es requerido"),
   talla: z.number().min(1, "La talla es requerida"),
+  headCircumference: z.number().min(0).optional(),
   pliegues: z.object({
-    triceps: z.number().min(0).optional(),
-    subscapular: z.number().min(0).optional(),
-    biceps: z.number().min(0).optional(),
-    iliac_crest: z.number().min(0).optional(),
-    supraspinale: z.number().min(0).optional(),
-    abdominal: z.number().min(0).optional(),
-    thigh: z.number().min(0).optional(),
-    calf: z.number().min(0).optional(),
+    triceps: skinfoldTakeSchema,
+    subscapular: skinfoldTakeSchema,
+    biceps: skinfoldTakeSchema,
+    iliac_crest: skinfoldTakeSchema,
+    supraspinale: skinfoldTakeSchema,
+    abdominal: skinfoldTakeSchema,
+    thigh: skinfoldTakeSchema,
+    calf: skinfoldTakeSchema,
   }),
   perimetros: z.object({
     brazoFlex: z.number().min(0).optional(),
@@ -67,6 +81,7 @@ const medidasSchema = z.object({
     biacromial: z.number().min(0).optional(),
     biiliocristal: z.number().min(0).optional(),
   }),
+  observaciones: z.string().optional(),
 })
 
 type MedidasFormValues = z.infer<typeof medidasSchema>
@@ -111,13 +126,33 @@ export function FormularioMedidas({ paciente, onSuccess }: FormularioMedidasProp
     defaultValues: {
       peso: paciente.datosPersonales.peso || 0,
       talla: paciente.datosPersonales.talla || 0,
-      pliegues: { triceps: 0, subscapular: 0, biceps: 0, iliac_crest: 0, supraspinale: 0, abdominal: 0, thigh: 0, calf: 0 },
+      headCircumference: 0,
+      pliegues: {
+        triceps: undefined,
+        subscapular: undefined,
+        biceps: undefined,
+        iliac_crest: undefined,
+        supraspinale: undefined,
+        abdominal: undefined,
+        thigh: undefined,
+        calf: undefined
+      },
       perimetros: { brazoFlex: 0, musloMedio: 0, pantorrilla: 0, cintura: 0, cadera: 0 },
       diametros: { humero: 0, femur: 0, biacromial: 0, biiliocristal: 0 },
+      observaciones: "",
     }
   })
 
   const valores = watch()
+
+  // Helper: Extract final value from skinfold take object
+  const getSkinfoldFinalValue = (take: { val1: number; val2: number; val3?: number } | undefined): number => {
+    if (!take || !take.val1 || !take.val2) return 0;
+    const values = take.val3 !== undefined && take.val3 > 0
+      ? [take.val1, take.val2, take.val3]
+      : [take.val1, take.val2];
+    return getFinalValue(values);
+  }
 
   // Efecto para cálculos en tiempo real
   useEffect(() => {
@@ -145,14 +180,14 @@ export function FormularioMedidas({ paciente, onSuccess }: FormularioMedidasProp
       peso: peso,
       talla: talla,
       pliegues: {
-        triceps: Number(valores.pliegues?.triceps || 0),
-        subscapular: Number(valores.pliegues?.subscapular || 0),
-        biceps: Number(valores.pliegues?.biceps || 0),
-        iliac_crest: Number(valores.pliegues?.iliac_crest || 0),
-        supraspinale: Number(valores.pliegues?.supraspinale || 0),
-        abdominal: Number(valores.pliegues?.abdominal || 0),
-        thigh: Number(valores.pliegues?.thigh || 0),
-        calf: Number(valores.pliegues?.calf || 0),
+        triceps: getSkinfoldFinalValue(valores.pliegues?.triceps),
+        subscapular: getSkinfoldFinalValue(valores.pliegues?.subscapular),
+        biceps: getSkinfoldFinalValue(valores.pliegues?.biceps),
+        iliac_crest: getSkinfoldFinalValue(valores.pliegues?.iliac_crest),
+        supraspinale: getSkinfoldFinalValue(valores.pliegues?.supraspinale),
+        abdominal: getSkinfoldFinalValue(valores.pliegues?.abdominal),
+        thigh: getSkinfoldFinalValue(valores.pliegues?.thigh),
+        calf: getSkinfoldFinalValue(valores.pliegues?.calf),
       },
       perimetros: {
         brazoFlex: Number(valores.perimetros?.brazoFlex || 0),
@@ -218,15 +253,58 @@ export function FormularioMedidas({ paciente, onSuccess }: FormularioMedidasProp
         tipoPaciente: tipoPaciente,
         peso: data.peso,
         talla: data.talla,
+        headCircumference: data.headCircumference,
+        observaciones: data.observaciones,
         pliegues: {
-          triceps: Number(data.pliegues?.triceps || 0),
-          subscapular: Number(data.pliegues?.subscapular || 0),
-          biceps: Number(data.pliegues?.biceps || 0),
-          iliac_crest: Number(data.pliegues?.iliac_crest || 0),
-          supraspinale: Number(data.pliegues?.supraspinale || 0),
-          abdominal: Number(data.pliegues?.abdominal || 0),
-          thigh: Number(data.pliegues?.thigh || 0),
-          calf: Number(data.pliegues?.calf || 0),
+          // Transform TEM objects to ISAKValue format
+          triceps: data.pliegues?.triceps ? {
+            val1: data.pliegues.triceps.val1,
+            val2: data.pliegues.triceps.val2,
+            val3: data.pliegues.triceps.val3,
+            final: getSkinfoldFinalValue(data.pliegues.triceps)
+          } : undefined,
+          subscapular: data.pliegues?.subscapular ? {
+            val1: data.pliegues.subscapular.val1,
+            val2: data.pliegues.subscapular.val2,
+            val3: data.pliegues.subscapular.val3,
+            final: getSkinfoldFinalValue(data.pliegues.subscapular)
+          } : undefined,
+          biceps: data.pliegues?.biceps ? {
+            val1: data.pliegues.biceps.val1,
+            val2: data.pliegues.biceps.val2,
+            val3: data.pliegues.biceps.val3,
+            final: getSkinfoldFinalValue(data.pliegues.biceps)
+          } : undefined,
+          iliac_crest: data.pliegues?.iliac_crest ? {
+            val1: data.pliegues.iliac_crest.val1,
+            val2: data.pliegues.iliac_crest.val2,
+            val3: data.pliegues.iliac_crest.val3,
+            final: getSkinfoldFinalValue(data.pliegues.iliac_crest)
+          } : undefined,
+          supraspinale: data.pliegues?.supraspinale ? {
+            val1: data.pliegues.supraspinale.val1,
+            val2: data.pliegues.supraspinale.val2,
+            val3: data.pliegues.supraspinale.val3,
+            final: getSkinfoldFinalValue(data.pliegues.supraspinale)
+          } : undefined,
+          abdominal: data.pliegues?.abdominal ? {
+            val1: data.pliegues.abdominal.val1,
+            val2: data.pliegues.abdominal.val2,
+            val3: data.pliegues.abdominal.val3,
+            final: getSkinfoldFinalValue(data.pliegues.abdominal)
+          } : undefined,
+          thigh: data.pliegues?.thigh ? {
+            val1: data.pliegues.thigh.val1,
+            val2: data.pliegues.thigh.val2,
+            val3: data.pliegues.thigh.val3,
+            final: getSkinfoldFinalValue(data.pliegues.thigh)
+          } : undefined,
+          calf: data.pliegues?.calf ? {
+            val1: data.pliegues.calf.val1,
+            val2: data.pliegues.calf.val2,
+            val3: data.pliegues.calf.val3,
+            final: getSkinfoldFinalValue(data.pliegues.calf)
+          } : undefined,
         },
         perimetros: {
           brazoFlex: Number(data.perimetros?.brazoFlex || 0),
@@ -286,8 +364,9 @@ export function FormularioMedidas({ paciente, onSuccess }: FormularioMedidasProp
     const requisitos = getRequisitosFormula(tipoPaciente, paciente.datosPersonales.sexo || "otro");
 
     const esRequerido = requisitos.includes(pliegue);
-    // @ts-ignore
-    const tieneValor = (valores.pliegues?.[pliegue] || 0) > 0;
+    // @ts-ignore - Check if TEM object has val1 and val2
+    const take = valores.pliegues?.[pliegue];
+    const tieneValor = take && take.val1 > 0 && take.val2 > 0;
     return { esRequerido, tieneValor };
   }
 
@@ -392,7 +471,7 @@ export function FormularioMedidas({ paciente, onSuccess }: FormularioMedidasProp
             </section>
           </div>
 
-          {/* 2. Skinfolds (Collapsible) */}
+          {/* 2. Skinfolds (Collapsible) - TEM-Enabled */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
             <div
               className="p-4 flex items-center justify-between bg-slate-50/50 border-b border-slate-100 cursor-pointer hover:bg-slate-100/50 transition-colors"
@@ -400,56 +479,150 @@ export function FormularioMedidas({ paciente, onSuccess }: FormularioMedidasProp
             >
               <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2">
                 <Activity className="w-4 h-4 text-blue-600" />
-                Pliegues Cutáneos (mm)
+                Pliegues Cutáneos (mm) - Protocolo ISAK
               </h3>
               <Button variant="ghost" size="sm" className="w-8 h-8 p-0">
                 {openSections.pliegues ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </Button>
             </div>
             {openSections.pliegues && (
-              <div className="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 animate-in slide-in-from-top-2 duration-300">
-                {[
-                  "triceps", "subscapular", "biceps", "iliac_crest", "supraspinale",
-                  "abdominal", "thigh", "calf"
-                ].map((name) => {
+              <div className="p-6 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                {SKINFOLD_SITES.map((name) => {
                   const { esRequerido, tieneValor } = checkRequisito(name);
+
+                  // Get current values from form
+                  const val1 = watch(`pliegues.${name}.val1`) || 0;
+                  const val2 = watch(`pliegues.${name}.val2`) || 0;
+                  const val3 = watch(`pliegues.${name}.val3`);
+
+                  // Calculate TEM if we have at least 2 measurements
+                  const hasMeasurements = val1 > 0 && val2 > 0;
+                  const needsThird = hasMeasurements && needsThirdMeasurement(val1, val2, name);
+
+                  let temResult = null;
+                  if (hasMeasurements) {
+                    const values = val3 !== undefined && val3 > 0
+                      ? [val1, val2, val3]
+                      : [val1, val2];
+
+                    const replication: MeasurementReplication = {
+                      values,
+                      site: name,
+                      unit: 'mm'
+                    };
+                    temResult = calculateSiteTEM(replication);
+                  }
+
+                  const finalValue = hasMeasurements ? getFinalValue(val3 !== undefined && val3 > 0 ? [val1, val2, val3] : [val1, val2]) : 0;
+
                   return (
-                    <div key={name} className="space-y-2 group">
-                      <Label htmlFor={`pliegues.${name}`} className={cn(
-                        "text-xs font-medium flex items-center gap-1 transition-colors truncate",
-                        esRequerido ? "text-blue-700" : "text-slate-500 group-hover:text-slate-700"
+                    <div
+                      key={name}
+                      className={cn(
+                        "border rounded-lg overflow-hidden transition-all duration-200",
+                        esRequerido && !finalValue
+                          ? "border-blue-300 bg-blue-50/30"
+                          : "border-slate-200 bg-white"
+                      )}
+                    >
+                      {/* Header */}
+                      <div className={cn(
+                        "px-4 py-2 flex items-center justify-between",
+                        esRequerido ? "bg-blue-100/50" : "bg-slate-50"
                       )}>
-                        {getLabelPliegue(name)}
-                        {esRequerido && <span className="text-blue-500 text-[10px]">*</span>}
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          id={`pliegues.${name}`}
-                          type="number"
-                          step="0.5"
-                          placeholder="0"
-                          className={cn(
-                            "h-10 text-center font-medium transition-all duration-200",
-                            esRequerido && !tieneValor
-                              ? "border-blue-200 bg-blue-50/50 focus:border-blue-500 focus:ring-blue-500/20"
-                              : "border-slate-200 focus:border-slate-400 focus:ring-slate-200",
-                            tieneValor && "bg-white border-slate-300 shadow-sm"
-                          )}
-                          {...register(`pliegues.${name}` as any, { valueAsNumber: true })}
-                        />
-                        {esRequerido && tieneValor && (
-                          <div className="absolute -right-1 -top-1 bg-white rounded-full p-0.5 shadow-sm">
-                            <CheckCircle2 className="w-3 h-3 text-green-500" />
+                        <Label className={cn(
+                          "text-sm font-semibold flex items-center gap-2",
+                          esRequerido ? "text-blue-700" : "text-slate-700"
+                        )}>
+                          {getLabelPliegue(name)}
+                          {esRequerido && <span className="text-blue-500 text-xs">* Requerido</span>}
+                        </Label>
+
+                        {/* TEM Badge */}
+                        {temResult && (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-xs font-semibold",
+                              temResult.reliability === 'excellent' && "bg-green-100 text-green-700 border-green-300",
+                              temResult.reliability === 'acceptable' && "bg-yellow-100 text-yellow-700 border-yellow-300",
+                              temResult.reliability === 'poor' && "bg-red-100 text-red-700 border-red-300"
+                            )}
+                          >
+                            TEM: {temResult.temPercent.toFixed(1)}% {temResult.isReliable ? '✅' : '⚠️'}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Measurement Inputs */}
+                      <div className="p-4 space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Take 1 */}
+                          <div>
+                            <label className="text-xs text-slate-500 font-medium mb-1 block">Toma 1 *</label>
+                            <Input
+                              type="number"
+                              step="0.5"
+                              placeholder="0.0"
+                              className="h-9 text-center font-medium"
+                              {...register(`pliegues.${name}.val1`, { valueAsNumber: true })}
+                            />
+                          </div>
+
+                          {/* Take 2 */}
+                          <div>
+                            <label className="text-xs text-slate-500 font-medium mb-1 block">Toma 2 *</label>
+                            <Input
+                              type="number"
+                              step="0.5"
+                              placeholder="0.0"
+                              className="h-9 text-center font-medium"
+                              {...register(`pliegues.${name}.val2`, { valueAsNumber: true })}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Take 3 (Conditional) */}
+                        {(needsThird || (val3 !== undefined && val3 > 0)) && (
+                          <div className="border-t pt-3">
+                            <label className="text-xs text-amber-600 font-semibold mb-1 block flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              Toma 3 (Desempate - Diferencia \u003e5%)
+                            </label>
+                            <Input
+                              type="number"
+                              step="0.5"
+                              placeholder="0.0"
+                              className="h-9 text-center font-medium border-amber-300 focus:border-amber-500"
+                              {...register(`pliegues.${name}.val3`, { valueAsNumber: true })}
+                            />
                           </div>
                         )}
-                        {esRequerido && !tieneValor && (
-                          <div className="absolute -right-1 -top-1 bg-white rounded-full p-0.5 shadow-sm animate-pulse">
-                            <AlertCircle className="w-3 h-3 text-blue-400" />
+
+                        {/* TEM Results Panel */}
+                        {temResult && (
+                          <div className={cn(
+                            "rounded-md p-3 text-xs space-y-2",
+                            temResult.reliability === 'excellent' && "bg-green-50 border border-green-200",
+                            temResult.reliability === 'acceptable' && "bg-yellow-50 border border-yellow-200",
+                            temResult.reliability === 'poor' && "bg-red-50 border border-red-200"
+                          )}>
+                            <div className="flex items-center justify-between font-semibold">
+                              <span>Valor Final (Mediana):</span>
+                              <span className="text-base">{finalValue.toFixed(1)} mm</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span>Error Abs (TEM):</span>
+                              <span className="font-medium">{temResult.tem.toFixed(2)} mm</span>
+                            </div>
+                            <div className="text-[10px] pt-1 border-t border-current/20">
+                              {temResult.message}
+                            </div>
                           </div>
                         )}
                       </div>
                     </div>
-                  )
+                  );
                 })}
               </div>
             )}
@@ -508,22 +681,39 @@ export function FormularioMedidas({ paciente, onSuccess }: FormularioMedidasProp
                 </Button>
               </div>
               {openSections.diametros && (
-                <div className="p-5 grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
-                  {[
-                    { name: "humero", label: "Húmero" },
-                    { name: "femur", label: "Fémur" },
-                    { name: "biacromial", label: "Biacromial" },
-                    { name: "biiliocristal", label: "Bi-iliocristal" },
-                  ].map((field) => (
-                    <div key={field.name} className="space-y-1 group">
-                      <Label className="text-[10px] text-slate-500 group-hover:text-slate-900 transition-colors uppercase tracking-wider truncate" title={field.label}>{field.label}</Label>
+                <div className="p-5 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { name: "humero", label: "Húmero" },
+                      { name: "femur", label: "Fémur" },
+                      { name: "biacromial", label: "Biacromial" },
+                      { name: "biiliocristal", label: "Bi-iliocristal" },
+                    ].map((field) => (
+                      <div key={field.name} className="space-y-1 group">
+                        <Label className="text-[10px] text-slate-500 group-hover:text-slate-900 transition-colors uppercase tracking-wider truncate" title={field.label}>{field.label}</Label>
+                        <Input
+                          type="number" step="0.1"
+                          className="w-full h-9 text-center font-medium border-slate-200 focus:border-purple-500 focus:ring-purple-500/20"
+                          {...register(`diametros.${field.name}` as any, { valueAsNumber: true })}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  {/* Head Circumference - Kerr 5C Enhancement */}
+                  <div className="pt-2 border-t border-slate-100">
+                    <div className="space-y-1 group">
+                      <Label className="text-[10px] text-purple-600 group-hover:text-purple-800 transition-colors uppercase tracking-wider flex items-center gap-1">
+                        Perímetro Cefálico
+                        <span className="text-[9px] text-purple-400 font-normal">(Kerr 5C)</span>
+                      </Label>
                       <Input
-                        type="number" step="0.1"
-                        className="w-full h-9 text-center font-medium border-slate-200 focus:border-purple-500 focus:ring-purple-500/20"
-                        {...register(`diametros.${field.name}` as any, { valueAsNumber: true })}
+                        type="number" step="0.1" placeholder="Opcional"
+                        className="w-full h-9 text-center font-medium border-purple-200 bg-purple-50/30 focus:border-purple-500 focus:ring-purple-500/20"
+                        {...register("headCircumference", { valueAsNumber: true })}
                       />
+                      <p className="text-[9px] text-slate-400 mt-0.5">Mejora precisión masa residual</p>
                     </div>
-                  ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -591,6 +781,22 @@ export function FormularioMedidas({ paciente, onSuccess }: FormularioMedidasProp
 
               </CardContent>
             </Card>
+
+            {/* Clinical Observations */}
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+              <Label className="text-xs font-medium text-slate-700 mb-2 block">
+                Observaciones Clínicas (Opcional)
+              </Label>
+              <textarea
+                {...register("observaciones")}
+                placeholder="Ej: Marca de nacimiento en tríceps izquierdo, medido en derecho..."
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                rows={3}
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                Anota cualquier detalle relevante sobre las mediciones
+              </p>
+            </div>
 
             {/* Save Button */}
             <Button

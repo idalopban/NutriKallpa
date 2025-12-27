@@ -192,6 +192,44 @@ export function FiveComponentPanel({ data }: FiveComponentPanelProps) {
                             )}
                         </div>
 
+                        {/* Obesity Warning (P3) */}
+                        {result.obesityWarning && (
+                            <div className={`p-3 rounded-xl border ${result.obesityWarning.alternativeFormulas.length > 0
+                                    ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
+                                    : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                                }`}>
+                                <div className="flex items-start gap-2">
+                                    <AlertCircle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${result.obesityWarning.alternativeFormulas.length > 0
+                                            ? 'text-amber-500'
+                                            : 'text-blue-500'
+                                        }`} />
+                                    <div className="space-y-2">
+                                        <p className={`text-xs ${result.obesityWarning.alternativeFormulas.length > 0
+                                                ? 'text-amber-700 dark:text-amber-300'
+                                                : 'text-blue-700 dark:text-blue-300'
+                                            }`}>
+                                            {result.obesityWarning.message}
+                                        </p>
+                                        {result.obesityWarning.alternativeFormulas.length > 0 && (
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                                                    Fórmulas alternativas recomendadas:
+                                                </p>
+                                                <ul className="text-[10px] text-amber-600 dark:text-amber-400 space-y-0.5">
+                                                    {result.obesityWarning.alternativeFormulas.map((formula, idx) => (
+                                                        <li key={idx} className="flex items-start gap-1">
+                                                            <span>•</span>
+                                                            <span>{formula}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Metodología */}
                         <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
                             <div className="flex items-start gap-2">

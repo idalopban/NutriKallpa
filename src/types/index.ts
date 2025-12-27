@@ -324,6 +324,8 @@ export interface MedidasAntropometricas {
   talla: number;
   /** Talla Sentado (Sitting Height) - Para Índice Córmico */
   tallaSentado?: number;
+  /** Perímetro Cefálico (Head Circumference) - Para Masa Residual en Kerr 5C */
+  headCircumference?: number;
 
   // Detailed measurements
   pliegues?: PlieguesCutaneos;
@@ -342,6 +344,9 @@ export interface MedidasAntropometricas {
     meetsISAKStandard: boolean;
     sitesNeedingRemeasurement?: string[];
   };
+
+  // Clinical notes
+  observaciones?: string;  // Clinical observations about the evaluation
 
   // Metadata
   edad: number;

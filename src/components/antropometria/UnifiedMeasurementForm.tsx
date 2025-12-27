@@ -50,9 +50,12 @@ export interface FullMeasurementData {
     breadths: BreadthData;
 }
 
+import { LoadLastMeasurementButton } from "./LoadLastMeasurementButton";
+
 interface UnifiedFormProps {
     data: FullMeasurementData;
     onUpdate: (data: Partial<FullMeasurementData>) => void;
+    patientId?: string | null;
 }
 
 // Accordion Section Component
@@ -265,7 +268,7 @@ function InputField({
     );
 }
 
-export function UnifiedMeasurementForm({ data, onUpdate }: UnifiedFormProps) {
+export function UnifiedMeasurementForm({ data, onUpdate, patientId }: UnifiedFormProps) {
     const [openSection, setOpenSection] = useState<string>('bioData');
 
     const toggleSection = (section: string) => {
@@ -275,12 +278,60 @@ export function UnifiedMeasurementForm({ data, onUpdate }: UnifiedFormProps) {
     const skinfoldSum = Object.values(data.skinfolds).reduce((a, b) => a + b, 0);
     const skinfoldCount = Object.values(data.skinfolds).filter(v => v > 0).length;
 
+    const handleMeasurementLoaded = (values: Record<string, number | undefined>, record: any) => {
+        const newData = { ...data };
+
+        // Update BioData
+        if (values.peso) newData.bioData.peso = values.peso;
+        if (values.talla) newData.bioData.talla = values.talla;
+
+        // Update Skinfolds
+        newData.skinfolds = {
+            triceps: values.triceps || 0,
+            subscapular: values.subescapular || 0,
+            biceps: values.biceps || 0,
+            iliac_crest: values.crestaIliaca || 0,
+            supraspinale: values.supraespinal || 0,
+            abdominal: values.abdominal || 0,
+            thigh: values.musloFrontal || 0,
+            calf: values.pantorrillaMedial || 0
+        };
+
+        // Update Girths
+        newData.girths = {
+            brazoRelajado: values.brazoRelajado || 0,
+            brazoFlexionado: values.brazoFlexionado || 0,
+            cintura: values.cintura || 0,
+            musloMedio: values.musloMedio || 0,
+            pantorrilla: values.pantorrillaMaxima || 0
+        };
+
+        // Update Breadths
+        newData.breadths = {
+            humero: values.humero || 0,
+            femur: values.femur || 0
+        };
+
+        onUpdate(newData);
+    };
+
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-100 dark:border-slate-800 overflow-hidden">
             {/* Header */}
-            <div className="px-4 py-3 bg-gradient-to-r from-[#ff8508]/10 to-transparent border-b border-slate-100 dark:border-slate-800">
-                <h3 className="font-bold text-slate-800 dark:text-white text-sm">Datos de Evaluación</h3>
-                <p className="text-[11px] text-slate-500">Ingresa las medidas antropométricas</p>
+            <div className="px-4 py-3 bg-gradient-to-r from-[#ff8508]/10 to-transparent border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <div>
+                    <h3 className="font-bold text-slate-800 dark:text-white text-sm">Datos de Evaluación</h3>
+                    <p className="text-[11px] text-slate-500">Ingresa las medidas antropométricas</p>
+                </div>
+                {patientId && (
+                    <LoadLastMeasurementButton
+                        patientId={patientId}
+                        onMeasurementLoaded={handleMeasurementLoaded}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-xs"
+                    />
+                )}
             </div>
 
             {/* Accordion Sections */}

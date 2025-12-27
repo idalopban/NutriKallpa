@@ -12,18 +12,25 @@ export type PreparationMethod = 'raw' | 'boiled' | 'grilled' | 'fried' | 'sautee
  * Factor represents the percentage of weight retained after cooking
  * e.g., 0.75 means 25% weight loss, final portion = raw weight * 0.75
  */
+/**
+ * Cooking factor represents the conversion from RAW to COOKED weight.
+ * - For meats/veggies: Loss (< 1.0) due to water evaporation.
+ * - For dry grains/pasta: Yield (> 1.0) due to water absorption.
+ */
 export const COOKING_LOSS_FACTORS: Record<PreparationMethod, Record<Category, number>> = {
     raw: { proteina: 1.0, carbohidrato: 1.0, grasa: 1.0, verdura: 1.0, fruta: 1.0, lacteo: 1.0, miscelaneo: 1.0 },
-    boiled: { proteina: 0.80, carbohidrato: 0.95, grasa: 0.90, verdura: 0.85, fruta: 1.0, lacteo: 1.0, miscelaneo: 1.0 },
+    // Boiled: Grains absorb water (x2.5), Meats lose water (x0.8)
+    boiled: { proteina: 0.80, carbohidrato: 2.5, grasa: 0.90, verdura: 0.85, fruta: 1.0, lacteo: 1.0, miscelaneo: 1.0 },
     grilled: { proteina: 0.75, carbohidrato: 0.90, grasa: 0.70, verdura: 0.80, fruta: 1.0, lacteo: 1.0, miscelaneo: 0.95 },
     fried: { proteina: 0.70, carbohidrato: 0.85, grasa: 0.65, verdura: 0.75, fruta: 0.90, lacteo: 1.0, miscelaneo: 0.90 },
     sauteed: { proteina: 0.75, carbohidrato: 0.90, grasa: 0.75, verdura: 0.80, fruta: 0.95, lacteo: 1.0, miscelaneo: 0.95 },
     baked: { proteina: 0.78, carbohidrato: 0.92, grasa: 0.80, verdura: 0.82, fruta: 0.90, lacteo: 1.0, miscelaneo: 0.95 },
-    steamed: { proteina: 0.85, carbohidrato: 0.95, grasa: 0.90, verdura: 0.88, fruta: 1.0, lacteo: 1.0, miscelaneo: 1.0 },
+    // Steamed: Grains absorb water (x2.4), Meats retain more (x0.85)
+    steamed: { proteina: 0.85, carbohidrato: 2.4, grasa: 0.90, verdura: 0.88, fruta: 1.0, lacteo: 1.0, miscelaneo: 1.0 },
 };
 
 /**
- * Get the cooking loss factor for a specific method and category
+ * Get the cooking conversion factor (Yield or Loss)
  */
 export function getCookingLossFactor(method: PreparationMethod, category: Category): number {
     return COOKING_LOSS_FACTORS[method]?.[category] ?? 1.0;
@@ -44,6 +51,10 @@ export interface PeruvianRecipe {
     ingredients: RecipeComponent[];
     textureLevel?: TextureLevel; // For dysphagia filtering, default is 'normal'
     economyTier?: 'budget' | 'moderate' | 'premium'; // For cost-conscious filtering
+    // Medical flags for pathology filtering
+    highSodium?: boolean;   // For hypertension filtering (marinados, encurtidos, embutidos)
+    highFat?: boolean;      // For cardiovascular/obesity filtering (frituras)
+    highPurine?: boolean;   // For gout filtering (vísceras, mariscos)
 }
 
 // Simplified snack recipe interface for fitness desserts
@@ -68,7 +79,8 @@ export const PERUVIAN_RECIPES: PeruvianRecipe[] = [
             { category: 'proteina', searchTerms: ['Pollo, sangre cocida', 'Sangre', 'Morcilla'], ratio: 0.8 },
             { category: 'verdura', searchTerms: ['Cebolla china', 'Cebolla'], ratio: 0.2 },
             { category: 'grasa', searchTerms: ['Aceite vegetal'], ratio: 0.1 }
-        ]
+        ],
+        highPurine: true // Vísceras - evitar en gota
     },
     {
         id: 'des-pan-palta',
@@ -89,7 +101,9 @@ export const PERUVIAN_RECIPES: PeruvianRecipe[] = [
             { category: 'proteina', searchTerms: ['Cerdo, carne', 'Chancho', 'Cerdo'], ratio: 0.8 },
             { category: 'carbohidrato', searchTerms: ['Camote frito', 'Camote'], ratio: 0.4 },
             { category: 'verdura', searchTerms: ['Cebolla', 'Hierbabuena'], ratio: 0.2 }
-        ]
+        ],
+        highFat: true, // Fritura
+        highSodium: true // Sal en preparación
     },
     {
         id: 'des-quinua-manzana',
@@ -120,7 +134,8 @@ export const PERUVIAN_RECIPES: PeruvianRecipe[] = [
             { category: 'proteina', searchTerms: ['Pollo', 'Cerdo'], ratio: 0.3 },
             { category: 'verdura', searchTerms: ['Cebolla', 'Ají amarillo'], ratio: 0.3 },
             { category: 'grasa', searchTerms: ['Aceite'], ratio: 0.1 }
-        ]
+        ],
+        highFat: true // Alto contenido grasa en preparación tradicional
     },
     {
         id: 'des-pan-pejerrey',
@@ -176,7 +191,8 @@ export const PERUVIAN_RECIPES: PeruvianRecipe[] = [
             { category: 'carbohidrato', searchTerms: ['Arroz blanco'], ratio: 0.4 },
             { category: 'verdura', searchTerms: ['Cebolla', 'Tomate'], ratio: 0.5 },
             { category: 'grasa', searchTerms: ['Aceite vegetal'], ratio: 0.15 }
-        ]
+        ],
+        highSodium: true // Sillao/soya
     },
     {
         id: 'alm-aji-gallina',

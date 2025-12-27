@@ -16,6 +16,7 @@ interface AdultAnthropometryLayoutProps {
     medidas: MedidasAntropometricas[];
     onSave?: (data: FullMeasurementData) => void;
     onDeleteMedida?: (id: string) => void;
+    patientId?: string;
 }
 
 export function AdultAnthropometryLayout(props: AdultAnthropometryLayoutProps) {
