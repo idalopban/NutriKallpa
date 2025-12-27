@@ -8,7 +8,7 @@ import {
     COMPONENT_COLORS,
     COMPONENT_LABELS
 } from "@/lib/fiveComponentMath";
-import { Scale, AlertCircle, Info, TrendingUp } from "lucide-react";
+import { Scale, AlertCircle, Info } from "lucide-react";
 
 interface FiveComponentPanelProps {
     data: FullMeasurementData;
@@ -40,8 +40,10 @@ function convertToFiveComponentInput(data: FullMeasurementData): FiveComponentIn
         calfGirth: data.girths.pantorrilla,
 
         // Diámetros óseos (cm)
-        humerusBreadth: data.breadths.humero,    // Húmero (bi-epicondilar)
-        femurBreadth: data.breadths.femur        // Fémur (bi-epicondilar)
+        humerusBreadth: data.breadths.humero,         // Húmero (bi-epicondilar)
+        femurBreadth: data.breadths.femur,            // Fémur (bi-epicondilar)
+        biacromialBreadth: data.breadths.biacromial,  // Biacromial (hombros)
+        biiliocristalBreadth: data.breadths.biiliocristal  // Biiliocristal (caderas)
     };
 }
 
@@ -195,18 +197,18 @@ export function FiveComponentPanel({ data }: FiveComponentPanelProps) {
                         {/* Obesity Warning (P3) */}
                         {result.obesityWarning && (
                             <div className={`p-3 rounded-xl border ${result.obesityWarning.alternativeFormulas.length > 0
-                                    ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
-                                    : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                                ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
+                                : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
                                 }`}>
                                 <div className="flex items-start gap-2">
                                     <AlertCircle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${result.obesityWarning.alternativeFormulas.length > 0
-                                            ? 'text-amber-500'
-                                            : 'text-blue-500'
+                                        ? 'text-amber-500'
+                                        : 'text-blue-500'
                                         }`} />
                                     <div className="space-y-2">
                                         <p className={`text-xs ${result.obesityWarning.alternativeFormulas.length > 0
-                                                ? 'text-amber-700 dark:text-amber-300'
-                                                : 'text-blue-700 dark:text-blue-300'
+                                            ? 'text-amber-700 dark:text-amber-300'
+                                            : 'text-blue-700 dark:text-blue-300'
                                             }`}>
                                             {result.obesityWarning.message}
                                         </p>
@@ -244,31 +246,35 @@ export function FiveComponentPanel({ data }: FiveComponentPanelProps) {
                     </>
                 ) : (
                     /* Estado inválido - Faltan datos */
-                    <div className="text-center py-8">
+                    <div className="text-center py-6">
                         <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-4">
                             <AlertCircle className="w-8 h-8 text-amber-500" />
                         </div>
-                        <h4 className="font-semibold text-slate-600 dark:text-slate-300 mb-2">
+                        <h4 className="font-semibold text-slate-600 dark:text-slate-300 mb-4">
                             Datos Insuficientes
                         </h4>
-                        <p className="text-sm text-slate-400 mb-4">
-                            El modelo de 5 componentes requiere datos adicionales:
-                        </p>
-                        <div className="flex flex-wrap gap-2 justify-center max-w-sm mx-auto">
-                            {result.missingData.slice(0, 6).map((item, idx) => (
-                                <span
-                                    key={idx}
-                                    className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2 py-1 rounded-full"
-                                >
-                                    {item}
-                                </span>
-                            ))}
-                            {result.missingData.length > 6 && (
-                                <span className="text-[10px] text-slate-400">
-                                    +{result.missingData.length - 6} más
-                                </span>
-                            )}
-                        </div>
+
+                        {/* Datos faltantes específicos */}
+                        {result.missingData.length > 0 && (
+                            <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+                                <p className="text-[10px] text-slate-400 mb-2">Faltan específicamente:</p>
+                                <div className="flex flex-wrap gap-1.5 justify-center max-w-sm mx-auto">
+                                    {result.missingData.slice(0, 8).map((item, idx) => (
+                                        <span
+                                            key={idx}
+                                            className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full"
+                                        >
+                                            {item}
+                                        </span>
+                                    ))}
+                                    {result.missingData.length > 8 && (
+                                        <span className="text-[10px] text-slate-400">
+                                            +{result.missingData.length - 8} más
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

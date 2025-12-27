@@ -45,7 +45,7 @@ const initialData: FullMeasurementData = {
     bioData: { peso: 0, talla: 0, edad: 0, genero: 'masculino' },
     skinfolds: { triceps: 0, biceps: 0, subscapular: 0, iliac_crest: 0, supraspinale: 0, abdominal: 0, thigh: 0, calf: 0 },
     girths: { brazoRelajado: 0, brazoFlexionado: 0, cintura: 0, musloMedio: 0, pantorrilla: 0 },
-    breadths: { humero: 0, femur: 0 }
+    breadths: { humero: 0, femur: 0, biacromial: 0, biiliocristal: 0 }
 };
 
 export function AntropometriaLayout({

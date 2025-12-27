@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 import {
     Banner,
     StatsWidget,
@@ -152,7 +154,23 @@ export default function DashboardPage() {
                     <CalendarWidget citas={citas} pacientes={pacientes} />
                 </SortableWidget>
             </DraggableDashboard>
+
+            {/* FAB - Botón flotante "Nueva Consulta" */}
+            <Link
+                href="/pacientes/nuevo"
+                className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 
+                    bg-gradient-to-r from-[#ff8508] to-[#ff9f3c] 
+                    hover:from-[#ff9f3c] hover:to-[#ff8508]
+                    text-white font-bold text-sm rounded-full 
+                    shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40
+                    transition-all duration-300 hover:scale-105
+                    group"
+            >
+                <Plus className="w-5 h-5 transition-transform group-hover:rotate-90" />
+                <span className="hidden sm:inline">Nueva Consulta</span>
+            </Link>
         </div>
     );
 }
+
 

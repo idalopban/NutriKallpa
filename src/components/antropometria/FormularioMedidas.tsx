@@ -40,6 +40,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { calculateSiteTEM, needsThirdMeasurement, getFinalValue, TEM_COLORS, type MeasurementReplication } from "@/lib/tem-calculations"
+import { NumericStepperCompact } from "@/components/ui/numeric-stepper"
 
 // Skinfold sites for iteration
 const SKINFOLD_SITES = [
@@ -120,6 +121,7 @@ export function FormularioMedidas({ paciente, onSuccess }: FormularioMedidasProp
     register,
     watch,
     handleSubmit,
+    setValue,
     formState: { isSubmitting, errors },
   } = useForm<MedidasFormValues>({
     resolver: zodResolver(medidasSchema),
@@ -557,44 +559,47 @@ export function FormularioMedidas({ paciente, onSuccess }: FormularioMedidasProp
                       {/* Measurement Inputs */}
                       <div className="p-4 space-y-3">
                         <div className="grid grid-cols-2 gap-3">
-                          {/* Take 1 */}
+                          {/* Take 1 - Tablet Friendly */}
                           <div>
                             <label className="text-xs text-slate-500 font-medium mb-1 block">Toma 1 *</label>
-                            <Input
-                              type="number"
-                              step="0.5"
-                              placeholder="0.0"
-                              className="h-9 text-center font-medium"
-                              {...register(`pliegues.${name}.val1`, { valueAsNumber: true })}
+                            <NumericStepperCompact
+                              value={val1}
+                              onChange={(v) => setValue(`pliegues.${name}.val1`, v)}
+                              step={0.5}
+                              min={0}
+                              max={80}
+                              unit="mm"
                             />
                           </div>
 
-                          {/* Take 2 */}
+                          {/* Take 2 - Tablet Friendly */}
                           <div>
                             <label className="text-xs text-slate-500 font-medium mb-1 block">Toma 2 *</label>
-                            <Input
-                              type="number"
-                              step="0.5"
-                              placeholder="0.0"
-                              className="h-9 text-center font-medium"
-                              {...register(`pliegues.${name}.val2`, { valueAsNumber: true })}
+                            <NumericStepperCompact
+                              value={val2}
+                              onChange={(v) => setValue(`pliegues.${name}.val2`, v)}
+                              step={0.5}
+                              min={0}
+                              max={80}
+                              unit="mm"
                             />
                           </div>
                         </div>
 
-                        {/* Take 3 (Conditional) */}
+                        {/* Take 3 (Conditional) - Tablet Friendly */}
                         {(needsThird || (val3 !== undefined && val3 > 0)) && (
                           <div className="border-t pt-3">
                             <label className="text-xs text-amber-600 font-semibold mb-1 block flex items-center gap-1">
                               <AlertCircle className="w-3 h-3" />
-                              Toma 3 (Desempate - Diferencia \u003e5%)
+                              Toma 3 (Desempate - Diferencia &gt;5%)
                             </label>
-                            <Input
-                              type="number"
-                              step="0.5"
-                              placeholder="0.0"
-                              className="h-9 text-center font-medium border-amber-300 focus:border-amber-500"
-                              {...register(`pliegues.${name}.val3`, { valueAsNumber: true })}
+                            <NumericStepperCompact
+                              value={val3 || 0}
+                              onChange={(v) => setValue(`pliegues.${name}.val3`, v)}
+                              step={0.5}
+                              min={0}
+                              max={80}
+                              unit="mm"
                             />
                           </div>
                         )}

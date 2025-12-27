@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Paciente, User } from '@/types';
 import { DailyPlan, DEFAULT_MICRO_GOALS } from './diet-generator';
+import { generateShoppingList, ShoppingListSection } from './shopping-list-generator';
 
 // =============================================
 // 1. PALETA DE COLORES OFICIAL DE MARCA
@@ -519,6 +520,97 @@ export const generateDietPDF = async (
     for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
         addFooter(doc, i, totalPages);
+    }
+
+    // =============================================
+    // NUEVA SECCIÓN: LISTA DE COMPRAS CONSOLIDADA
+    // =============================================
+    const shoppingList = generateShoppingList(weeklyPlan);
+
+    if (shoppingList.length > 0) {
+        doc.addPage();
+        currentPageNumber++;
+        let shoppingY = addHeader(doc, currentPageNumber);
+
+        // Título de la sección
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor(BRAND_PRIMARY[0], BRAND_PRIMARY[1], BRAND_PRIMARY[2]);
+        doc.text('🛒 Lista de Compras Semanal', margin, shoppingY);
+        shoppingY += 8;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(GRAY_TEXT[0], GRAY_TEXT[1], GRAY_TEXT[2]);
+        doc.text('Ingredientes consolidados para todo el plan', margin, shoppingY);
+        shoppingY += 10;
+
+        // Renderizar cada sección de categoría
+        for (const section of shoppingList) {
+            // Verificar espacio disponible
+            if (shoppingY > pageHeight - 50) {
+                doc.addPage();
+                currentPageNumber++;
+                shoppingY = addHeader(doc, currentPageNumber);
+            }
+
+            // Título de categoría con emoji
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10);
+            doc.setTextColor(section.color[0], section.color[1], section.color[2]);
+            doc.text(`${section.emoji} ${section.title}`, margin, shoppingY);
+            shoppingY += 5;
+
+            // Tabla de items
+            const tableBody = section.items.map(item => [
+                item.name,
+                item.practicalQuantity,
+                `${item.occurrences}x`
+            ]);
+
+            autoTable(doc, {
+                startY: shoppingY,
+                head: [['Ingrediente', 'Cantidad', 'Veces']],
+                body: tableBody,
+                pageBreak: 'avoid',
+                headStyles: {
+                    fillColor: [section.color[0], section.color[1], section.color[2]],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    fontSize: 8,
+                    cellPadding: 3,
+                },
+                bodyStyles: {
+                    fontSize: 8,
+                    cellPadding: 3,
+                    textColor: [BRAND_TEXT_DARK[0], BRAND_TEXT_DARK[1], BRAND_TEXT_DARK[2]],
+                },
+                alternateRowStyles: {
+                    fillColor: [ALTERNATE_ROW[0], ALTERNATE_ROW[1], ALTERNATE_ROW[2]],
+                },
+                columnStyles: {
+                    0: { cellWidth: 80 },
+                    1: { cellWidth: 50, halign: 'center', fontStyle: 'bold' },
+                    2: { cellWidth: 30, halign: 'center' },
+                },
+                margin: { left: margin, right: margin },
+            });
+
+            shoppingY = (doc as any).lastAutoTable.finalY + 8;
+        }
+
+        // Update footer on shopping pages
+        const finalTotalPages = doc.getNumberOfPages();
+        for (let i = totalPages + 1; i <= finalTotalPages; i++) {
+            doc.setPage(i);
+            addFooter(doc, i, finalTotalPages);
+        }
+
+        // Also update first pages with correct total
+        for (let i = 1; i <= totalPages; i++) {
+            doc.setPage(i);
+            addFooter(doc, i, finalTotalPages);
+        }
     }
 
     // Save

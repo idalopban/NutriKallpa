@@ -99,12 +99,14 @@ export const ISAK_RANGES = {
         thigh: { min: 35, max: 90, warn: 75 },
         calf: { min: 25, max: 55, warn: 48 },
     },
-    // Bone Breadths (cm)
+    // Bone Breadths (cm) - Rangos ampliados para mayor flexibilidad
     breadths: {
-        humerus: { min: 4, max: 10, warn: 8.5 },
-        femur: { min: 6, max: 14, warn: 12 },
+        humerus: { min: 4, max: 12, warn: 9 },           // Húmero bi-epicondilar
+        femur: { min: 6, max: 16, warn: 13 },            // Fémur bi-epicondilar
         wrist: { min: 3.5, max: 7.5, warn: 6.5 },
         ankle: { min: 5, max: 10, warn: 8.5 },
+        biacromial: { min: 20, max: 60, warn: 45 },      // Diámetro biacromial (hombros)
+        biiliocristal: { min: 15, max: 50, warn: 38 },   // Diámetro biiliocristal (caderas)
     },
     // Basic measurements
     basic: {
@@ -527,13 +529,17 @@ function calculateMuscleMass(data: FiveComponentInput): { mass: number; zScore: 
 
 /**
  * 4. BONE MASS (Phantom Z-scores from bone breadths)
- * Uses: Humerus, Femur, Wrist, Ankle breadths
+ * Uses: Humerus, Femur, Wrist, Ankle, Biacromial, Biiliocristal breadths
+ * 
+ * Kerr (1988) modified formula with trunk diameters for improved accuracy:
+ * When biacromial and biiliocristal are available, they contribute to a more
+ * accurate estimation of skeletal frame size.
  */
 function calculateBoneMass(data: FiveComponentInput): { mass: number; zScore: number } {
     const h = data.height;
     const b = PHANTOM.breadths;
 
-    // Calculate Z-scores for bone breadths
+    // Calculate Z-scores for bone breadths (required)
     const zScores = [
         calculateZScore(data.humerusBreadth, h, b.humerus.p, b.humerus.s),
         calculateZScore(data.femurBreadth, h, b.femur.p, b.femur.s)
@@ -545,6 +551,14 @@ function calculateBoneMass(data: FiveComponentInput): { mass: number; zScore: nu
     }
     if (data.ankleBreadth && data.ankleBreadth > 0) {
         zScores.push(calculateZScore(data.ankleBreadth, h, b.ankle.p, b.ankle.s));
+    }
+
+    // Add trunk diameters for improved precision (Kerr enhanced model)
+    if (data.biacromialBreadth && data.biacromialBreadth > 0) {
+        zScores.push(calculateZScore(data.biacromialBreadth, h, b.biacromial.p, b.biacromial.s));
+    }
+    if (data.biiliocristalBreadth && data.biiliocristalBreadth > 0) {
+        zScores.push(calculateZScore(data.biiliocristalBreadth, h, b.biiliocristal.p, b.biiliocristal.s));
     }
 
     const meanZ = getMeanZScore(zScores);

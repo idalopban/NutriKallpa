@@ -41,6 +41,8 @@ export interface GirthData {
 export interface BreadthData {
     humero: number;
     femur: number;
+    biacromial: number;     // Diámetro biacromial (hombros)
+    biiliocristal: number;  // Diámetro biiliocristal (caderas)
 }
 
 export interface FullMeasurementData {
@@ -120,6 +122,23 @@ const SKINFOLD_FIELD_MAP: Record<string, keyof typeof ISAK_RANGES.skinfolds | nu
     'Pantorrilla': 'calf',
 };
 
+// ISAK Range lookup for girths (maps label to fieldKey)
+const GIRTH_FIELD_MAP: Record<string, keyof typeof ISAK_RANGES.girths | null> = {
+    'Brazo Relajado': 'armRelaxed',
+    'Brazo Flexionado': 'armFlexed',
+    'Cintura': 'waist',
+    'Muslo Medio': 'thigh',
+    'Pantorrilla': 'calf',
+};
+
+// ISAK Range lookup for breadths (maps label to fieldKey)
+const BREADTH_FIELD_MAP: Record<string, keyof typeof ISAK_RANGES.breadths | null> = {
+    'Húmero (codo)': 'humerus',
+    'Fémur (rodilla)': 'femur',
+    'Biacromial': 'biacromial',
+    'Biiliocristal': 'biiliocristal',
+};
+
 // Input Field Component with ISAK Validation
 function InputField({
     label,
@@ -141,9 +160,21 @@ function InputField({
     const [isakMode, setIsakMode] = useState(false);
     const [series, setSeries] = useState<[string, string, string]>(["", "", ""]);
 
-    // Get ISAK range for validation (if applicable)
+    // Get ISAK range for validation based on field type
     const skinfoldKey = SKINFOLD_FIELD_MAP[label];
-    const isakRange = skinfoldKey && unit === 'mm' ? ISAK_RANGES.skinfolds[skinfoldKey] : null;
+    const girthKey = GIRTH_FIELD_MAP[label];
+    const breadthKey = BREADTH_FIELD_MAP[label];
+
+    // Determine range based on measurement type
+    let isakRange: { min: number; max: number; warn: number } | null = null;
+
+    if (skinfoldKey && unit === 'mm') {
+        isakRange = ISAK_RANGES.skinfolds[skinfoldKey];
+    } else if (girthKey && unit === 'cm') {
+        isakRange = ISAK_RANGES.girths[girthKey];
+    } else if (breadthKey && unit === 'cm') {
+        isakRange = ISAK_RANGES.breadths[breadthKey];
+    }
 
     // Validation states
     const isValid = !isakRange || value === 0 || (value >= isakRange.min && value <= isakRange.max);
@@ -309,7 +340,9 @@ export function UnifiedMeasurementForm({ data, onUpdate, patientId }: UnifiedFor
         // Update Breadths
         newData.breadths = {
             humero: values.humero || 0,
-            femur: values.femur || 0
+            femur: values.femur || 0,
+            biacromial: values.biacromial || 0,
+            biiliocristal: values.biiliocristal || 0
         };
 
         onUpdate(newData);
@@ -535,8 +568,10 @@ export function UnifiedMeasurementForm({ data, onUpdate, patientId }: UnifiedFor
                     onToggle={() => toggleSection('breadths')}
                 >
                     <div className="grid grid-cols-2 gap-3">
-                        <InputField label="Húmero (codo)" value={data.breadths.humero} onChange={(v) => onUpdate({ breadths: { ...data.breadths, humero: v } })} unit="cm" />
-                        <InputField label="Fémur (rodilla)" value={data.breadths.femur} onChange={(v) => onUpdate({ breadths: { ...data.breadths, femur: v } })} unit="cm" />
+                        <InputField label="Húmero (codo)" value={data.breadths.humero} onChange={(v) => onUpdate({ breadths: { ...data.breadths, humero: v } })} unit="cm" description="Diámetro bi-epicondilar del húmero" />
+                        <InputField label="Fémur (rodilla)" value={data.breadths.femur} onChange={(v) => onUpdate({ breadths: { ...data.breadths, femur: v } })} unit="cm" description="Diámetro bi-epicondilar del fémur" />
+                        <InputField label="Biacromial" value={data.breadths.biacromial} onChange={(v) => onUpdate({ breadths: { ...data.breadths, biacromial: v } })} unit="cm" description="Ancho máximo entre los puntos más laterales de los acromion (hombros)" />
+                        <InputField label="Biiliocristal" value={data.breadths.biiliocristal} onChange={(v) => onUpdate({ breadths: { ...data.breadths, biiliocristal: v } })} unit="cm" description="Ancho máximo entre los puntos más laterales de las crestas ilíacas (caderas)" />
                     </div>
                 </AccordionSection>
             </div>

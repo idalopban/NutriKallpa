@@ -124,7 +124,7 @@ export function ElderlyAnthropometryLayout({
                 pantorrilla: formState.calfCircumference ? parseFloat(formState.calfCircumference) : 0,
                 brazoFlexionado: 0, cintura: 0, musloMedio: 0
             },
-            breadths: { humero: 0, femur: 0 },
+            breadths: { humero: 0, femur: 0, biacromial: 0, biiliocristal: 0 },
         };
         onSave(data);
     };
