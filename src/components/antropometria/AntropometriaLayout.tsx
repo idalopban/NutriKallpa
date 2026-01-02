@@ -44,6 +44,7 @@ interface AntropometriaLayoutProps {
     onSave?: (data: FullMeasurementData, formula: string, result?: any) => void;
     onDeleteMedida?: (id: string) => void;
     patientId?: string;
+    isTeenager?: boolean;
 }
 
 // Estado inicial

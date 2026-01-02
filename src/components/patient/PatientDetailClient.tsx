@@ -38,6 +38,7 @@ import { DietPlanningSummary } from "@/components/patients/dashboard/DietPlannin
 import { GlobalNutritionHeader } from "@/components/patient/GlobalNutritionHeader";
 import { SportsHydrationModule } from "@/components/patient/SportsHydrationModule";
 import { HydrationStatusCard } from "@/components/diet/HydrationStatusCard";
+import { InfantSupplementationModule } from "@/components/pediatrics/InfantSupplementationModule";
 
 import { useToast } from "@/hooks/use-toast";
 import { ConsentBanner, ConsentIndicator, ConsentDetails } from "@/components/legal/ConsentBanner";
@@ -491,8 +492,9 @@ export function PatientDetailClient() {
                         <TabsList className="bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl mb-6">
                             <TabsTrigger value="clinica" className="rounded-xl">Historia</TabsTrigger>
                             <TabsTrigger value="antropometria" className="rounded-xl">Antropometría</TabsTrigger>
-                            <TabsTrigger value="calculos" className="rounded-xl">Cálculos</TabsTrigger>
-                            <TabsTrigger value="dietas" className="rounded-xl">Dietas</TabsTrigger>
+                            {!isInfant && <TabsTrigger value="calculos" className="rounded-xl">Cálculos</TabsTrigger>}
+                            {!isInfant && <TabsTrigger value="dietas" className="rounded-xl">Dietas</TabsTrigger>}
+                            {isInfant && <TabsTrigger value="suplementacion" className="rounded-xl">Suplementación</TabsTrigger>}
                         </TabsList>
 
                         <TabsContent value="clinica"><ClinicalHistoryTab patient={paciente} /></TabsContent>
@@ -505,17 +507,26 @@ export function PatientDetailClient() {
                                 </div>
                             </Card>
                         </TabsContent>
-                        <TabsContent value="calculos">
-                            <PatientNutritionConfig onDirtyChange={setIsNutritionDirty} rightSideContent={<SportsHydrationModule />} />
-                        </TabsContent>
-                        <TabsContent value="dietas">
-                            <AdultDietHistoryTab
-                                paciente={paciente}
-                                dietHistory={dietHistory}
-                                router={router}
-                                onDelete={handleDeleteDiet}
-                            />
-                        </TabsContent>
+                        {!isInfant && (
+                            <TabsContent value="calculos">
+                                <PatientNutritionConfig onDirtyChange={setIsNutritionDirty} rightSideContent={<SportsHydrationModule />} />
+                            </TabsContent>
+                        )}
+                        {!isInfant && (
+                            <TabsContent value="dietas">
+                                <AdultDietHistoryTab
+                                    paciente={paciente}
+                                    dietHistory={dietHistory}
+                                    router={router}
+                                    onDelete={handleDeleteDiet}
+                                />
+                            </TabsContent>
+                        )}
+                        {isInfant && (
+                            <TabsContent value="suplementacion">
+                                <InfantSupplementationModule patient={paciente} />
+                            </TabsContent>
+                        )}
                     </Tabs>
                 </main>
             </div>
