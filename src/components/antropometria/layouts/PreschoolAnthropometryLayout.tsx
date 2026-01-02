@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Baby, Calendar, Scale, Activity, User, Ruler, History } from "lucide-react";
 import { AnthropometryTabs } from "../navigation/AnthropometryTabs";
-import { NewPediatricMeasurementForm, PediatricMeasurementData } from "@/components/pediatrics/NewPediatricMeasurementForm";
+import { NewPediatricMeasurementForm, PediatricMeasurementData, PediatricMeasurementFormRef } from "@/components/pediatrics/NewPediatricMeasurementForm";
 import { PediatricGrowthChart, PatientDataPoint } from "@/components/pediatrics/PediatricGrowthChart";
 import { MedidasAntropometricas } from "@/types";
 import { calculateZScore } from "@/lib/growth-standards";
@@ -41,6 +41,8 @@ export function PreschoolAnthropometryLayout({
 }: PreschoolAnthropometryLayoutProps) {
     const [activeTab, setActiveTab] = useState("crecimiento");
     const [activeChart, setActiveChart] = useState<'talla' | 'imc'>('talla');
+
+    const formRef = useRef<PediatricMeasurementFormRef>(null);
 
     // Prepare Chart Data
     const sex = patientSex === 'femenino' ? 'female' : 'male';
@@ -101,18 +103,15 @@ export function PreschoolAnthropometryLayout({
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                <div className="flex-1 w-full">
-                    <AnthropometryTabs
-                        tabs={[
-                            { id: "crecimiento", label: "Crecimiento OMS (2-5 años)", icon: Baby },
-                            { id: "historial", label: "Historial", icon: History },
-                        ]}
-                        activeTab={activeTab}
-                        onTabChange={setActiveTab}
-                    />
-                </div>
-            </div>
+            <AnthropometryTabs
+                tabs={[
+                    { id: "crecimiento", label: "Crecimiento OMS (2-5 años)", icon: Baby },
+                    { id: "historial", label: "Historial", icon: History },
+                ]}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                onSave={() => formRef.current?.submit()}
+            />
 
             <div className="animate-in fade-in duration-300">
                 {activeTab === "crecimiento" && (
@@ -127,6 +126,7 @@ export function PreschoolAnthropometryLayout({
                             </CardHeader>
                             <CardContent>
                                 <NewPediatricMeasurementForm
+                                    ref={formRef}
                                     patientId={patientId}
                                     patientName={patientName}
                                     patientBirthDate={patientBirthDate}

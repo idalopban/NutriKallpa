@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { Baby, Calendar, Scale, Activity } from "lucide-react";
 import { AnthropometryTabs } from "../navigation/AnthropometryTabs";
-import { NewPediatricMeasurementForm, PediatricMeasurementData, LivePreviewData } from "@/components/pediatrics/NewPediatricMeasurementForm";
+import { NewPediatricMeasurementForm, PediatricMeasurementData, LivePreviewData, PediatricMeasurementFormRef } from "@/components/pediatrics/NewPediatricMeasurementForm";
 import { PediatricGrowthChart, PatientDataPoint } from "@/components/pediatrics/PediatricGrowthChart";
 import { MedidasAntropometricas } from "@/types";
 import { calculateZScore } from "@/lib/growth-standards";
@@ -38,6 +38,8 @@ export function InfantAnthropometryLayout({
     const [activeTab, setActiveTab] = useState("crecimiento");
     const [activeChart, setActiveChart] = useState<'peso' | 'longitud' | 'pesoLength' | 'cefaliaca'>('peso');
     const [livePreviewData, setLivePreviewData] = useState<LivePreviewData>({});
+
+    const formRef = useRef<PediatricMeasurementFormRef>(null);
 
     // Callback to receive live form data
     const handleLiveDataChange = useCallback((data: LivePreviewData) => {
@@ -160,6 +162,7 @@ export function InfantAnthropometryLayout({
                 ]}
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
+                onSave={() => formRef.current?.submit()}
             />
 
             <div className="animate-in fade-in duration-300">
@@ -168,6 +171,7 @@ export function InfantAnthropometryLayout({
                         {/* Formulario */}
                         <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-100 dark:border-slate-800">
                             <NewPediatricMeasurementForm
+                                ref={formRef}
                                 patientId={patientId}
                                 patientName={patientName}
                                 patientBirthDate={patientBirthDate}

@@ -179,6 +179,7 @@ export function SchoolAnthropometryLayout({
                         ]}
                         activeTab={activeTab}
                         onTabChange={setActiveTab}
+                        onSave={() => formRef.current?.submit()}
                     />
                 </div>
 
@@ -197,14 +198,6 @@ export function SchoolAnthropometryLayout({
                     >
                         <FileDown className="w-4 h-4 text-slate-500" />
                         Exportar PDF
-                    </button>
-
-                    <button
-                        onClick={() => formRef.current?.submit()}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-slate-900 dark:bg-slate-700 text-white shadow-lg shadow-slate-900/30 hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors whitespace-nowrap"
-                    >
-                        <Save className="w-4 h-4 text-[#ff8508]" />
-                        Guardar Evaluación
                     </button>
                 </div>
             </div>
