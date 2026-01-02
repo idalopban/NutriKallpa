@@ -10,8 +10,10 @@ import {
     MoreVertical, FileText, Ruler, User as UserIcon,
     TrendingDown, Minus, History, Clock, ChevronRight, Trash2,
     Plus, Apple, LineChart, FileDown, Calculator, Info, Pencil,
-    Wine, Cigarette, Moon
+    Wine, Cigarette, Moon, Weight, Baby, Pill, Droplet
 } from "lucide-react";
+import { format, differenceInYears } from "date-fns";
+import { es } from "date-fns/locale";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -54,6 +56,20 @@ import { calculateChronologicalAge, calculateExactAgeInDays, calculateDetailedAg
 import { calculateZScore } from "@/lib/growth-standards";
 import { type PatientDataPoint } from "@/components/pediatrics/PediatricGrowthChart";
 import { generateSafetyAlerts, type SafetyAlert } from "@/lib/safety-alerts";
+import { getAltitudeAdjustment } from "@/lib/anemia-nts-protocol";
+
+const calculateAnemiaDiagnosis = (hb: number, sex: string | undefined, altitude: number = 0) => {
+    if (!hb) return null;
+    const adjustment = getAltitudeAdjustment(altitude);
+    const corrected = hb - adjustment;
+    const isMale = sex === 'masculino';
+    const min = isMale ? 13 : 12;
+
+    if (corrected < min - 2) return 'Anemia Severa';
+    if (corrected < min) return 'Anemia';
+    if (corrected >= min && corrected <= min + 5) return 'Normal';
+    return 'Hb Elevada';
+};
 
 export function PatientDetailClient() {
     const params = useParams();
@@ -160,7 +176,11 @@ export function PatientDetailClient() {
     if (loading) return <div className="p-8 text-center text-muted-foreground">Cargando expediente...</div>;
     if (!paciente) return <div className="p-8 text-center text-red-500">Paciente no encontrado</div>;
 
-    const ultimaMedida = medidas[0] || {};
+    // Ensure we get the latest measure by sorting
+    const sortedMedidas = [...medidas].sort((a, b) =>
+        new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
+    );
+    const ultimaMedida = sortedMedidas[0] || {};
     const selectedMedida = medidas[selectedEvaluationIndex] || ultimaMedida;
     const pesoActual = ultimaMedida.peso || 0;
     const tallaActual = ultimaMedida.talla || 0;
@@ -170,6 +190,15 @@ export function PatientDetailClient() {
     const isInfantLayout = age < 3;
     const isPediatricStage = age < 18;
     const shouldShowAdultTabs = age >= 3;
+
+    const patientAge = paciente.datosPersonales.fechaNacimiento
+        ? differenceInYears(new Date(), new Date(paciente.datosPersonales.fechaNacimiento))
+        : 0;
+    const isInfant = patientAge < 2;
+
+    const handleBack = () => {
+        router.push('/pacientes');
+    };
 
     const getImcColor = (valor: number) => {
         if (valor < 18.5) return "text-blue-500";
@@ -222,7 +251,7 @@ export function PatientDetailClient() {
         <div className="min-h-screen bg-slate-50 dark:bg-[#0f172a]">
             <div className="flex h-full">
                 {/* SIDEBAR */}
-                <aside className="hidden lg:flex flex-col w-[400px] min-h-[calc(100vh-48px)] my-6 ml-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shrink-0 relative overflow-hidden shadow-xl rounded-2xl z-10">
+                <aside className="hidden lg:flex flex-col w-[400px] min-h-[calc(10vh-48px)] my-6 ml-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shrink-0 relative overflow-hidden shadow-xl rounded-2xl z-10">
                     <button onClick={() => router.push('/pacientes')} className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-white mb-8 transition-colors">
                         <ArrowLeft className="w-5 h-5" /> Volver a pacientes
                     </button>
@@ -271,46 +300,107 @@ export function PatientDetailClient() {
                         )}
                     </div>
 
-                    {/* Lifestyle Info */}
-                    {paciente.historiaClinica?.estiloVida && (
+                    {/* Lifestyle / Clinical Info Switch */}
+                    {isInfant ? (
                         <>
                             <Separator className="my-4" />
                             <div className="w-full space-y-2 px-2">
-                                <p className="text-[10px] uppercase font-medium text-slate-400 tracking-wider mb-2">Estilo de Vida</p>
+                                <p className="text-[10px] uppercase font-medium text-slate-400 tracking-wider mb-2">Datos Clínicos</p>
 
-                                {/* Sleep */}
-                                {paciente.historiaClinica.estiloVida.suenoHoras && (
-                                    <div className="flex items-center gap-3 text-sm">
-                                        <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                                            <Moon className="w-3.5 h-3.5 text-indigo-600" />
-                                        </div>
-                                        <span className="text-slate-600 dark:text-slate-400">{paciente.historiaClinica.estiloVida.suenoHoras} hrs de sueño</span>
-                                    </div>
-                                )}
-
-                                {/* Smoking */}
+                                {/* Termino / Pretermino */}
                                 <div className="flex items-center gap-3 text-sm">
-                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${paciente.historiaClinica.estiloVida.fuma ? 'bg-red-100 dark:bg-red-900/30' : 'bg-emerald-100 dark:bg-emerald-900/30'}`}>
-                                        <Cigarette className={`w-3.5 h-3.5 ${paciente.historiaClinica.estiloVida.fuma ? 'text-red-600' : 'text-emerald-600'}`} />
+                                    <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                        <Baby className="w-3.5 h-3.5 text-blue-600" />
                                     </div>
                                     <span className="text-slate-600 dark:text-slate-400">
-                                        {paciente.historiaClinica.estiloVida.fuma ? 'Fumador' : 'No fuma'}
+                                        {(paciente.historiaClinica?.antecedentes as any)?.nacimientoPrematuro ? 'Pretérmino' : 'A término'}
                                     </span>
                                 </div>
 
-                                {/* Alcohol */}
-                                {paciente.historiaClinica.estiloVida.alcohol && (
-                                    <div className="flex items-center gap-3 text-sm">
-                                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${paciente.historiaClinica.estiloVida.alcohol === 'nunca' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-amber-100 dark:bg-amber-900/30'}`}>
-                                            <Wine className={`w-3.5 h-3.5 ${paciente.historiaClinica.estiloVida.alcohol === 'nunca' ? 'text-emerald-600' : 'text-amber-600'}`} />
-                                        </div>
-                                        <span className="text-slate-600 dark:text-slate-400 capitalize">
-                                            Alcohol: {paciente.historiaClinica.estiloVida.alcohol === 'nunca' ? 'No consume' : paciente.historiaClinica.estiloVida.alcohol}
+                                {/* Peso al Nacer */}
+                                <div className="flex items-center gap-3 text-sm">
+                                    <div className="w-7 h-7 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+                                        <Weight className="w-3.5 h-3.5 text-rose-600" />
+                                    </div>
+                                    <span className="text-slate-600 dark:text-slate-400">
+                                        {(paciente.historiaClinica?.antecedentes as any)?.pesoNacimiento ?
+                                            `PN: ${(paciente.historiaClinica?.antecedentes as any)?.pesoNacimiento}kg` :
+                                            'Peso Nac: Pendiente'}
+                                    </span>
+                                </div>
+
+                                {/* Hemoglobina */}
+                                <div className="flex items-center gap-3 text-sm">
+                                    <div className="w-7 h-7 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                                        <Droplet className="w-3.5 h-3.5 text-red-600" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-slate-600 dark:text-slate-400 text-xs font-semibold">
+                                            Hb: {(paciente.historiaClinica?.datosClinicos?.hemoglobina || paciente.historiaClinica?.bioquimicaReciente?.hemoglobina) ?
+                                                `${(paciente.historiaClinica?.datosClinicos?.hemoglobina || paciente.historiaClinica?.bioquimicaReciente?.hemoglobina)} g/dL` : '--'}
+                                        </span>
+                                        <span className="text-[10px] text-slate-400">
+                                            {calculateAnemiaDiagnosis(
+                                                Number(paciente.historiaClinica?.datosClinicos?.hemoglobina || paciente.historiaClinica?.bioquimicaReciente?.hemoglobina || 0),
+                                                paciente.datosPersonales.sexo,
+                                                paciente.historiaClinica?.altitudResidencia || 0
+                                            ) || 'Sin dx anemia'}
                                         </span>
                                     </div>
-                                )}
+                                </div>
+
+                                {/* Suplementación Hierro */}
+                                <div className="flex items-center gap-3 text-sm">
+                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${(paciente.historiaClinica?.datosClinicos as any)?.suplementoHierro ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-slate-100 dark:bg-slate-800'}`}>
+                                        <Pill className={`w-3.5 h-3.5 ${(paciente.historiaClinica?.datosClinicos as any)?.suplementoHierro ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                    </div>
+                                    <span className="text-slate-600 dark:text-slate-400 text-xs">
+                                        {(paciente.historiaClinica?.datosClinicos as any)?.suplementoHierro ? 'Suplementado (Fe)' : 'Sin Suplemento Fe'}
+                                    </span>
+                                </div>
                             </div>
                         </>
+                    ) : (
+                        paciente.historiaClinica?.estiloVida && (
+                            <>
+                                <Separator className="my-4" />
+                                <div className="w-full space-y-2 px-2">
+                                    <p className="text-[10px] uppercase font-medium text-slate-400 tracking-wider mb-2">Estilo de Vida</p>
+
+                                    {/* Sleep */}
+                                    {paciente.historiaClinica.estiloVida.suenoHoras && (
+                                        <div className="flex items-center gap-3 text-sm">
+                                            <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                                                <Moon className="w-3.5 h-3.5 text-indigo-600" />
+                                            </div>
+                                            <span className="text-slate-600 dark:text-slate-400">{paciente.historiaClinica.estiloVida.suenoHoras} hrs de sueño</span>
+                                        </div>
+                                    )}
+
+                                    {/* Smoking */}
+                                    <div className="flex items-center gap-3 text-sm">
+                                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${paciente.historiaClinica.estiloVida.fuma ? 'bg-red-100 dark:bg-red-900/30' : 'bg-emerald-100 dark:bg-emerald-900/30'}`}>
+                                            <Cigarette className={`w-3.5 h-3.5 ${paciente.historiaClinica.estiloVida.fuma ? 'text-red-600' : 'text-emerald-600'}`} />
+                                        </div>
+                                        <span className="text-slate-600 dark:text-slate-400">
+                                            {paciente.historiaClinica.estiloVida.fuma ? 'Fumador' : 'No fuma'}
+                                        </span>
+                                    </div>
+
+                                    {/* Alcohol */}
+                                    {paciente.historiaClinica.estiloVida.alcohol && (
+                                        <div className="flex items-center gap-3 text-sm">
+                                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${paciente.historiaClinica.estiloVida.alcohol === 'nunca' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-amber-100 dark:bg-amber-900/30'}`}>
+                                                <Wine className={`w-3.5 h-3.5 ${paciente.historiaClinica.estiloVida.alcohol === 'nunca' ? 'text-emerald-600' : 'text-amber-600'}`} />
+                                            </div>
+                                            <span className="text-slate-600 dark:text-slate-400 capitalize">
+                                                Alcohol: {paciente.historiaClinica.estiloVida.alcohol === 'nunca' ? 'No consume' : paciente.historiaClinica.estiloVida.alcohol}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )
                     )}
 
                     <Separator className="my-5" />
@@ -318,25 +408,61 @@ export function PatientDetailClient() {
                     {/* Metrics */}
                     <div className="flex-1 overflow-y-auto space-y-5 px-1 pb-4">
                         <div className="grid grid-cols-2 gap-3">
-                            <div className="p-4 rounded-3xl bg-amber-500 text-white shadow-sm">
-                                <p className="text-[10px] uppercase font-bold opacity-80">IMC</p>
-                                <p className="text-2xl font-bold">{imc.toFixed(1)}</p>
-                            </div>
-                            <div className="p-4 rounded-3xl bg-orange-500 text-white shadow-sm">
-                                <p className="text-[10px] uppercase font-bold opacity-80">% Grasa</p>
-                                <p className="text-2xl font-bold">{bodyFatPercent > 0 ? bodyFatPercent.toFixed(1) : '--'}</p>
-                            </div>
+                            {isInfant ? (
+                                <>
+                                    <div className="p-4 rounded-3xl bg-emerald-500 text-white shadow-sm">
+                                        <p className="text-[10px] uppercase font-bold opacity-80">Peso</p>
+                                        <p className="text-2xl font-bold">
+                                            {ultimaMedida?.peso || paciente.datosPersonales.peso || '--'}
+                                            <span className="text-sm font-normal ml-1">kg</span>
+                                        </p>
+                                    </div>
+                                    <div className="p-4 rounded-3xl bg-blue-500 text-white shadow-sm">
+                                        <p className="text-[10px] uppercase font-bold opacity-80">Talla</p>
+                                        <p className="text-2xl font-bold">
+                                            {ultimaMedida?.talla || paciente.datosPersonales.talla || '--'}
+                                            <span className="text-sm font-normal ml-1">cm</span>
+                                        </p>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="p-4 rounded-3xl bg-amber-500 text-white shadow-sm">
+                                        <p className="text-[10px] uppercase font-bold opacity-80">IMC</p>
+                                        <p className="text-2xl font-bold">{imc.toFixed(1)}</p>
+                                    </div>
+                                    <div className="p-4 rounded-3xl bg-orange-500 text-white shadow-sm">
+                                        <p className="text-[10px] uppercase font-bold opacity-80">% Grasa</p>
+                                        <p className="text-2xl font-bold">{bodyFatPercent > 0 ? bodyFatPercent.toFixed(1) : '--'}</p>
+                                    </div>
+                                </>
+                            )}
                         </div>
 
                         <Separator className="my-2" />
 
                         <div className="space-y-3">
-                            <HydrationStatusCard
-                                currentLiters={paciente.historiaClinica?.estiloVida?.aguaDiaria}
-                                weightKg={pesoActual}
-                                age={age}
-                                recommendedLiters={storeHydration?.ml ? storeHydration.ml / 1000 : undefined}
-                            />
+                            {/* Water Logic: Custom for infants (0-2y), Standard for > 2y */}
+                            {isInfant ? (
+                                <div className="bg-cyan-50 dark:bg-cyan-900/20 p-4 rounded-3xl border border-cyan-100 dark:border-cyan-800">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-8 h-8 rounded-full bg-cyan-100 dark:bg-cyan-800 flex items-center justify-center">
+                                            <Droplet className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                                        </div>
+                                        <p className="text-sm font-bold text-cyan-900 dark:text-cyan-100">Hidratación</p>
+                                    </div>
+                                    <p className="text-sm text-cyan-700 dark:text-cyan-200 font-medium">
+                                        {patientAge < 0.5 ? 'Lactancia materna exclusiva' : 'Lactancia materna y agua a demanda'}
+                                    </p>
+                                </div>
+                            ) : (
+                                <HydrationStatusCard
+                                    currentLiters={paciente.historiaClinica?.estiloVida?.aguaDiaria}
+                                    weightKg={pesoActual}
+                                    age={age}
+                                    recommendedLiters={storeHydration?.ml ? storeHydration.ml / 1000 : undefined}
+                                />
+                            )}
                             <PatientProgressCard pacienteId={paciente.id} patientName={paciente.datosPersonales.nombre} compact={true} />
                         </div>
                     </div>
@@ -427,7 +553,7 @@ function AdultDietHistoryTab({
                         const calories = firstDay?.stats?.calories || 0;
                         const meals = firstDay?.meals?.map(m => m.name.split(' - ')[0]) || [];
                         const createdAt = new Date(diet.createdAt);
-                        const formattedDate = createdAt.toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' });
+                        const formattedDate = format(createdAt, "d 'de' MMMM 'de' yyyy", { locale: es });
                         const formattedTime = createdAt.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
 
                         return (

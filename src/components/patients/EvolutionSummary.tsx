@@ -8,9 +8,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Activity, TrendingUp, Calendar, AlertCircle, PieChart } from "lucide-react";
-import { getPatientHistory, AnthropometryHistoryRecord } from "@/actions/patient-actions";
-import { getMedidasByPaciente, getPacienteById } from "@/lib/storage";
+import { Activity, TrendingUp, Calendar, AlertCircle, PieChart, Trash2 } from "lucide-react";
+import { getPatientHistory, deleteAnthropometryRecord, AnthropometryHistoryRecord } from "@/actions/patient-actions";
+import { getMedidasByPaciente, getPacienteById, deleteMedida } from "@/lib/storage";
 import { calcularComposicionCorporal } from "@/lib/calculos-nutricionales";
 import { calculateFiveComponentFractionation, FiveComponentInput } from "@/lib/fiveComponentMath";
 import { getAnthroNumber, MedidasAntropometricas, Paciente } from "@/types";
@@ -19,6 +19,18 @@ import { es } from "date-fns/locale";
 import { PediatricGrowthChart } from "@/components/pediatrics/PediatricGrowthChart";
 import { calculateExactAgeInMonths } from "@/lib/growth-standards";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface EvolutionSummaryProps {
     patientId: string;
@@ -110,9 +122,14 @@ export function EvolutionSummary({ patientId, mode = 'adult' }: EvolutionSummary
     const [history, setHistory] = useState<AnthropometryHistoryRecord[]>([]);
     const [patient, setPatient] = useState<Paciente | null>(null);
     const [loading, setLoading] = useState(true);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [recordToDelete, setRecordToDelete] = useState<string | null>(null);
+    const { toast } = useToast();
 
-    useEffect(() => {
-        if (patientId) {
+    const loadData = async () => {
+        setLoading(true);
+        try {
             // Get patient info for birth date and sex
             const patientData = getPacienteById(patientId);
             if (patientData) {
@@ -153,37 +170,98 @@ export function EvolutionSummary({ patientId, mode = 'adult' }: EvolutionSummary
                     .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
                 setHistory(localHistory);
-                setLoading(false);
             }
 
-            getPatientHistory(patientId).then(res => {
-                if (res.success && res.data && res.data.length > 0) {
-                    const enrichedData = res.data.map(rec => {
-                        const ageInMonths = birthDate ? calculateExactAgeInMonths(birthDate, rec.date) : 0;
-                        if (!rec.bodyFatPercent || !rec.muscleMassKg) {
-                            const localMatch = localMedidas.find((m: any) => m.id === rec.id) as MedidasAntropometricas | undefined;
-                            if (localMatch && localMatch.pliegues) {
-                                const medidaWithSexo = { ...localMatch, sexo: localMatch.sexo || (sexo === 'female' ? 'femenino' : 'masculino') } as MedidasAntropometricas;
-                                const bodyFatPercent = calculateBodyFatPercent(medidaWithSexo);
-                                const fiveComp = calculate5Components(medidaWithSexo);
-                                const masaGrasa = fiveComp ? fiveComp.adipose : (bodyFatPercent / 100) * rec.weight;
-                                return {
-                                    ...rec,
-                                    ageInMonths,
-                                    bodyFatPercent: fiveComp ? (fiveComp.adipose / rec.weight) * 100 : bodyFatPercent,
-                                    muscleMassKg: fiveComp ? fiveComp.muscle : Math.round((rec.weight - masaGrasa) * 10) / 10,
-                                    fiveComponent: fiveComp
-                                };
-                            }
+            const res = await getPatientHistory(patientId);
+            if (res.success && res.data && res.data.length > 0) {
+                const enrichedData = res.data.map(rec => {
+                    const ageInMonths = birthDate ? calculateExactAgeInMonths(birthDate, rec.date) : 0;
+                    if (!rec.bodyFatPercent || !rec.muscleMassKg) {
+                        const localMatch = localMedidas.find((m: any) => m.id === rec.id) as MedidasAntropometricas | undefined;
+                        if (localMatch && localMatch.pliegues) {
+                            const medidaWithSexo = { ...localMatch, sexo: localMatch.sexo || (sexo === 'female' ? 'femenino' : 'masculino') } as MedidasAntropometricas;
+                            const bodyFatPercent = calculateBodyFatPercent(medidaWithSexo);
+                            const fiveComp = calculate5Components(medidaWithSexo);
+                            const masaGrasa = fiveComp ? fiveComp.adipose : (bodyFatPercent / 100) * rec.weight;
+                            return {
+                                ...rec,
+                                ageInMonths,
+                                bodyFatPercent: fiveComp ? (fiveComp.adipose / rec.weight) * 100 : bodyFatPercent,
+                                muscleMassKg: fiveComp ? fiveComp.muscle : Math.round((rec.weight - masaGrasa) * 10) / 10,
+                                fiveComponent: fiveComp
+                            };
                         }
-                        return { ...rec, ageInMonths };
-                    });
-                    setHistory(enrichedData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
-                }
-                setLoading(false);
+                    }
+                    return { ...rec, ageInMonths };
+                });
+                setHistory(enrichedData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
+            }
+        } catch (error) {
+            console.error("Failed to load patient history:", error);
+            toast({
+                title: "Error al cargar historial",
+                description: "No se pudo cargar el historial de evaluaciones del paciente.",
+                variant: "destructive",
             });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Fetch data on load
+    useEffect(() => {
+        if (patientId) {
+            loadData();
         }
     }, [patientId]);
+
+    const handleDeleteClick = (id: string) => {
+        setRecordToDelete(id);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!recordToDelete) return;
+
+        setDeletingId(recordToDelete);
+        try {
+            // 1. Delete from Server
+            const res = await deleteAnthropometryRecord(recordToDelete, patientId);
+
+            // 2. Delete from Local Storage (Critical to prevent reappearance)
+            deleteMedida(recordToDelete);
+
+            if (res.success) {
+                // Remove from state immediately
+                setHistory(prev => prev.filter(h => h.id !== recordToDelete));
+                toast({
+                    title: "Medida eliminada",
+                    description: "El registro ha sido eliminado correctamente.",
+                });
+            } else {
+                // If server failed, at least we tried. 
+                // Using toast error but still refreshing state might be confusing.
+                // Assuming success if local delete worked? No, truth source is server.
+                toast({
+                    title: "Error",
+                    description: res.error || "No se pudo eliminar el registro (servidor).",
+                    variant: "destructive",
+                });
+            }
+        } catch (error) {
+            // Even if server fails, maybe we should remove locally? 
+            // Better to keep consistent.
+            toast({
+                title: "Error",
+                description: "Ocurrió un error inesperado al eliminar.",
+                variant: "destructive",
+            });
+        } finally {
+            setDeletingId(null);
+            setIsDeleteDialogOpen(false);
+            setRecordToDelete(null);
+        }
+    };
 
     if (loading) {
         return <div className="h-64 flex items-center justify-center animate-pulse bg-slate-100 dark:bg-slate-800 rounded-xl">Cargando historial...</div>;
@@ -233,7 +311,23 @@ export function EvolutionSummary({ patientId, mode = 'adult' }: EvolutionSummary
     else dynamicEndMonth = 60;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-500">
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción no se puede deshacer. Se eliminará permanentemente la evaluación antropométrica seleccionada.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-red-500 hover:bg-red-600 text-white">
+                            Eliminar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <MetricCard
                     label={mode === 'geriatric' ? "Masa Múscular Est." : "Peso Actual"}
@@ -531,6 +625,7 @@ export function EvolutionSummary({ patientId, mode = 'adult' }: EvolutionSummary
                                                 <TableHead className="font-bold text-slate-600 dark:text-slate-300 text-center">
                                                     {mode === 'pediatric' ? 'IMC' : 'Masa Muscular (kg)'}
                                                 </TableHead>
+                                                <TableHead className="w-[50px]"></TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -558,6 +653,21 @@ export function EvolutionSummary({ patientId, mode = 'adult' }: EvolutionSummary
                                                             : (rec.muscleMassKg || '-')
                                                         }
                                                     </TableCell>
+                                                    <TableCell>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                            onClick={() => handleDeleteClick(rec.id)}
+                                                            disabled={deletingId === rec.id}
+                                                        >
+                                                            {deletingId === rec.id ? (
+                                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500" />
+                                                            ) : (
+                                                                <Trash2 className="h-4 w-4" />
+                                                            )}
+                                                        </Button>
+                                                    </TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
@@ -574,6 +684,7 @@ export function EvolutionSummary({ patientId, mode = 'adult' }: EvolutionSummary
                                                 <TableHead className="font-bold text-blue-600 dark:text-blue-400 text-center">Óseo (kg)</TableHead>
                                                 <TableHead className="font-bold text-gray-600 dark:text-gray-400 text-center">Residual (kg)</TableHead>
                                                 <TableHead className="font-bold text-yellow-600 dark:text-yellow-400 text-center">Piel (kg)</TableHead>
+                                                <TableHead className="w-[50px]"></TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -596,6 +707,21 @@ export function EvolutionSummary({ patientId, mode = 'adult' }: EvolutionSummary
                                                     </TableCell>
                                                     <TableCell className="text-center font-semibold text-yellow-600">
                                                         {(rec as any).fiveComponent?.skin || '-'}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                            onClick={() => handleDeleteClick(rec.id)}
+                                                            disabled={deletingId === rec.id}
+                                                        >
+                                                            {deletingId === rec.id ? (
+                                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500" />
+                                                            ) : (
+                                                                <Trash2 className="h-4 w-4" />
+                                                            )}
+                                                        </Button>
                                                     </TableCell>
                                                 </TableRow>
                                             ))}

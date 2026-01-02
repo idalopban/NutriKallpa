@@ -102,6 +102,23 @@ export interface HistoriaClinica {
   // Bioquímica is now a separate relation or array, but we keep a summary here if needed
   bioquimicaReciente?: Partial<BiochemistryRecord>;
   altitudResidencia?: number; // Metros sobre el nivel del mar (m.s.n.m.)
+
+  // Pediatric Clinical Data
+  antecedentes?: {
+    nacimientoPrematuro?: boolean;
+    pesoNacimiento?: number;
+    semanasGestacion?: number;
+    partoTipo?: 'natural' | 'cesarea';
+    lactanciaMaterna?: boolean;
+  };
+
+  datosClinicos?: {
+    hemoglobina?: number; // g/dL
+    diagnosticoAnemia?: string;
+    suplementoHierro?: boolean;
+    suplementoVitaminaA?: boolean;
+    suplementoZinc?: boolean;
+  };
 }
 
 /* -------------------------------------------------------------------------- */

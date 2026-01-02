@@ -230,6 +230,45 @@ export async function getPatientHistory(patientId: string): Promise<{ success: b
 }
 
 /**
+ * Delete a specific anthropometry record
+ * SECURITY: Validates session and ownership
+ */
+export async function deleteAnthropometryRecord(recordId: string, patientId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const sessionUserId = await getServerSession();
+        if (!sessionUserId) return { success: false, error: "No autorizado" };
+
+        const client = createSupabaseAdmin();
+
+        // 1. Verify patient ownership
+        const { data: patient } = await client
+            .from("pacientes")
+            .select("usuario_id")
+            .eq("id", patientId)
+            .single();
+
+        if (!patient || patient.usuario_id !== sessionUserId) {
+            return { success: false, error: "No autorizado o paciente no encontrado" };
+        }
+
+        // 2. Delete the record
+        // Ensure the record actually belongs to this patient to prevent IDOR on records
+        const { error } = await client
+            .from("anthropometry_records")
+            .delete()
+            .eq("id", recordId)
+            .eq("patient_id", patientId);
+
+        if (error) throw error;
+
+        return { success: true };
+    } catch (err: any) {
+        logger.error('Error deleting anthropometry record', { action: 'deleteAnthropometryRecord', recordId }, err);
+        return { success: false, error: "Error al eliminar registro" };
+    }
+}
+
+/**
  * Server-side helper to fetch a single patient (for RSC)
  */
 export async function getPatientServer(id: string): Promise<Paciente | null> {

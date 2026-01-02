@@ -42,6 +42,7 @@ export function GlobalNutritionHeader({ className }: GlobalNutritionHeaderProps)
     const talla = patient?.datosPersonales.talla || 170;
     const sexo = patient?.datosPersonales.sexo || 'masculino';
     const edad = patientAge;
+    const isInfant = edad < 2;
 
     // Use hydration from store
     const hydrationRec = hydration;
@@ -89,60 +90,95 @@ export function GlobalNutritionHeader({ className }: GlobalNutritionHeaderProps)
             "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-wrap items-center gap-6",
             className
         )}>
-            <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
-                    <Zap className="w-5 h-5" />
-                </div>
-                <div>
-                    <p className="text-[10px] uppercase font-medium text-slate-400 tracking-wider">Fórmula activa</p>
-                    <p className="text-lg font-semibold text-slate-700 dark:text-slate-200 leading-none capitalize">
-                        {effectiveFormulaName || 'Mifflin'}
-                    </p>
-                </div>
-            </div>
-
-            <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden md:block" />
-
-            <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600">
-                    <Scale className="w-5 h-5" />
-                </div>
-                <div>
-                    <p className="text-[10px] uppercase font-medium text-slate-400 tracking-wider">Estado Clínico (IMC)</p>
-                    <p className="text-xl font-bold text-slate-800 dark:text-white leading-none">
-                        {bmi} <span className="text-[10px] font-medium text-slate-400">kg/m²</span>
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-1">
-                        <p className={cn(
-                            "text-[10px] font-semibold uppercase truncate max-w-[150px]",
-                            bmiDiagnostico.includes('Normal') ? "text-emerald-500" : "text-rose-500"
-                        )}>
-                            {bmiDiagnostico}
-                        </p>
-                        {isGeriatric && (
-                            <span className="text-[9px] font-medium text-slate-400">(Meta: 23-28)</span>
-                        )}
+            {isInfant ? (
+                <>
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
+                            <Zap className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] uppercase font-medium text-slate-400 tracking-wider">Plan Alimentación (0-2 años)</p>
+                            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-none capitalize max-w-[180px]">
+                                {edad < 0.5 ? 'Lactancia Exclusiva' :
+                                    edad < 0.75 ? 'AC (Papillas)' :
+                                        edad < 1 ? 'AC (Picado)' :
+                                            'Dieta Familiar'}
+                            </p>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden md:block" />
+                    <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden md:block" />
 
-            <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
-                    <Activity className="w-5 h-5" />
-                </div>
-                <div>
-                    <p className="text-[10px] uppercase font-medium text-slate-400 tracking-wider">Proteína meta</p>
-                    <p className="text-xl font-bold text-slate-800 dark:text-white leading-none">
-                        {proteinaRatio} <span className="text-sm font-medium text-slate-400">g/kg</span>
-                        <span className="ml-2 text-xs font-medium text-blue-500">({proteinaGramos}g)</span>
-                    </p>
-                    <p className="text-[9px] font-medium text-blue-400 uppercase leading-none mt-1">
-                        Base: {proteinBasisLabel}
-                    </p>
-                </div>
-            </div>
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600">
+                            <Scale className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] uppercase font-medium text-slate-400 tracking-wider">Peso/Edad (Diagnóstico)</p>
+                            <p className="text-base font-bold text-slate-800 dark:text-white leading-none">
+                                {bmiDiagnostico || 'Evaluación Pendiente'}
+                            </p>
+                        </div>
+                    </div>
+                </>
+            ) : (
+                <>
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
+                            <Zap className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] uppercase font-medium text-slate-400 tracking-wider">Fórmula activa</p>
+                            <p className="text-lg font-semibold text-slate-700 dark:text-slate-200 leading-none capitalize">
+                                {effectiveFormulaName || 'Mifflin'}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden md:block" />
+
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600">
+                            <Scale className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] uppercase font-medium text-slate-400 tracking-wider">Estado Clínico (IMC)</p>
+                            <p className="text-xl font-bold text-slate-800 dark:text-white leading-none">
+                                {bmi} <span className="text-[10px] font-medium text-slate-400">kg/m²</span>
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-1">
+                                <p className={cn(
+                                    "text-[10px] font-semibold uppercase truncate max-w-[150px]",
+                                    bmiDiagnostico.includes('Normal') ? "text-emerald-500" : "text-rose-500"
+                                )}>
+                                    {bmiDiagnostico}
+                                </p>
+                                {isGeriatric && (
+                                    <span className="text-[9px] font-medium text-slate-400">(Meta: 23-28)</span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden md:block" />
+
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                            <Activity className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] uppercase font-medium text-slate-400 tracking-wider">Proteína meta</p>
+                            <p className="text-xl font-bold text-slate-800 dark:text-white leading-none">
+                                {proteinaRatio} <span className="text-sm font-medium text-slate-400">g/kg</span>
+                                <span className="ml-2 text-xs font-medium text-blue-500">({proteinaGramos}g)</span>
+                            </p>
+                            <p className="text-[9px] font-medium text-blue-400 uppercase leading-none mt-1">
+                                Base: {proteinBasisLabel}
+                            </p>
+                        </div>
+                    </div>
+                </>
+            )}
 
             {(isPediatric || isGeriatric) && (
                 <>
@@ -172,10 +208,14 @@ export function GlobalNutritionHeader({ className }: GlobalNutritionHeaderProps)
                     <div>
                         <p className="text-[9px] uppercase font-medium text-slate-400 tracking-wider leading-tight">Agua Recomendada</p>
                         <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-none">
-                            {(hydration.ml / 1000).toFixed(1)}L <span className="text-[10px] font-medium text-slate-400">/ día</span>
+                            {isInfant ? (
+                                edad < 0.5 ? 'No indicada (< 6m)' : 'A demanda'
+                            ) : (
+                                <>{(hydration.ml / 1000).toFixed(1)}L <span className="text-[10px] font-medium text-slate-400">/ día</span></>
+                            )}
                         </p>
                         <p className="text-[9px] font-medium text-cyan-500 uppercase leading-none mt-0.5">
-                            {hydration.metodo || 'Holiday-Segar'}
+                            {isInfant ? 'Lactancia/Comp.' : (hydration.metodo || 'Holiday-Segar')}
                         </p>
                     </div>
                 </div>

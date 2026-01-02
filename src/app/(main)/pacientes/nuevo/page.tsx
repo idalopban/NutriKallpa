@@ -1389,6 +1389,106 @@ export default function NuevoPacientePage() {
               </CardContent>
             </Card>
 
+            {/* NEW: Pediatric Clinical Data (Conditionally Rendered) */}
+            {isPediatric && (
+              <Card className="border-none shadow-md bg-white dark:bg-[#1e293b] dark:border dark:border-[#334155] overflow-hidden border-l-4 border-l-cyan-500">
+                <CardHeader className="bg-cyan-50/50 dark:bg-cyan-900/20 border-b border-cyan-100 dark:border-cyan-900/30 pb-4">
+                  <CardTitle className="flex items-center gap-3 text-lg text-slate-800 dark:text-white">
+                    <div className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-600 shadow-sm">
+                      <Baby className="w-4 h-4" />
+                    </div>
+                    Datos Clínicos Pediátricos
+                    <Badge variant="outline" className="ml-2 text-cyan-600 border-cyan-300">0-19 años</Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Información clave para el seguimiento del crecimiento y desarrollo infantil.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-6 pt-6">
+                  {/* Prematuridad */}
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="isPremature"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm bg-slate-50 dark:bg-slate-800/50">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">Prematuro</FormLabel>
+                            <FormDescription>
+                              Nacimiento antes de las 37 semanas.
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <div className="flex items-center space-x-2">
+                              <Input
+                                type="checkbox"
+                                checked={field.value}
+                                onChange={field.onChange}
+                                className="w-5 h-5 text-cyan-600 rounded focus:ring-cyan-500 border-gray-300"
+                              />
+                            </div>
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    {form.watch('isPremature') && (
+                      <FormField
+                        control={form.control}
+                        name="semanasGestacion"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Semanas de Gestación</FormLabel>
+                            <FormControl>
+                              <Input type="number" placeholder="Ej: 34" {...field} className="bg-white dark:bg-[#0f172a]" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </div>
+
+                  {/* Birth Weight & Clinical Labs */}
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="pesoNacer"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Peso al Nacer (kg)</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input type="number" step="0.01" placeholder="Ej: 3.200" {...field} className="bg-white dark:bg-[#0f172a]" />
+                              <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium">kg</span>
+                            </div>
+                          </FormControl>
+                          <FormDescription>Importante para evaluar catch-up growth.</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="hemoglobina"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Hemoglobina (g/dL)</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input type="number" step="0.1" placeholder="Ej: 11.5" {...field} className="bg-white dark:bg-[#0f172a]" />
+                              <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium">g/dL</span>
+                            </div>
+                          </FormControl>
+                          <FormDescription>Para despistaje de anemia.</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* 10. Configuración Nutricional (ORANGE THEME) */}
             <Card className="border-none shadow-md bg-white dark:bg-[#1e293b] dark:border dark:border-[#334155] overflow-hidden border-l-4 border-l-orange-500">
               <CardHeader className="bg-orange-50/50 dark:bg-orange-900/20 border-b border-orange-100 dark:border-orange-900/30 pb-4">
