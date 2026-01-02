@@ -12,10 +12,16 @@ import {
     Tooltip,
     Legend,
     ResponsiveContainer,
-    Scatter,
     ReferenceLine,
 } from 'recharts';
-import { generatePercentileCurves, type Sex, type GrowthIndicator } from '@/lib/growth-standards';
+import {
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import { generatePercentileCurves, type Sex, type GrowthIndicator } from "@/lib/growth-standards";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { formatClinicalAgeFromMonths } from '@/lib/clinical-calculations';
 
 // ============================================================================
@@ -90,7 +96,7 @@ function CustomTooltip({ active, payload, label, unit }: CustomTooltipProps) {
     if (patientPoint) {
         const data = patientPoint.payload;
         const ageDisplay = formatClinicalAgeFromMonths(data.ageInMonths, data.ageInDays);
-        const dateDisplay = data.date ? new Date(data.date).toLocaleDateString('es-PE') : 'Sin fecha';
+        const dateDisplay = data.date ? format(new Date(data.date), 'dd MMM yyyy', { locale: es }) : 'Sin fecha';
 
         return (
             <div className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
@@ -414,15 +420,15 @@ function PediatricGrowthChartComponent({
                             connectNulls
                         />
 
-                        {/* Patient Data Points (Dynamic) */}
+                        {/* Patient Line (Continuous Trend) */}
                         <Line
-                            type="linear"
+                            type="monotone"
                             dataKey="patientValue"
+                            name={`Evolución: ${patientName || 'Paciente'}`}
                             stroke={LINE_COLORS.patient}
-                            strokeWidth={2}
-                            dot={{ r: 6, fill: LINE_COLORS.patient, stroke: '#fff', strokeWidth: 2 }}
-                            activeDot={{ r: 8, fill: LINE_COLORS.patient }}
-                            name="Paciente"
+                            strokeWidth={3}
+                            dot={{ r: 5, fill: LINE_COLORS.patient, strokeWidth: 2, stroke: '#fff' }}
+                            activeDot={{ r: 8, strokeWidth: 0 }}
                             connectNulls
                         />
 

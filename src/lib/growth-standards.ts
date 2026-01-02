@@ -493,25 +493,25 @@ function interpolateLMS(data: Record<number, LMSData>, ageInMonths: number): LMS
  * Obtiene los datos LMS para un indicador específico
  */
 function getLMSData(
-    indicator: GrowthIndicator,
-    sex: Sex,
-    ageInMonths: number
+    type: string,
+    sex: string,
+    month: number
 ): LMSData | null {
     let data: Record<number, LMSData>;
 
-    switch (indicator) {
+    switch (type) {
         case 'wfa':
             data = sex === 'male' ? WFA_BOYS : WFA_GIRLS;
             break;
         case 'lhfa':
-            if (ageInMonths > 60) {
+            if (month > 60) {
                 data = sex === 'male' ? HFA_BOYS_2007 : HFA_GIRLS_2007;
             } else {
                 data = sex === 'male' ? LHFA_BOYS : LHFA_GIRLS;
             }
             break;
         case 'bfa':
-            if (ageInMonths > 60) {
+            if (month > 60) {
                 data = sex === 'male' ? BFA_BOYS_2007 : BFA_GIRLS_2007;
             } else {
                 data = sex === 'male' ? BFA_BOYS : BFA_GIRLS;
@@ -527,9 +527,8 @@ function getLMSData(
             return null;
     }
 
-    return interpolateLMS(data, ageInMonths);
+    return interpolateLMS(data, month);
 }
-
 /**
  * Convierte Z-Score a percentil
  */
