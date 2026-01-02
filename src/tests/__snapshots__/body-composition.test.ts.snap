@@ -1,0 +1,8 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Regression Snapshots > IMC calculation should match snapshot 1`] = `
+{
+  "diagnostico": "Normopeso",
+  "valor": 22.86,
+}
+`;
