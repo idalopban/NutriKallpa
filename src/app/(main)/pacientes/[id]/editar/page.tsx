@@ -31,18 +31,16 @@ const editSchema = z.object({
 
 type EditFormValues = z.infer<typeof editSchema>;
 
-// Avatares predefinidos con emojis
+// Avatares predefinidos con imágenes
 const AVATAR_OPTIONS = [
-  { id: "avatar-1", emoji: "👤", label: "Persona" },
-  { id: "avatar-2", emoji: "👨", label: "Hombre" },
-  { id: "avatar-3", emoji: "👩", label: "Mujer" },
-  { id: "avatar-4", emoji: "👴", label: "Adulto Mayor" },
-  { id: "avatar-5", emoji: "👵", label: "Adulta Mayor" },
-  { id: "avatar-6", emoji: "🧑‍⚕️", label: "Profesional Salud" },
-  { id: "avatar-7", emoji: "🏃", label: "Deportista" },
-  { id: "avatar-8", emoji: "🏋️", label: "Fitness" },
-  { id: "avatar-9", emoji: "🧘", label: "Yoga" },
-  { id: "avatar-10", emoji: "🚴", label: "Ciclista" },
+  { id: "avatar-1", image: "/perfil/bebe_nino.png", label: "Bebé Niño" },
+  { id: "avatar-2", image: "/perfil/bebe_nina.png", label: "Bebé Niña" },
+  { id: "avatar-3", image: "/perfil/nino.png", label: "Niño" },
+  { id: "avatar-4", image: "/perfil/nina.png", label: "Niña" },
+  { id: "avatar-5", image: "/perfil/adulto.png", label: "Adulto" },
+  { id: "avatar-6", image: "/perfil/adulta.png", label: "Adulta" },
+  { id: "avatar-7", image: "/perfil/adulto_mayor.png", label: "Adulto Mayor" },
+  { id: "avatar-8", image: "/perfil/adulta_mayor.png", label: "Adulta Mayor" },
 ];
 
 // Función para calcular edad
@@ -91,40 +89,89 @@ export default function EditarPacientePage() {
     }
   }, [params.id, loadPatient]);
 
-  // 2. Rellenar el formulario cuando el paciente se cargue
+  // Track initialization to prevent overwriting user edits on background sync
+  const initializedRef = useRef(false);
+  const lastPatientIdRef = useRef<string | null>(null);
+
+  // 2. Rellenar el formulario cuando el paciente se cargue (solo una vez)
   useEffect(() => {
     if (paciente) {
-      form.reset({
-        nombre: paciente.datosPersonales.nombre,
-        apellido: paciente.datosPersonales.apellido,
-        email: paciente.datosPersonales.email || "",
-        telefono: paciente.datosPersonales.telefono || "",
-        fechaNacimiento: (typeof paciente.datosPersonales.fechaNacimiento === 'string'
-          ? paciente.datosPersonales.fechaNacimiento
-          : new Date(paciente.datosPersonales.fechaNacimiento).toISOString()
-        ).split('T')[0],
-        direccion: (paciente.datosPersonales as any).direccion || "",
-      });
-      // Load existing avatar
-      if (paciente.datosPersonales.avatarUrl) {
-        if (paciente.datosPersonales.avatarUrl.startsWith('avatar-')) {
-          setSelectedAvatar(paciente.datosPersonales.avatarUrl);
+      // Reset initialization if patient ID changes
+      if (lastPatientIdRef.current !== paciente.id) {
+        initializedRef.current = false;
+        lastPatientIdRef.current = paciente.id;
+      }
+
+      if (!initializedRef.current) {
+        form.reset({
+          nombre: paciente.datosPersonales.nombre,
+          apellido: paciente.datosPersonales.apellido,
+          email: paciente.datosPersonales.email || "",
+          telefono: paciente.datosPersonales.telefono || "",
+          fechaNacimiento: (typeof paciente.datosPersonales.fechaNacimiento === 'string'
+            ? paciente.datosPersonales.fechaNacimiento
+            : new Date(paciente.datosPersonales.fechaNacimiento).toISOString()
+          ).split('T')[0],
+          direccion: (paciente.datosPersonales as any).direccion || "",
+        });
+
+        // Load existing avatar
+        if (paciente.datosPersonales.avatarUrl) {
+          if (paciente.datosPersonales.avatarUrl.startsWith('avatar-')) {
+            setSelectedAvatar(paciente.datosPersonales.avatarUrl);
+            setCustomPhotoPreview(null);
+          } else {
+            setCustomPhotoPreview(paciente.datosPersonales.avatarUrl);
+            setSelectedAvatar("");
+          }
         } else {
-          setCustomPhotoPreview(paciente.datosPersonales.avatarUrl);
+          // Reset if no avatar
+          setCustomPhotoPreview(null);
+          setSelectedAvatar("");
         }
+
+        initializedRef.current = true;
       }
     }
   }, [paciente, form]);
 
-  // Handle file upload
+  // Handle file upload with client-side compression
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        setCustomPhotoPreview(base64);
-        setSelectedAvatar(""); // Clear icon selection
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 300;
+          const MAX_HEIGHT = 300;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          // Compress to JPEG with 0.7 quality
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          setCustomPhotoPreview(compressedBase64);
+          setSelectedAvatar(""); // Clear icon selection
+        };
+        img.src = event.target?.result as string;
       };
       reader.readAsDataURL(file);
     }
@@ -137,7 +184,7 @@ export default function EditarPacientePage() {
   };
 
   // 3. Guardar cambios usando el store (se sincroniza automáticamente)
-  const onSubmit = (data: EditFormValues) => {
+  const onSubmit = async (data: EditFormValues) => {
     if (!paciente) return;
 
     // Determine avatar URL
@@ -148,8 +195,8 @@ export default function EditarPacientePage() {
       avatarUrl = selectedAvatar;
     }
 
-    // Update through the centralized store
-    updateDatosPersonales({
+    // Update through the centralized store - AWAIT to ensure save completes
+    await updateDatosPersonales({
       nombre: data.nombre,
       apellido: data.apellido,
       email: data.email || "",
@@ -159,7 +206,7 @@ export default function EditarPacientePage() {
       direccion: data.direccion,
     } as any);
 
-    // Navigate back - the data is already synced everywhere
+    // Navigate back AFTER the data is synced
     router.push(`/pacientes/${paciente.id}`);
   };
 
@@ -170,7 +217,7 @@ export default function EditarPacientePage() {
     }
     if (selectedAvatar) {
       const avatar = AVATAR_OPTIONS.find(a => a.id === selectedAvatar);
-      return <span className="text-5xl">{avatar?.emoji || "👤"}</span>;
+      return avatar?.image ? <img src={avatar.image} alt={avatar.label} className="w-full h-full object-cover" /> : <User className="w-16 h-16 text-slate-400" />;
     }
     if (paciente) {
       return <span className="text-5xl font-bold text-[#6cba00]">{paciente.datosPersonales.nombre[0]}{paciente.datosPersonales.apellido[0]}</span>;
@@ -276,7 +323,7 @@ export default function EditarPacientePage() {
                             }
                           `}
                         >
-                          {avatar.emoji}
+                          <img src={avatar.image} alt={avatar.label} className="w-full h-full object-contain p-1" />
                         </button>
                       ))}
                     </div>

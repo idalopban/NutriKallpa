@@ -83,10 +83,18 @@ export function PatientDetailClient() {
         medidas,
         isLoading: loading,
         refreshMedidas,
-        clearPatient
+        clearPatient,
+        loadPatient
     } = usePatientStore();
 
     const { hydration: storeHydration } = usePatientNutrition();
+
+    // Reload patient data on mount or when ID changes (ensures fresh data after edits)
+    useEffect(() => {
+        if (params.id && typeof params.id === 'string') {
+            loadPatient(params.id);
+        }
+    }, [params.id, loadPatient]);
 
     const stage = paciente ? getPatientStage(paciente.datosPersonales.fechaNacimiento) : 'ADULT';
     const isPediatric = stage === 'PEDIATRIC';
@@ -524,7 +532,7 @@ export function PatientDetailClient() {
                         )}
                         {isInfant && (
                             <TabsContent value="suplementacion">
-                                <InfantSupplementationModule patient={paciente} />
+                                <InfantSupplementationModule patient={paciente} currentWeight={pesoActual} />
                             </TabsContent>
                         )}
                     </Tabs>

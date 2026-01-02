@@ -138,18 +138,19 @@ function PatientRow({
           <Avatar className="h-10 w-10 md:h-12 md:w-12 border-2 border-slate-100 dark:border-slate-700 group-hover:border-[#ff8508] transition-colors flex-shrink-0 overflow-hidden">
             {paciente.datosPersonales.avatarUrl ? (
               paciente.datosPersonales.avatarUrl.startsWith('avatar-') ? (
-                <AvatarFallback className="bg-gradient-to-br from-[#6cba00] to-[#4a8c00] text-white font-bold text-lg">
-                  {paciente.datosPersonales.avatarUrl === 'avatar-1' && '👤'}
-                  {paciente.datosPersonales.avatarUrl === 'avatar-2' && '👨'}
-                  {paciente.datosPersonales.avatarUrl === 'avatar-3' && '👩'}
-                  {paciente.datosPersonales.avatarUrl === 'avatar-4' && '👴'}
-                  {paciente.datosPersonales.avatarUrl === 'avatar-5' && '👵'}
-                  {paciente.datosPersonales.avatarUrl === 'avatar-6' && '🧑‍⚕️'}
-                  {paciente.datosPersonales.avatarUrl === 'avatar-7' && '🏃'}
-                  {paciente.datosPersonales.avatarUrl === 'avatar-8' && '🏋️'}
-                  {paciente.datosPersonales.avatarUrl === 'avatar-9' && '🧘'}
-                  {paciente.datosPersonales.avatarUrl === 'avatar-10' && '🚴'}
-                </AvatarFallback>
+                <img
+                  src={`/perfil/${paciente.datosPersonales.avatarUrl === 'avatar-1' ? 'bebe_nino' :
+                      paciente.datosPersonales.avatarUrl === 'avatar-2' ? 'bebe_nina' :
+                        paciente.datosPersonales.avatarUrl === 'avatar-3' ? 'nino' :
+                          paciente.datosPersonales.avatarUrl === 'avatar-4' ? 'nina' :
+                            paciente.datosPersonales.avatarUrl === 'avatar-5' ? 'adulto' :
+                              paciente.datosPersonales.avatarUrl === 'avatar-6' ? 'adulta' :
+                                paciente.datosPersonales.avatarUrl === 'avatar-7' ? 'adulto_mayor' :
+                                  paciente.datosPersonales.avatarUrl === 'avatar-8' ? 'adulta_mayor' : 'adulto'
+                    }.png`}
+                  alt={`${paciente.datosPersonales.nombre} ${paciente.datosPersonales.apellido}`}
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <img
                   src={paciente.datosPersonales.avatarUrl}

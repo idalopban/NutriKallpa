@@ -13,11 +13,13 @@ import { getAltitudeAdjustment } from "@/lib/anemia-nts-protocol";
 
 interface InfantSupplementationModuleProps {
     patient: Paciente;
+    currentWeight?: number;
 }
 
-export function InfantSupplementationModule({ patient }: InfantSupplementationModuleProps) {
+export function InfantSupplementationModule({ patient, currentWeight }: InfantSupplementationModuleProps) {
     const { toast } = useToast();
-    const [weight, setWeight] = useState<number>(patient.datosPersonales.peso || 0);
+    // Default to current anthropometric weight, fallback to profile/birth weight, or 0
+    const [weight, setWeight] = useState<number>(currentWeight || patient.datosPersonales.peso || 0);
 
     // Calculate precise age
     const ageData = useMemo(() => {
@@ -30,6 +32,16 @@ export function InfantSupplementationModule({ patient }: InfantSupplementationMo
         const years = days / 365.25;
         return { days, weeks, months, years };
     }, [patient.datosPersonales.fechaNacimiento]);
+
+    // Format Age String
+    const ageDisplay = useMemo(() => {
+        if (ageData.days < 30) return `${ageData.days} días`;
+        if (ageData.years < 1) return `${ageData.months.toFixed(1)} meses`;
+        return `${ageData.years.toFixed(1)} años`;
+    }, [ageData]);
+
+    // Anemia Check Logic (NTS Standards)
+    // ... (rest of anemiaStatus logic remains same, skipping for brevity in this replacement block if possible, but replace_file_content needs context. I will replace up to the component start to be safe or use precise anchors)
 
     // Anemia Check Logic (NTS Standards)
     const anemiaStatus = useMemo(() => {
@@ -169,7 +181,13 @@ export function InfantSupplementationModule({ patient }: InfantSupplementationMo
                 }
             } else {
                 // Term Infants / Adequate Weight
-                if (ageData.months < 4) {
+                if (ageData.days < 30) {
+                    // NEW: Explicit message for < 30 days
+                    recommendation = "Inicio de suplementación al mes de nacido.";
+                    doseMg = 0;
+                    // Overwrite purpose to be clear
+                    purpose = "Espera (Recién Nacido)";
+                } else if (ageData.months < 4) {
                     recommendation = "Lactancia Materna Exclusiva. Inicio a los 4 meses.";
                     doseMg = 0;
                 } else if (ageData.months >= 4 && ageData.months < 6) {
@@ -206,11 +224,8 @@ export function InfantSupplementationModule({ patient }: InfantSupplementationMo
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">Suplementación <span className="text-cyan-500">Infantil</span></h2>
-                    <p className="text-sm text-slate-500">Manejo de micronutrientes (0-24 meses) según NTS.</p>
-                </div>
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Suplementación Infantil</h3>
                 <Button onClick={handleSave} className="bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl gap-2 shadow-lg shadow-cyan-500/20">
                     <Save className="w-4 h-4" /> Guardar Registro
                 </Button>
@@ -243,7 +258,7 @@ export function InfantSupplementationModule({ patient }: InfantSupplementationMo
                                 <Label className="text-xs text-slate-500">Edad Calculada</Label>
                                 <div className="relative">
                                     <Input
-                                        value={`${ageData.months.toFixed(1)} meses`}
+                                        value={ageDisplay}
                                         readOnly
                                         className="bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200"
                                     />
