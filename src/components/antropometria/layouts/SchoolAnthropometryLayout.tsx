@@ -1,22 +1,17 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Baby, Calendar, Scale, Activity, User, Ruler, History, PieChart, FileDown, Save } from "lucide-react";
+import { useState, useRef, useMemo, useCallback } from "react";
+import { Baby, Calendar, Scale, Activity, History, Ruler } from "lucide-react";
 import { AnthropometryTabs } from "../navigation/AnthropometryTabs";
-import { NewPediatricMeasurementForm, PediatricMeasurementData, PediatricMeasurementFormRef } from "@/components/pediatrics/NewPediatricMeasurementForm";
+import { NewPediatricMeasurementForm, PediatricMeasurementData, LivePreviewData, PediatricMeasurementFormRef } from "@/components/pediatrics/NewPediatricMeasurementForm";
 import { PediatricGrowthChart, PatientDataPoint } from "@/components/pediatrics/PediatricGrowthChart";
 import { MedidasAntropometricas } from "@/types";
 import { calculateZScore } from "@/lib/growth-standards";
 import { calculateExactAgeInDays } from "@/lib/clinical-calculations";
 import { EvaluationHistory } from "../EvaluationHistory";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdultAnthropometryLayout } from "./AdultAnthropometryLayout";
 import { FullMeasurementData } from "../UnifiedMeasurementForm";
-import { AdolescentEvaluation } from "../AdolescentEvaluation";
-import { PediatricBodyCompositionPanel } from "../PediatricBodyCompositionPanel";
-import { calculateChronologicalAge } from "@/lib/clinical-calculations";
+import { AdultAnthropometryLayout } from "./AdultAnthropometryLayout";
 
 interface SchoolAnthropometryLayoutProps {
     patientId: string;
@@ -27,7 +22,7 @@ interface SchoolAnthropometryLayoutProps {
     onSavePediatric: (data: PediatricMeasurementData) => void;
     onSaveAdult: (data: FullMeasurementData) => void;
     onDeleteMedida?: (id: string) => void;
-    isTeenager?: boolean; // > 15 years
+    isTeenager?: boolean;
     initialWeight?: number;
     initialHeight?: number;
 }
@@ -41,109 +36,48 @@ export function SchoolAnthropometryLayout({
     onSavePediatric,
     onSaveAdult,
     onDeleteMedida,
-    isTeenager = false,
+    isTeenager,
     initialWeight = 0,
     initialHeight = 0
 }: SchoolAnthropometryLayoutProps) {
     const [activeTab, setActiveTab] = useState("crecimiento");
     const [activeChart, setActiveChart] = useState<'talla' | 'imc'>('talla');
-    const [enableIsak, setEnableIsak] = useState(false);
+    const [livePreviewData, setLivePreviewData] = useState<LivePreviewData>({});
 
-    // Ref for external form submit
     const formRef = useRef<PediatricMeasurementFormRef>(null);
 
-    // Biological age from Tanner staging (for adolescents)
-    const [biologicalAge, setBiologicalAge] = useState<number | null>(null);
-    const [useBiologicalAge, setUseBiologicalAge] = useState(false);
-
-    // Handle biological age change from Adolescent module
-    const handleBiologicalAgeChange = (bioAge: number | null, shouldUse: boolean) => {
-        setBiologicalAge(bioAge);
-        setUseBiologicalAge(shouldUse);
-    };
-
-    // If ISAK protocol is enabled, render the Adult layout
-    if (enableIsak && isTeenager) {
-        return (
-            <div className="space-y-4">
-                <div className="flex items-center justify-end px-4">
-                    <div className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
-                        <Switch id="isak-mode" checked={enableIsak} onCheckedChange={setEnableIsak} />
-                        <Label htmlFor="isak-mode" className="text-sm font-medium cursor-pointer">
-                            Protocolo ISAK (Deportista)
-                        </Label>
-                    </div>
-                </div>
-                <AdultAnthropometryLayout
-                    patientName={patientName}
-                    patientGender={patientSex}
-                    patientBirthDate={patientBirthDate}
-                    initialWeight={initialWeight}
-                    initialHeight={initialHeight}
-                    medidas={medidas}
-                    onSave={onSaveAdult}
-                    onDeleteMedida={onDeleteMedida}
-                />
-            </div>
-        );
-    }
+    // Callback to receive live form data
+    const handleLiveDataChange = useCallback((data: LivePreviewData) => {
+        setLivePreviewData(data);
+    }, []);
 
     // Prepare Chart Data
     const sex = patientSex === 'femenino' ? 'female' : 'male';
     const birthDateObj = new Date(patientBirthDate);
 
-    /**
-     * Calculate effective age in months for Z-score calculations.
-     * If biological age should be used (Tanner discrepancy), adjust the age.
-     */
-    const getEffectiveAgeMonths = (measureDate: Date): number => {
-        const ageMs = measureDate.getTime() - birthDateObj.getTime();
-        const chronoMonths = ageMs / (1000 * 60 * 60 * 24 * 30.4375);
+    // Calculate current age for live preview point
+    const currentAgeMonths = useMemo(() => {
+        const now = new Date();
+        const ageMs = now.getTime() - birthDateObj.getTime();
+        return Math.round((ageMs / (1000 * 60 * 60 * 24 * 30.4375)) * 100) / 100;
+    }, [birthDateObj]);
 
-        if (useBiologicalAge && biologicalAge) {
-            // Calculate the age difference and apply it
-            const chronoYears = chronoMonths / 12;
-            const ageDiffYears = biologicalAge - chronoYears;
-            // Apply the difference: if biological age is higher, use higher months
-            return (chronoYears + ageDiffYears) * 12;
-        }
-
-        return chronoMonths;
-    };
-
-    const weightChartData: PatientDataPoint[] = medidas.map(m => {
-        const measureDate = typeof m.fecha === 'string' ? new Date(m.fecha) : m.fecha;
-        const ageMs = measureDate.getTime() - birthDateObj.getTime();
-        const ageMonths = ageMs / (1000 * 60 * 60 * 24 * 30.4375);
-        const effectiveAgeMonths = getEffectiveAgeMonths(measureDate);
-        const zRes = calculateZScore(m.peso, effectiveAgeMonths, sex, 'wfa');
-
-        return {
-            ageInMonths: Math.round(effectiveAgeMonths * 100) / 100, // Use biological age for chart position
-            value: m.peso,
-            date: typeof m.fecha === 'string' ? m.fecha : new Date(m.fecha).toISOString(),
-            zScore: zRes?.zScore,
-            diagnosis: zRes?.diagnosis,
-            ageInDays: calculateExactAgeInDays(patientBirthDate, m.fecha)
-        };
-    }).filter(p => p.ageInMonths >= 60 && p.ageInMonths <= 228); // 5 to 19 years
-
+    // MAP HISTORICAL DATA - NO LOWER BOUND FILTER to allow tracking
     const heightChartData: PatientDataPoint[] = medidas.map(m => {
         const measureDate = typeof m.fecha === 'string' ? new Date(m.fecha) : m.fecha;
         const ageMs = measureDate.getTime() - birthDateObj.getTime();
         const ageMonths = ageMs / (1000 * 60 * 60 * 24 * 30.4375);
-        const effectiveAgeMonths = getEffectiveAgeMonths(measureDate);
-        const zRes = calculateZScore(m.talla, effectiveAgeMonths, sex, 'lhfa');
+        const zRes = calculateZScore(m.talla, ageMonths, sex, 'lhfa');
 
         return {
-            ageInMonths: Math.round(effectiveAgeMonths * 100) / 100, // Use biological age for chart position
+            ageInMonths: Math.round(ageMonths * 100) / 100,
             value: m.talla,
             date: typeof m.fecha === 'string' ? m.fecha : new Date(m.fecha).toISOString(),
             zScore: zRes?.zScore,
             diagnosis: zRes?.diagnosis,
             ageInDays: calculateExactAgeInDays(patientBirthDate, m.fecha)
         };
-    }).filter(p => p.ageInMonths >= 60 && p.ageInMonths <= 228);
+    }).filter(p => p.ageInMonths >= 0 && p.ageInMonths <= 228);
 
     const bmiChartData: PatientDataPoint[] = medidas
         .filter(m => m.peso && m.talla)
@@ -151,56 +85,68 @@ export function SchoolAnthropometryLayout({
             const measureDate = typeof m.fecha === 'string' ? new Date(m.fecha) : m.fecha;
             const ageMs = measureDate.getTime() - birthDateObj.getTime();
             const ageMonths = ageMs / (1000 * 60 * 60 * 24 * 30.4375);
-            const effectiveAgeMonths = getEffectiveAgeMonths(measureDate);
             const hM = m.talla / 100;
             const bmi = m.peso / (hM * hM);
-            const zRes = calculateZScore(bmi, effectiveAgeMonths, sex, 'bfa');
+            const zRes = calculateZScore(bmi, ageMonths, sex, 'bfa');
 
             return {
-                ageInMonths: Math.round(effectiveAgeMonths * 100) / 100, // Use biological age for chart position
+                ageInMonths: Math.round(ageMonths * 100) / 100,
                 value: bmi,
                 date: typeof m.fecha === 'string' ? m.fecha : new Date(m.fecha).toISOString(),
                 zScore: zRes?.zScore,
                 diagnosis: zRes?.diagnosis,
                 ageInDays: calculateExactAgeInDays(patientBirthDate, m.fecha)
             };
-        }).filter(p => p.ageInMonths >= 60 && p.ageInMonths <= 228);
+        }).filter(p => p.ageInMonths >= 0 && p.ageInMonths <= 228);
+
+    // PREVIEW MERGING
+    const mergedHeightData = useMemo(() => {
+        const data = [...heightChartData];
+        if (livePreviewData.heightCm && livePreviewData.heightCm > 0) {
+            const zRes = calculateZScore(livePreviewData.heightCm, currentAgeMonths, sex, 'lhfa');
+            data.push({
+                ageInMonths: currentAgeMonths,
+                value: livePreviewData.heightCm,
+                date: new Date().toISOString(),
+                zScore: zRes?.zScore,
+                diagnosis: zRes?.diagnosis,
+                ageInDays: Math.floor(currentAgeMonths * 30.4375)
+            });
+        }
+        return data.sort((a, b) => a.ageInMonths - b.ageInMonths);
+    }, [heightChartData, livePreviewData.heightCm, currentAgeMonths, sex]);
+
+    const mergedBMIData = useMemo(() => {
+        const data = [...bmiChartData];
+        if (livePreviewData.weightKg && livePreviewData.heightCm) {
+            const hM = livePreviewData.heightCm / 100;
+            const bmi = livePreviewData.weightKg / (hM * hM);
+            const zRes = calculateZScore(bmi, currentAgeMonths, sex, 'bfa');
+            data.push({
+                ageInMonths: currentAgeMonths,
+                value: bmi,
+                date: new Date().toISOString(),
+                zScore: zRes?.zScore,
+                diagnosis: zRes?.diagnosis,
+                ageInDays: Math.floor(currentAgeMonths * 30.4375)
+            });
+        }
+        return data.sort((a, b) => a.ageInMonths - b.ageInMonths);
+    }, [bmiChartData, livePreviewData.weightKg, livePreviewData.heightCm, currentAgeMonths, sex]);
 
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-stretch sm:items-center bg-white dark:bg-slate-900 rounded-2xl p-1.5 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-100 dark:border-slate-800">
-                <div className="flex-1">
-                    <AnthropometryTabs
-                        tabs={[
-                            { id: "crecimiento", label: "Crecimiento OMS (5-19 años)", icon: Baby },
-                            { id: "composicion", label: "Composición Corporal", icon: PieChart },
-                            { id: "historial", label: "Historial", icon: History },
-                        ]}
-                        activeTab={activeTab}
-                        onTabChange={setActiveTab}
-                        onSave={() => formRef.current?.submit()}
-                    />
-                </div>
-
-                <div className="flex items-center gap-2 px-2">
-                    {isTeenager && (
-                        <div className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700 whitespace-nowrap">
-                            <Switch id="isak-mode" checked={enableIsak} onCheckedChange={setEnableIsak} />
-                            <Label htmlFor="isak-mode" className="text-sm font-medium cursor-pointer">
-                                ISAK
-                            </Label>
-                        </div>
-                    )}
-
-                    <button
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors whitespace-nowrap"
-                    >
-                        <FileDown className="w-4 h-4 text-slate-500" />
-                        Exportar PDF
-                    </button>
-                </div>
-            </div>
+            <AnthropometryTabs
+                tabs={[
+                    { id: "crecimiento", label: "Crecimiento OMS (5-19 años)", icon: Baby },
+                    { id: "antropometria", label: "Antropometría ISSAK", icon: Scale },
+                    { id: "historial", label: "Historial", icon: History },
+                ]}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                onSave={() => formRef.current?.submit()}
+            />
 
             <div className="animate-in fade-in duration-300">
                 {activeTab === "crecimiento" && (
@@ -208,8 +154,8 @@ export function SchoolAnthropometryLayout({
                         {/* Formulario */}
                         <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
                             <CardHeader>
-                                <CardTitle className="text-lg font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                                    <Ruler className="w-5 h-5 text-brand-primary" />
+                                <CardTitle className="text-lg font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                                    <Ruler className="w-5 h-5 text-indigo-500" />
                                     Nueva Medición (Escolar/Adolescente)
                                 </CardTitle>
                             </CardHeader>
@@ -223,48 +169,29 @@ export function SchoolAnthropometryLayout({
                                     initialWeight={initialWeight}
                                     initialHeight={initialHeight}
                                     onSave={onSavePediatric}
-                                    hideSubmitButton={true}
+                                    onLiveDataChange={handleLiveDataChange}
                                 />
                             </CardContent>
                         </Card>
 
-                        {/* Adolescent Evaluation Module (Tanner + Body Composition) */}
-                        <AdolescentEvaluation
-                            age={calculateChronologicalAge(new Date(patientBirthDate))}
-                            gender={patientSex}
-                            onBiologicalAgeChange={handleBiologicalAgeChange}
-                        />
-
-                        {/* Biological Age Alert for Charts */}
-                        {useBiologicalAge && biologicalAge && (
-                            <div className="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg flex items-center gap-2">
-                                <span className="text-purple-600 dark:text-purple-400 text-sm">
-                                    📊 Las gráficas de crecimiento usan la <strong>Edad Biológica ({biologicalAge.toFixed(1)} años)</strong> basada en el estadío de Tanner.
-                                </span>
-                            </div>
-                        )}
-
                         {/* Chart Tabs */}
                         <div className="flex justify-center mb-4">
                             <div className="inline-flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-                                <button
-                                    onClick={() => setActiveChart('talla')}
-                                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeChart === 'talla'
-                                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-                                        }`}
-                                >
-                                    Talla / Edad
-                                </button>
-                                <button
-                                    onClick={() => setActiveChart('imc')}
-                                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeChart === 'imc'
-                                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-                                        }`}
-                                >
-                                    IMC / Edad
-                                </button>
+                                {[
+                                    { id: 'talla', label: 'Talla / Edad' },
+                                    { id: 'imc', label: 'IMC / Edad' }
+                                ].map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveChart(tab.id as any)}
+                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeChart === tab.id
+                                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                                            }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
@@ -274,7 +201,7 @@ export function SchoolAnthropometryLayout({
                                 <PediatricGrowthChart
                                     indicator="lhfa"
                                     sex={sex}
-                                    patientData={heightChartData}
+                                    patientData={mergedHeightData}
                                     patientName={patientName}
                                     startMonth={60}
                                     endMonth={228}
@@ -282,9 +209,9 @@ export function SchoolAnthropometryLayout({
                             )}
                             {activeChart === 'imc' && (
                                 <PediatricGrowthChart
-                                    indicator="bfa" // BMI for age is better for > 2y than weight for age
+                                    indicator="bfa"
                                     sex={sex}
-                                    patientData={bmiChartData}
+                                    patientData={mergedBMIData}
                                     patientName={patientName}
                                     startMonth={60}
                                     endMonth={228}
@@ -294,14 +221,18 @@ export function SchoolAnthropometryLayout({
                     </div>
                 )}
 
-                {activeTab === "composicion" && (
-                    <PediatricBodyCompositionPanel
+                {activeTab === "antropometria" && (
+                    <AdultAnthropometryLayout
+                        patientId={patientId}
                         patientName={patientName}
-                        patientAge={calculateChronologicalAge(new Date(patientBirthDate))}
                         patientGender={patientSex}
-                        patientWeight={initialWeight}
-                        patientHeight={initialHeight}
-                        onBiologicalAgeChange={handleBiologicalAgeChange}
+                        patientBirthDate={patientBirthDate}
+                        medidas={medidas}
+                        onSave={onSaveAdult}
+                        onDeleteMedida={onDeleteMedida}
+                        initialWeight={initialWeight}
+                        initialHeight={initialHeight}
+                        isTeenager={true}
                     />
                 )}
 

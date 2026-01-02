@@ -7,7 +7,7 @@ import { NewPediatricMeasurementForm, PediatricMeasurementData, LivePreviewData,
 import { PediatricGrowthChart, PatientDataPoint } from "@/components/pediatrics/PediatricGrowthChart";
 import { MedidasAntropometricas } from "@/types";
 import { calculateZScore } from "@/lib/growth-standards";
-import { calculateExactAgeInDays } from "@/lib/clinical-calculations";
+import { calculateExactAgeInDays, calculateChronologicalAge } from "@/lib/clinical-calculations";
 import { EvaluationHistory } from "../EvaluationHistory";
 
 interface InfantAnthropometryLayoutProps {
@@ -57,6 +57,7 @@ export function InfantAnthropometryLayout({
         return Math.round((ageMs / (1000 * 60 * 60 * 24 * 30.4375)) * 100) / 100;
     }, [birthDateObj]);
 
+    // MAP HISTORICAL DATA
     const weightChartData: PatientDataPoint[] = medidas.map(m => {
         const measureDate = new Date(m.fecha);
         const ageMs = measureDate.getTime() - birthDateObj.getTime();
@@ -77,7 +78,7 @@ export function InfantAnthropometryLayout({
         const measureDate = new Date(m.fecha);
         const ageMs = measureDate.getTime() - birthDateObj.getTime();
         const ageMonths = ageMs / (1000 * 60 * 60 * 24 * 30.4375);
-        const zRes = calculateZScore(m.talla, ageMonths, sex, 'lhfa'); // Length for age
+        const zRes = calculateZScore(m.talla, ageMonths, sex, 'lhfa');
 
         return {
             ageInMonths: Math.round(ageMonths * 100) / 100,
@@ -93,10 +94,10 @@ export function InfantAnthropometryLayout({
         const measureDate = new Date(m.fecha);
         const ageMs = measureDate.getTime() - birthDateObj.getTime();
         const ageMonths = ageMs / (1000 * 60 * 60 * 24 * 30.4375);
-        const zRes = calculateZScore(m.peso, m.talla, sex, 'wflh'); // Weight for Length
+        const zRes = calculateZScore(m.peso, m.talla, sex, 'wflh');
 
         return {
-            ageInMonths: m.talla, // Using length as "age" axis for WFL charts
+            ageInMonths: m.talla,
             value: m.peso,
             date: typeof m.fecha === 'string' ? m.fecha : new Date(m.fecha).toISOString(),
             zScore: zRes?.zScore,
@@ -106,20 +107,16 @@ export function InfantAnthropometryLayout({
     }).filter(p => p.value > 0);
 
     const hcChartData: PatientDataPoint[] = medidas
-        .filter(m => {
-            const hasHC = m.headCircumference !== undefined && m.headCircumference !== null && m.headCircumference > 0;
-            return hasHC;
-        })
+        .filter(m => m.headCircumference && m.headCircumference > 0)
         .map(m => {
             const measureDate = new Date(m.fecha);
             const ageMs = measureDate.getTime() - birthDateObj.getTime();
             const ageMonths = ageMs / (1000 * 60 * 60 * 24 * 30.4375);
-            const hc = m.headCircumference || 0;
-            const zRes = calculateZScore(hc, ageMonths, sex, 'hcfa');
+            const zRes = calculateZScore(m.headCircumference || 0, ageMonths, sex, 'hcfa');
 
             return {
                 ageInMonths: Math.round(ageMonths * 100) / 100,
-                value: hc,
+                value: m.headCircumference || 0,
                 date: typeof m.fecha === 'string' ? m.fecha : new Date(m.fecha).toISOString(),
                 zScore: zRes?.zScore,
                 diagnosis: zRes?.diagnosis,
@@ -127,30 +124,54 @@ export function InfantAnthropometryLayout({
             };
         }).filter(p => p.ageInMonths >= 0 && p.ageInMonths <= 24);
 
-    // Create live preview point for HC chart when user is editing
-    const hcPreviewPoint: PatientDataPoint | null = useMemo(() => {
+    // PREVIEW MERGING
+    const mergedWeightData = useMemo(() => {
+        const data = [...weightChartData];
+        if (livePreviewData.weightKg && livePreviewData.weightKg > 0) {
+            const zRes = calculateZScore(livePreviewData.weightKg, currentAgeMonths, sex, 'wfa');
+            data.push({
+                ageInMonths: currentAgeMonths,
+                value: livePreviewData.weightKg,
+                date: new Date().toISOString(),
+                zScore: zRes?.zScore,
+                diagnosis: zRes?.diagnosis,
+                ageInDays: Math.floor(currentAgeMonths * 30.4375)
+            });
+        }
+        return data.sort((a, b) => a.ageInMonths - b.ageInMonths);
+    }, [weightChartData, livePreviewData.weightKg, currentAgeMonths, sex]);
+
+    const mergedLengthData = useMemo(() => {
+        const data = [...lengthChartData];
+        if (livePreviewData.heightCm && livePreviewData.heightCm > 0) {
+            const zRes = calculateZScore(livePreviewData.heightCm, currentAgeMonths, sex, 'lhfa');
+            data.push({
+                ageInMonths: currentAgeMonths,
+                value: livePreviewData.heightCm,
+                date: new Date().toISOString(),
+                zScore: zRes?.zScore,
+                diagnosis: zRes?.diagnosis,
+                ageInDays: Math.floor(currentAgeMonths * 30.4375)
+            });
+        }
+        return data.sort((a, b) => a.ageInMonths - b.ageInMonths);
+    }, [lengthChartData, livePreviewData.heightCm, currentAgeMonths, sex]);
+
+    const mergedHCData = useMemo(() => {
+        const data = [...hcChartData];
         if (livePreviewData.headCircumferenceCm && livePreviewData.headCircumferenceCm > 0) {
             const zRes = calculateZScore(livePreviewData.headCircumferenceCm, currentAgeMonths, sex, 'hcfa');
-            return {
+            data.push({
                 ageInMonths: currentAgeMonths,
                 value: livePreviewData.headCircumferenceCm,
                 date: new Date().toISOString(),
                 zScore: zRes?.zScore,
                 diagnosis: zRes?.diagnosis,
-                ageInDays: Math.floor(currentAgeMonths * 30.4375),
-                isPreview: true // Mark as preview for styling
-            };
+                ageInDays: Math.floor(currentAgeMonths * 30.4375)
+            });
         }
-        return null;
-    }, [livePreviewData.headCircumferenceCm, currentAgeMonths, sex]);
-
-    // Combine saved data with live preview
-    const hcChartDataWithPreview = useMemo(() => {
-        if (hcPreviewPoint) {
-            return [...hcChartData, hcPreviewPoint];
-        }
-        return hcChartData;
-    }, [hcChartData, hcPreviewPoint]);
+        return data.sort((a, b) => a.ageInMonths - b.ageInMonths);
+    }, [hcChartData, livePreviewData.headCircumferenceCm, currentAgeMonths, sex]);
 
 
     return (
@@ -168,7 +189,6 @@ export function InfantAnthropometryLayout({
             <div className="animate-in fade-in duration-300">
                 {activeTab === "crecimiento" && (
                     <div className="space-y-6">
-                        {/* Formulario */}
                         <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-100 dark:border-slate-800">
                             <NewPediatricMeasurementForm
                                 ref={formRef}
@@ -184,47 +204,26 @@ export function InfantAnthropometryLayout({
                             />
                         </div>
 
-                        {/* Charts */}
-
                         {/* Chart Tabs */}
                         <div className="flex justify-center mb-4">
                             <div className="inline-flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg overflow-x-auto max-w-full">
-                                <button
-                                    onClick={() => setActiveChart('peso')}
-                                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeChart === 'peso'
-                                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-                                        }`}
-                                >
-                                    Peso/Edad
-                                </button>
-                                <button
-                                    onClick={() => setActiveChart('longitud')}
-                                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeChart === 'longitud'
-                                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-                                        }`}
-                                >
-                                    Longitud/Edad
-                                </button>
-                                <button
-                                    onClick={() => setActiveChart('pesoLength')}
-                                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeChart === 'pesoLength'
-                                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-                                        }`}
-                                >
-                                    Peso/Longitud
-                                </button>
-                                <button
-                                    onClick={() => setActiveChart('cefaliaca')}
-                                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeChart === 'cefaliaca'
-                                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-                                        }`}
-                                >
-                                    P. Cefálico/Edad
-                                </button>
+                                {[
+                                    { id: 'peso', label: 'Peso/Edad' },
+                                    { id: 'longitud', label: 'Longitud/Edad' },
+                                    { id: 'pesoLength', label: 'Peso/Longitud' },
+                                    { id: 'cefaliaca', label: 'P. Cefálico/Edad' }
+                                ].map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveChart(tab.id as any)}
+                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeChart === tab.id
+                                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                                            }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
@@ -234,7 +233,7 @@ export function InfantAnthropometryLayout({
                                 <PediatricGrowthChart
                                     indicator="wfa"
                                     sex={sex}
-                                    patientData={weightChartData}
+                                    patientData={mergedWeightData}
                                     patientName={patientName}
                                     startMonth={0}
                                     endMonth={24}
@@ -244,7 +243,7 @@ export function InfantAnthropometryLayout({
                                 <PediatricGrowthChart
                                     indicator="lhfa"
                                     sex={sex}
-                                    patientData={lengthChartData}
+                                    patientData={mergedLengthData}
                                     patientName={patientName}
                                     startMonth={0}
                                     endMonth={24}
@@ -256,15 +255,15 @@ export function InfantAnthropometryLayout({
                                     sex={sex}
                                     patientData={weightLengthChartData}
                                     patientName={patientName}
-                                    startMonth={45} // Start length in cm
-                                    endMonth={110}  // End length in cm
+                                    startMonth={45}
+                                    endMonth={110}
                                 />
                             )}
                             {activeChart === 'cefaliaca' && (
                                 <PediatricGrowthChart
                                     indicator="hcfa"
                                     sex={sex}
-                                    patientData={hcChartDataWithPreview}
+                                    patientData={mergedHCData}
                                     patientName={patientName}
                                     startMonth={0}
                                     endMonth={24}

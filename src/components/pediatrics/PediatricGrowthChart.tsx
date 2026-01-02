@@ -90,11 +90,15 @@ function CustomTooltip({ active, payload, label, unit }: CustomTooltipProps) {
     if (patientPoint) {
         const data = patientPoint.payload;
         const ageDisplay = formatClinicalAgeFromMonths(data.ageInMonths, data.ageInDays);
+        const dateDisplay = data.date ? new Date(data.date).toLocaleDateString('es-PE') : 'Sin fecha';
 
         return (
             <div className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
-                <p className="font-semibold text-slate-800 dark:text-white mb-1">
-                    📍 Edad: {ageDisplay}
+                <p className="font-semibold text-slate-800 dark:text-white mb-0.5">
+                    📍 {dateDisplay}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+                    Edad: {ageDisplay}
                 </p>
                 <p className="text-sm text-slate-600 dark:text-slate-300">
                     Valor: <span className="font-medium">{data.patientValue?.toFixed(2)} {unit}</span>
