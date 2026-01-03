@@ -223,12 +223,15 @@ export function ConsentBanner({
                                     key={template.id}
                                     className="flex items-start gap-3 p-3 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                                 >
-                                    <Checkbox
-                                        id={template.consentType}
-                                        checked={acceptedConsents.has(template.consentType)}
-                                        onCheckedChange={() => handleToggleConsent(template.consentType)}
-                                        className="mt-0.5"
-                                    />
+                                    <div className="w-6 h-6 aspect-square shrink-0 flex items-center justify-center mt-0.5" style={{ aspectRatio: '1 / 1' }}>
+                                        <Checkbox
+                                            id={template.consentType}
+                                            checked={acceptedConsents.has(template.consentType)}
+                                            onCheckedChange={() => handleToggleConsent(template.consentType)}
+                                            className="!h-6 !w-6 !aspect-square rounded-full border-2 border-green-500 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                                            style={{ aspectRatio: '1 / 1', minWidth: '24px', minHeight: '24px' }}
+                                        />
+                                    </div>
                                     <div className="flex-1">
                                         <Label
                                             htmlFor={template.consentType}
@@ -299,15 +302,15 @@ export function ConsentBanner({
                     )}
 
                     {/* Submit Button */}
-                    <div className="flex items-center justify-between">
-                        <p className="text-xs text-slate-500">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <p className="text-xs text-slate-500 order-2 sm:order-1">
                             Los consentimientos quedarán registrados en el historial del paciente.
                         </p>
 
                         <Button
                             onClick={handleSubmit}
                             disabled={!canSubmit() || isSubmitting}
-                            className="bg-green-600 hover:bg-green-700 text-white"
+                            className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto order-1 sm:order-2 shrink-0"
                         >
                             {isSubmitting ? (
                                 <>

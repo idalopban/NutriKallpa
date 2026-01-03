@@ -73,12 +73,13 @@ import {
   getMedidasByPaciente,
   deletePaciente,
   getDietas,
-  getAllMedidas
+  getAllMedidas,
+  getCitas
 } from "@/lib/storage";
 import { useAuthStore } from "@/store/useAuthStore";
 import { usePatientStore } from "@/store/usePatientStore";
 import { calculateChronologicalAge } from "@/lib/clinical-calculations";
-import type { Paciente, MedidasAntropometricas, Dieta } from "@/types";
+import type { Paciente, MedidasAntropometricas, Dieta, Cita } from "@/types";
 import { cn } from "@/lib/utils";
 
 // Skeleton Row Component
@@ -105,22 +106,30 @@ function PatientRow({
   paciente,
   onDelete,
   onClick,
-  dietas
+  dietas,
+  citas
 }: {
   paciente: Paciente;
   onDelete: () => void;
   onClick: () => void;
   dietas: Dieta[];
+  citas: Cita[];
 }) {
   const router = useRouter();
   const initials = `${paciente.datosPersonales.nombre?.[0] || ""}${paciente.datosPersonales.apellido?.[0] || ""}`.toUpperCase();
 
-  // Get last visit info
-  const medidas = dietas.length >= 0 ? getMedidasByPaciente(paciente.id) : []; // This matches original logic but we can optimize it if we pass measures too
-  const ultimaMedida = medidas.length > 0 ? medidas[medidas.length - 1] : null;
-  const ultimaVisita = ultimaMedida?.fecha
-    ? formatDistanceToNow(new Date(ultimaMedida.fecha), { addSuffix: true, locale: es })
+  // Get last visit info from citas (appointments)
+  const citasPaciente = citas.filter(c => c.pacienteId === paciente.id);
+  const citasOrdenadas = [...citasPaciente].sort((a, b) =>
+    new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
+  );
+  const ultimaCita = citasOrdenadas.length > 0 ? citasOrdenadas[0] : null;
+  const ultimaVisita = ultimaCita?.fecha
+    ? formatDistanceToNow(new Date(ultimaCita.fecha), { addSuffix: true, locale: es })
     : "Sin visitas";
+
+  // Get medidas for patient status calculation
+  const medidas = getMedidasByPaciente(paciente.id);
 
   // Get patient status using the helper function
   const status = getPatientStatus(medidas, dietas, paciente.id);
@@ -305,6 +314,7 @@ function PacientesContent() {
   }, [pacientes]);
 
   const allDietas = useMemo(() => getDietas(), [pacientes]);
+  const allCitas = useMemo(() => getCitas(), [pacientes]);
 
   const stats = useMemo(() => {
     const counts = { activos: 0, pendientes: 0, inactivos: 0 };
@@ -585,6 +595,7 @@ function PacientesContent() {
                 }}
                 onClick={() => router.push(`/pacientes/${paciente.id}`)}
                 dietas={allDietas}
+                citas={allCitas}
               />
             ))
           )}

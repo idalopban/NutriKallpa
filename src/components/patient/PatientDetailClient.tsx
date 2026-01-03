@@ -105,6 +105,11 @@ export function PatientDetailClient() {
     const [selectedEvaluationIndex, setSelectedEvaluationIndex] = useState<number>(0);
     const [isNutritionDirty, setIsNutritionDirty] = useState(false);
 
+    // Swipe gesture handling for mobile tabs
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+    const [touchEnd, setTouchEnd] = useState<number | null>(null);
+    const minSwipeDistance = 50;
+
     // Load patient diet history
     const loadDietHistory = (patientId: string) => {
         try {
@@ -179,6 +184,43 @@ export function PatientDetailClient() {
             }
         } catch (error) {
             toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar el paciente. Verifica tu conexión." });
+        }
+    };
+
+    // Swipe gesture handlers for mobile tab navigation
+    const getTabOrder = (): string[] => {
+        if (isInfant) {
+            return ['clinica', 'antropometria', 'suplementacion'];
+        }
+        return ['clinica', 'antropometria', 'calculos', 'dietas'];
+    };
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        setTouchEnd(null);
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const onTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        if (isLeftSwipe || isRightSwipe) {
+            const tabs = getTabOrder();
+            const currentIndex = tabs.indexOf(activeTab);
+
+            if (isLeftSwipe && currentIndex < tabs.length - 1) {
+                // Swipe left = next tab
+                router.push(`/pacientes/${params.id}?tab=${tabs[currentIndex + 1]}`);
+            } else if (isRightSwipe && currentIndex > 0) {
+                // Swipe right = previous tab
+                router.push(`/pacientes/${params.id}?tab=${tabs[currentIndex - 1]}`);
+            }
         }
     };
 
@@ -478,11 +520,117 @@ export function PatientDetailClient() {
                 </aside>
 
                 {/* MAIN CONTENT */}
-                <main className="flex-1 overflow-y-auto h-full p-8 lg:p-10 space-y-8">
+                <main className="flex-1 overflow-y-auto h-full p-4 md:p-8 lg:p-10 space-y-6 md:space-y-8">
+                    {/* Mobile Patient Header - Only visible on mobile */}
+                    <div className="lg:hidden bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <button onClick={() => router.push('/pacientes')} className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-white mb-4 transition-colors">
+                            <ArrowLeft className="w-4 h-4" /> Volver a pacientes
+                        </button>
+
+                        <div className="flex items-center gap-4 mb-4">
+                            <PatientAvatar patient={paciente} className="w-16 h-16 text-2xl shadow-lg shrink-0" />
+                            <div className="flex-1 min-w-0">
+                                <h2 className="text-lg font-extrabold text-slate-900 dark:text-white truncate">{paciente.datosPersonales.nombre}</h2>
+                                <p className="text-sm font-medium text-slate-500">{ageDetailed.formatted}</p>
+                                <div className="mt-2">
+                                    <ConsentIndicator patientId={paciente.id} />
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-2 shrink-0">
+                                <Button size="sm" variant="outline" className="rounded-xl text-xs" onClick={() => router.push(`/pacientes/${paciente.id}/editar`)}>Editar</Button>
+                                <Button size="sm" variant="destructive" className="rounded-xl" onClick={handleBorrarPaciente}><Trash2 className="w-3 h-3" /></Button>
+                            </div>
+                        </div>
+
+                        {/* Mobile Quick Stats */}
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                            {isInfant ? (
+                                <>
+                                    <div className="p-3 rounded-xl bg-emerald-500 text-white">
+                                        <p className="text-[9px] uppercase font-bold opacity-80">Peso</p>
+                                        <p className="text-xl font-bold">{ultimaMedida?.peso || '--'} <span className="text-xs font-normal">kg</span></p>
+                                    </div>
+                                    <div className="p-3 rounded-xl bg-blue-500 text-white">
+                                        <p className="text-[9px] uppercase font-bold opacity-80">Talla</p>
+                                        <p className="text-xl font-bold">{ultimaMedida?.talla || '--'} <span className="text-xs font-normal">cm</span></p>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="p-3 rounded-xl bg-amber-500 text-white">
+                                        <p className="text-[9px] uppercase font-bold opacity-80">IMC</p>
+                                        <p className="text-xl font-bold">{imc.toFixed(1)}</p>
+                                    </div>
+                                    <div className="p-3 rounded-xl bg-orange-500 text-white">
+                                        <p className="text-[9px] uppercase font-bold opacity-80">% Grasa</p>
+                                        <p className="text-xl font-bold">{bodyFatPercent > 0 ? bodyFatPercent.toFixed(1) : '--'}</p>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Mobile Clinical Data for Infants */}
+                        {isInfant && (
+                            <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-2">
+                                <p className="text-[10px] uppercase font-medium text-slate-400 tracking-wider">Datos Clínicos</p>
+
+                                <div className="flex items-center gap-3 text-sm">
+                                    <div className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+                                        <Baby className="w-3 h-3 text-blue-600" />
+                                    </div>
+                                    <span className="text-slate-600 dark:text-slate-400 text-xs">
+                                        {(paciente.historiaClinica?.antecedentes as any)?.nacimientoPrematuro ? 'Pretérmino' : 'A término'}
+                                    </span>
+                                </div>
+
+                                <div className="flex items-center gap-3 text-sm">
+                                    <div className="w-6 h-6 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
+                                        <Weight className="w-3 h-3 text-rose-600" />
+                                    </div>
+                                    <span className="text-slate-600 dark:text-slate-400 text-xs">
+                                        {(paciente.historiaClinica?.antecedentes as any)?.pesoNacimiento ?
+                                            `PN: ${(paciente.historiaClinica?.antecedentes as any)?.pesoNacimiento}kg` :
+                                            'Peso Nac: Pendiente'}
+                                    </span>
+                                </div>
+
+                                <div className="flex items-center gap-3 text-sm">
+                                    <div className="w-6 h-6 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+                                        <Droplet className="w-3 h-3 text-red-600" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-slate-600 dark:text-slate-400 text-xs font-semibold">
+                                            Hb: {(paciente.historiaClinica?.datosClinicos?.hemoglobina || paciente.historiaClinica?.bioquimicaReciente?.hemoglobina) ?
+                                                `${(paciente.historiaClinica?.datosClinicos?.hemoglobina || paciente.historiaClinica?.bioquimicaReciente?.hemoglobina)} g/dL` : '--'}
+                                        </span>
+                                        <span className="text-[10px] text-slate-400">
+                                            {calculateAnemiaDiagnosis(
+                                                Number(paciente.historiaClinica?.datosClinicos?.hemoglobina || paciente.historiaClinica?.bioquimicaReciente?.hemoglobina || 0),
+                                                paciente.datosPersonales.sexo,
+                                                paciente.historiaClinica?.altitudResidencia || 0
+                                            ) || 'Sin dx anemia'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3 text-sm">
+                                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${(paciente.historiaClinica?.datosClinicos as any)?.suplementoHierro ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-slate-100 dark:bg-slate-800'}`}>
+                                        <Pill className={`w-3 h-3 ${(paciente.historiaClinica?.datosClinicos as any)?.suplementoHierro ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                    </div>
+                                    <span className="text-slate-600 dark:text-slate-400 text-xs">
+                                        {(paciente.historiaClinica?.datosClinicos as any)?.suplementoHierro ? 'Suplementado (Fe)' : 'Sin Suplemento Fe'}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
+                        <ConsentDetails patientId={paciente.id} />
+                    </div>
+
                     <div className="flex justify-between items-center mb-4">
-                        <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Expediente <span className="text-orange-500">del Paciente</span></h1>
-                        <Button className="bg-[#ff8508] hover:bg-[#e67600] rounded-2xl gap-2 font-bold" onClick={() => router.push(`/pacientes/nuevo?patientId=${paciente.id}`)}>
-                            <Plus className="w-5 h-5" /> Nueva Consulta
+                        <h1 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Expediente <span className="text-orange-500">del Paciente</span></h1>
+                        <Button className="bg-[#ff8508] hover:bg-[#e67600] rounded-2xl gap-2 font-bold text-sm md:text-base" onClick={() => router.push(`/pacientes/nuevo?patientId=${paciente.id}`)}>
+                            <Plus className="w-4 h-4 md:w-5 md:h-5" /> <span className="hidden sm:inline">Nueva Consulta</span><span className="sm:hidden">+</span>
                         </Button>
                     </div>
 
@@ -496,46 +644,54 @@ export function PatientDetailClient() {
                         className="mb-6"
                     />
 
-                    <Tabs value={activeTab} className="w-full" onValueChange={(v) => router.push(`/pacientes/${paciente.id}?tab=${v}`)}>
-                        <TabsList className="bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl mb-6">
-                            <TabsTrigger value="clinica" className="rounded-xl">Historia</TabsTrigger>
-                            <TabsTrigger value="antropometria" className="rounded-xl">Antropometría</TabsTrigger>
-                            {!isInfant && <TabsTrigger value="calculos" className="rounded-xl">Cálculos</TabsTrigger>}
-                            {!isInfant && <TabsTrigger value="dietas" className="rounded-xl">Dietas</TabsTrigger>}
-                            {isInfant && <TabsTrigger value="suplementacion" className="rounded-xl">Suplementación</TabsTrigger>}
-                        </TabsList>
+                    {/* Swipeable Tabs Container */}
+                    <div
+                        onTouchStart={onTouchStart}
+                        onTouchMove={onTouchMove}
+                        onTouchEnd={onTouchEnd}
+                        className="touch-pan-y"
+                    >
+                        <Tabs value={activeTab} className="w-full" onValueChange={(v) => router.push(`/pacientes/${paciente.id}?tab=${v}`)}>
+                            <TabsList className="bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl mb-6 w-full overflow-x-auto flex flex-nowrap scrollbar-hide">
+                                <TabsTrigger value="clinica" className="rounded-xl text-xs sm:text-sm px-3 sm:px-4 shrink-0 whitespace-nowrap">Historia</TabsTrigger>
+                                <TabsTrigger value="antropometria" className="rounded-xl text-xs sm:text-sm px-3 sm:px-4 shrink-0 whitespace-nowrap">Antropometría</TabsTrigger>
+                                {!isInfant && <TabsTrigger value="calculos" className="rounded-xl text-xs sm:text-sm px-3 sm:px-4 shrink-0 whitespace-nowrap">Cálculos</TabsTrigger>}
+                                {!isInfant && <TabsTrigger value="dietas" className="rounded-xl text-xs sm:text-sm px-3 sm:px-4 shrink-0 whitespace-nowrap">Dietas</TabsTrigger>}
+                                {isInfant && <TabsTrigger value="suplementacion" className="rounded-xl text-xs sm:text-sm px-3 sm:px-4 shrink-0 whitespace-nowrap">Suplementación</TabsTrigger>}
+                            </TabsList>
 
-                        <TabsContent value="clinica"><ClinicalHistoryTab patient={paciente} /></TabsContent>
-                        <TabsContent value="antropometria">
-                            <Card className="p-6 rounded-3xl">
-                                <h3 className="text-xl font-bold mb-4">Evolución Antropométrica</h3>
-                                <EvolutionSummary patientId={paciente.id} mode={isPediatricStage ? 'pediatric' : 'adult'} />
-                                <div className="mt-8 flex justify-center gap-4">
-                                    <Button className="rounded-2xl" onClick={() => router.push(`/antropometria?id=${paciente.id}`)}>Registrar Nueva Medida</Button>
-                                </div>
-                            </Card>
-                        </TabsContent>
-                        {!isInfant && (
-                            <TabsContent value="calculos">
-                                <PatientNutritionConfig onDirtyChange={setIsNutritionDirty} rightSideContent={<SportsHydrationModule />} />
+                            <TabsContent value="clinica"><ClinicalHistoryTab patient={paciente} /></TabsContent>
+                            <TabsContent value="antropometria">
+                                <Card className="p-6 rounded-3xl">
+                                    <h3 className="text-xl font-bold mb-4">Evolución Antropométrica</h3>
+                                    <EvolutionSummary patientId={paciente.id} mode={isPediatricStage ? 'pediatric' : 'adult'} />
+                                    <div className="mt-8 flex justify-center gap-4">
+                                        <Button className="rounded-2xl" onClick={() => router.push(`/antropometria?id=${paciente.id}`)}>Registrar Nueva Medida</Button>
+                                    </div>
+                                </Card>
                             </TabsContent>
-                        )}
-                        {!isInfant && (
-                            <TabsContent value="dietas">
-                                <AdultDietHistoryTab
-                                    paciente={paciente}
-                                    dietHistory={dietHistory}
-                                    router={router}
-                                    onDelete={handleDeleteDiet}
-                                />
-                            </TabsContent>
-                        )}
-                        {isInfant && (
-                            <TabsContent value="suplementacion">
-                                <InfantSupplementationModule patient={paciente} currentWeight={pesoActual} />
-                            </TabsContent>
-                        )}
-                    </Tabs>
+                            {!isInfant && (
+                                <TabsContent value="calculos">
+                                    <PatientNutritionConfig onDirtyChange={setIsNutritionDirty} rightSideContent={<SportsHydrationModule />} />
+                                </TabsContent>
+                            )}
+                            {!isInfant && (
+                                <TabsContent value="dietas">
+                                    <AdultDietHistoryTab
+                                        paciente={paciente}
+                                        dietHistory={dietHistory}
+                                        router={router}
+                                        onDelete={handleDeleteDiet}
+                                    />
+                                </TabsContent>
+                            )}
+                            {isInfant && (
+                                <TabsContent value="suplementacion">
+                                    <InfantSupplementationModule patient={paciente} currentWeight={pesoActual} />
+                                </TabsContent>
+                            )}
+                        </Tabs>
+                    </div>
                 </main>
             </div>
         </div>
