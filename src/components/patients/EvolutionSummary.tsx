@@ -127,6 +127,13 @@ export function EvolutionSummary({ patientId, mode = 'adult' }: EvolutionSummary
     const [recordToDelete, setRecordToDelete] = useState<string | null>(null);
     const { toast } = useToast();
 
+    const currentAgeInMonths = useMemo(() => {
+        if (!patient?.datosPersonales?.fechaNacimiento) return 0;
+        return calculateExactAgeInMonths(patient.datosPersonales.fechaNacimiento, new Date());
+    }, [patient]);
+
+    const showCompositionTab = mode === 'pediatric' ? currentAgeInMonths >= 120 : true;
+
     const loadData = async () => {
         setLoading(true);
         try {
@@ -299,9 +306,10 @@ export function EvolutionSummary({ patientId, mode = 'adult' }: EvolutionSummary
     }));
 
     // Calculate dynamic end month for pediatric charts to avoid excessive whitespace
-    const maxAgeInMonths = history.length > 0
-        ? Math.max(...history.map(h => (h as any).ageInMonths || 0))
-        : 0;
+    const maxAgeInMonths = Math.max(
+        history.length > 0 ? Math.max(...history.map(h => (h as any).ageInMonths || 0)) : 0,
+        currentAgeInMonths
+    );
 
     let dynamicEndMonth = 24; // Default/Minimum
     if (maxAgeInMonths <= 6) dynamicEndMonth = 6;
@@ -466,212 +474,132 @@ export function EvolutionSummary({ patientId, mode = 'adult' }: EvolutionSummary
                     )}
 
                     {/* 5-Component Kerr Evolution Chart - Full width */}
-                    {mode === 'adult' && chartData.some(d => d.muscle > 0) && (
-                        <Card className="border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
-                            <CardHeader className="pb-2 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <PieChart className="w-5 h-5 text-orange-500" />
-                                        <CardTitle className="text-sm font-bold text-slate-700 dark:text-gray-200">
-                                            Evolución Composición Corporal (5C Kerr)
-                                        </CardTitle>
-                                    </div>
-                                    <div className="flex items-center gap-4 text-xs">
-                                        <div className="flex items-center gap-1">
-                                            <span className="text-orange-500">🔥</span>
-                                            <span className="text-slate-600 dark:text-slate-300">Músculo:</span>
-                                            <span className="font-bold text-slate-800 dark:text-white">{chartData[chartData.length - 1]?.muscle || 0}kg</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <span className="text-red-500">●</span>
-                                            <span className="text-slate-600 dark:text-slate-300">Adiposo:</span>
-                                            <span className="font-bold text-slate-800 dark:text-white">{((chartData[chartData.length - 1]?.fat || 0) / 100 * (chartData[chartData.length - 1]?.weight || 70)).toFixed(1)}kg</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="p-4">
-                                <div className="h-[250px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={chartData.map(d => ({
-                                            ...d,
-                                            musclePercent: (d.muscle / d.weight) * 100,
-                                            adiposePercent: d.fat
-                                        }))}>
-                                            <defs>
-                                                <linearGradient id="colorMuscleStack" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="0%" stopColor="#f97316" stopOpacity={0.8} />
-                                                    <stop offset="100%" stopColor="#fb923c" stopOpacity={0.6} />
-                                                </linearGradient>
-                                                <linearGradient id="colorAdiposeStack" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.7} />
-                                                    <stop offset="100%" stopColor="#f87171" stopOpacity={0.5} />
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                                            <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                                            <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                                            <Tooltip
-                                                content={({ active, payload, label }) => {
-                                                    if (active && payload && payload.length) {
-                                                        return (
-                                                            <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md p-3 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl text-xs">
-                                                                <p className="font-bold mb-2 text-slate-800 dark:text-slate-100">{label}</p>
-                                                                {payload.map((entry: any, index: number) => (
-                                                                    <div key={index} className="flex items-center gap-2 mb-1">
-                                                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                                                                        <span className="text-slate-600 dark:text-slate-300">{entry.name}:</span>
-                                                                        <span className="font-bold">{entry.value.toFixed(1)}%</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        );
-                                                    }
-                                                    return null;
-                                                }}
-                                            />
-                                            <Legend
-                                                verticalAlign="bottom"
-                                                height={36}
-                                                content={() => (
-                                                    <div className="flex justify-center gap-6 pt-2">
-                                                        <div className="flex items-center gap-2 text-xs">
-                                                            <span className="text-orange-500">→</span>
-                                                            <span className="text-slate-600 dark:text-slate-300">Músculo</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 text-xs">
-                                                            <span className="text-red-500">→</span>
-                                                            <span className="text-slate-600 dark:text-slate-300">Adiposo</span>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            />
-                                            <Area type="monotone" dataKey="musclePercent" name="Músculo" stackId="1" stroke="#f97316" fill="url(#colorMuscleStack)" />
-                                            <Area type="monotone" dataKey="adiposePercent" name="Adiposo" stackId="1" stroke="#ef4444" fill="url(#colorAdiposeStack)" />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
-                                </div>
-
-                                {/* Change Summary */}
-                                <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                    <div className="text-center">
-                                        <p className="text-xs text-slate-500">Cambio Músculo</p>
-                                        <p className="text-lg font-bold text-slate-800 dark:text-white">
-                                            {chartData.length > 1 ? (chartData[chartData.length - 1].muscle - chartData[0].muscle).toFixed(1) : '0'} kg
-                                        </p>
-                                        <p className="text-xs text-slate-400">
-                                            ({chartData.length > 1 && chartData[0].muscle > 0 ?
-                                                (((chartData[chartData.length - 1].muscle - chartData[0].muscle) / chartData[0].muscle) * 100).toFixed(1) : '0.0'}%)
-                                        </p>
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="text-xs text-slate-500">Cambio Adiposo</p>
-                                        <p className="text-lg font-bold text-slate-800 dark:text-white">
-                                            {chartData.length > 1 ? (chartData[chartData.length - 1].fat - chartData[0].fat).toFixed(1) : '0'} kg
-                                        </p>
-                                        <p className="text-xs text-slate-400">
-                                            ({chartData.length > 1 && chartData[0].fat > 0 ?
-                                                (((chartData[chartData.length - 1].fat - chartData[0].fat) / chartData[0].fat) * 100).toFixed(1) : '0.0'}%)
-                                        </p>
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="text-xs text-slate-500">Cambio Peso</p>
-                                        <p className="text-lg font-bold text-slate-800 dark:text-white">
-                                            {chartData.length > 1 ? (chartData[chartData.length - 1].weight - chartData[0].weight).toFixed(1) : '0'} kg
-                                        </p>
-                                        <p className="text-xs text-slate-400">
-                                            ({chartData.length > 1 && chartData[0].weight > 0 ?
-                                                (((chartData[chartData.length - 1].weight - chartData[0].weight) / chartData[0].weight) * 100).toFixed(1) : '0.0'}%)
-                                        </p>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
                 </TabsContent>
 
                 {/* Table Tab Content */}
-                <TabsContent value="table" className="focus-visible:outline-none">
-                    <Card className="border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
-                        <CardHeader className="pb-2 bg-slate-50/50 dark:bg-slate-900/30">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                <CardTitle className="text-sm font-bold text-slate-700 dark:text-gray-200 uppercase tracking-tight flex items-center gap-2">
-                                    <Calendar className="w-4 h-4" />
-                                    Historial de Evaluaciones
-                                </CardTitle>
+                <TabsContent value="table" className="focus-visible:outline-none mt-4">
+                    <Tabs defaultValue="resumen" className="w-full">
+                        <Card className="border-none shadow-lg bg-white dark:bg-slate-900 rounded-2xl overflow-hidden ring-1 ring-slate-200 dark:ring-slate-800">
+                            <CardHeader className="pb-4 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400">
+                                            <Calendar className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-100">
+                                                Historial de Evaluaciones
+                                            </CardTitle>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                                                Registro detallado de mediciones
+                                            </p>
+                                        </div>
+                                    </div>
 
-                                <Tabs defaultValue="resumen" className="w-full sm:w-auto">
-                                    <TabsList className="bg-slate-200/50 dark:bg-slate-800 p-1 h-8">
-                                        <TabsTrigger value="resumen" className="text-[10px] sm:text-xs h-6 px-3">Resumen</TabsTrigger>
-                                        <TabsTrigger value="composicion" className="text-[10px] sm:text-xs h-6 px-3">Composición 5C</TabsTrigger>
+                                    <TabsList className="bg-slate-100 dark:bg-slate-800 p-1 h-9 rounded-full border border-slate-200 dark:border-slate-700 w-full sm:w-auto">
+                                        <TabsTrigger
+                                            value="resumen"
+                                            className="rounded-full text-xs px-4 h-7 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-700 dark:data-[state=active]:text-blue-400 transition-all duration-300 flex-1 sm:flex-none"
+                                        >
+                                            Resumen
+                                        </TabsTrigger>
+                                        {showCompositionTab && (
+                                            <TabsTrigger
+                                                value="composicion"
+                                                className="rounded-full text-xs px-4 h-7 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-700 dark:data-[state=active]:text-blue-400 transition-all duration-300 flex-1 sm:flex-none"
+                                            >
+                                                Composición 5C
+                                            </TabsTrigger>
+                                        )}
                                     </TabsList>
-                                </Tabs>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            <Tabs defaultValue="resumen" className="w-full">
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-0">
                                 <TabsContent value="resumen" className="mt-0">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow className="bg-slate-50 dark:bg-slate-800/50">
-                                                <TableHead className="font-bold text-slate-600 dark:text-slate-300">Fecha</TableHead>
-                                                <TableHead className="font-bold text-slate-600 dark:text-slate-300 text-center">Peso (kg)</TableHead>
-                                                {mode !== 'pediatric' && (
-                                                    <TableHead className="font-bold text-slate-600 dark:text-slate-300 text-center">% Grasa</TableHead>
-                                                )}
-                                                {mode === 'pediatric' && (
-                                                    <TableHead className="font-bold text-slate-600 dark:text-slate-300 text-center">Talla (cm)</TableHead>
-                                                )}
-                                                <TableHead className="font-bold text-slate-600 dark:text-slate-300 text-center">
-                                                    {mode === 'pediatric' ? 'IMC' : 'Masa Muscular (kg)'}
-                                                </TableHead>
-                                                <TableHead className="w-[50px]"></TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {history.slice().reverse().map((rec, index) => (
-                                                <TableRow key={rec.id || index} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                                                    <TableCell className="font-medium text-slate-700 dark:text-slate-300">
-                                                        {format(new Date(rec.date), 'dd MMM yyyy', { locale: es })}
-                                                    </TableCell>
-                                                    <TableCell className="text-center font-semibold text-blue-600 dark:text-blue-400">
-                                                        {rec.weight}
-                                                    </TableCell>
+                                    <div className="overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="bg-slate-50 dark:bg-slate-800/50">
+                                                    <TableHead className="font-bold text-slate-600 dark:text-slate-300 text-[10px] sm:text-sm px-2 sm:px-4 h-8 sm:h-12 w-[70px] sm:w-auto">
+                                                        Fecha
+                                                    </TableHead>
+                                                    <TableHead className="font-bold text-slate-600 dark:text-slate-300 text-center text-[10px] sm:text-sm px-1 sm:px-4 h-8 sm:h-12">
+                                                        <span className="md:hidden">Peso</span>
+                                                        <span className="hidden md:inline">Peso (kg)</span>
+                                                    </TableHead>
                                                     {mode !== 'pediatric' && (
-                                                        <TableCell className="text-center font-semibold text-orange-500">
-                                                            {rec.bodyFatPercent ? `${rec.bodyFatPercent.toFixed(1)}%` : '-'}
-                                                        </TableCell>
+                                                        <TableHead className="font-bold text-slate-600 dark:text-slate-300 text-center text-[10px] sm:text-sm px-1 sm:px-4 h-8 sm:h-12">
+                                                            <span className="md:hidden">%Grasa</span>
+                                                            <span className="hidden md:inline">% Grasa</span>
+                                                        </TableHead>
                                                     )}
                                                     {mode === 'pediatric' && (
-                                                        <TableCell className="text-center font-semibold text-purple-600 dark:text-purple-400">
-                                                            {rec.height}
-                                                        </TableCell>
+                                                        <TableHead className="font-bold text-slate-600 dark:text-slate-300 text-center text-[10px] sm:text-sm px-1 sm:px-4 h-8 sm:h-12">
+                                                            <span className="md:hidden">Talla</span>
+                                                            <span className="hidden md:inline">Talla (cm)</span>
+                                                        </TableHead>
                                                     )}
-                                                    <TableCell className="text-center font-semibold text-green-600 dark:text-green-400">
-                                                        {mode === 'pediatric'
-                                                            ? (rec.weight && rec.height ? ((rec.weight / ((rec.height / 100) ** 2)).toFixed(1)) : '-')
-                                                            : (rec.muscleMassKg || '-')
-                                                        }
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                                            onClick={() => handleDeleteClick(rec.id)}
-                                                            disabled={deletingId === rec.id}
-                                                        >
-                                                            {deletingId === rec.id ? (
-                                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500" />
-                                                            ) : (
-                                                                <Trash2 className="h-4 w-4" />
-                                                            )}
-                                                        </Button>
-                                                    </TableCell>
+                                                    <TableHead className="font-bold text-slate-600 dark:text-slate-300 text-center text-[10px] sm:text-sm px-1 sm:px-4 h-8 sm:h-12">
+                                                        <span className="md:hidden">
+                                                            {mode === 'pediatric' ? 'IMC' : 'Musc'}
+                                                        </span>
+                                                        <span className="hidden md:inline">
+                                                            {mode === 'pediatric' ? 'IMC' : 'Masa Muscular (kg)'}
+                                                        </span>
+                                                    </TableHead>
+                                                    <TableHead className="w-[30px] sm:w-[50px] px-0 sm:px-4 h-8 sm:h-12"></TableHead>
                                                 </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {history.slice().reverse().map((rec, index) => (
+                                                    <TableRow key={rec.id || index} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                                                        <TableCell className="font-medium text-slate-700 dark:text-slate-300 text-[10px] sm:text-sm px-2 sm:px-4 py-2 sm:py-4">
+                                                            <span className="md:hidden">
+                                                                {format(new Date(rec.date), 'dd/MM/yy', { locale: es })}
+                                                            </span>
+                                                            <span className="hidden md:inline">
+                                                                {format(new Date(rec.date), 'dd MMM yyyy', { locale: es })}
+                                                            </span>
+                                                        </TableCell>
+                                                        <TableCell className="text-center font-semibold text-blue-600 dark:text-blue-400 text-[10px] sm:text-sm px-1 sm:px-4 py-2 sm:py-4">
+                                                            {rec.weight}
+                                                        </TableCell>
+                                                        {mode !== 'pediatric' && (
+                                                            <TableCell className="text-center font-semibold text-orange-500 text-[10px] sm:text-sm px-1 sm:px-4 py-2 sm:py-4">
+                                                                {rec.bodyFatPercent ? `${rec.bodyFatPercent.toFixed(1)}%` : '-'}
+                                                            </TableCell>
+                                                        )}
+                                                        {mode === 'pediatric' && (
+                                                            <TableCell className="text-center font-semibold text-purple-600 dark:text-purple-400 text-[10px] sm:text-sm px-1 sm:px-4 py-2 sm:py-4">
+                                                                {rec.height}
+                                                            </TableCell>
+                                                        )}
+                                                        <TableCell className="text-center font-semibold text-green-600 dark:text-green-400 text-[10px] sm:text-sm px-1 sm:px-4 py-2 sm:py-4">
+                                                            {mode === 'pediatric'
+                                                                ? (rec.weight && rec.height ? ((rec.weight / ((rec.height / 100) ** 2)).toFixed(1)) : '-')
+                                                                : (rec.muscleMassKg || '-')
+                                                            }
+                                                        </TableCell>
+                                                        <TableCell className="px-0 sm:px-4 py-2 sm:py-4">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-6 w-6 sm:h-8 sm:w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                                onClick={() => handleDeleteClick(rec.id)}
+                                                                disabled={deletingId === rec.id}
+                                                            >
+                                                                {deletingId === rec.id ? (
+                                                                    <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-red-500" />
+                                                                ) : (
+                                                                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                                                                )}
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
                                 </TabsContent>
 
                                 <TabsContent value="composicion" className="mt-0">
@@ -734,19 +662,19 @@ export function EvolutionSummary({ patientId, mode = 'adult' }: EvolutionSummary
                                         </div>
                                     )}
                                 </TabsContent>
-                            </Tabs>
 
-                            {history.length === 0 && (
-                                <div className="py-8 text-center text-slate-400">
-                                    <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                    <p>No hay registros históricos disponibles</p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                                {history.length === 0 && (
+                                    <div className="py-8 text-center text-slate-400">
+                                        <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                        <p>No hay registros históricos disponibles</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </Tabs>
                 </TabsContent>
             </Tabs>
-        </div >
+        </div>
     );
 }
 
