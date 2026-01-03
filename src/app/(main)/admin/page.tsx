@@ -370,21 +370,27 @@ export default function AdminPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="w-12">
-                                            <Checkbox
-                                                checked={
-                                                    users.filter(u => u.email !== user?.email).length > 0 &&
-                                                    selectedUsers.size === users.filter(u => u.email !== user?.email).length
-                                                }
-                                                onCheckedChange={toggleSelectAll}
-                                                aria-label="Seleccionar todos"
-                                            />
+                                        <TableHead className="w-12 text-center align-middle">
+                                            <div className="flex items-center justify-center w-6 h-6 mx-auto">
+                                                <div className="flex items-center justify-center w-6 h-6 mx-auto">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="appearance-none w-5 h-5 rounded-full border-2 border-slate-300 checked:bg-[#ff8508] checked:border-[#ff8508] transition-colors cursor-pointer shrink-0"
+                                                        checked={
+                                                            users.filter(u => u.email !== user?.email).length > 0 &&
+                                                            selectedUsers.size === users.filter(u => u.email !== user?.email).length
+                                                        }
+                                                        onChange={toggleSelectAll}
+                                                        aria-label="Seleccionar todos"
+                                                    />
+                                                </div>
+                                            </div>
                                         </TableHead>
                                         <TableHead>Nombre</TableHead>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Rol</TableHead>
+                                        <TableHead className="hidden md:table-cell">Email</TableHead>
+                                        <TableHead className="hidden md:table-cell">Rol</TableHead>
                                         <TableHead>Estado</TableHead>
-                                        <TableHead>Especialidad</TableHead>
+                                        <TableHead className="hidden md:table-cell">Especialidad</TableHead>
                                         <TableHead className="text-right">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -394,17 +400,28 @@ export default function AdminPage() {
                                             key={u.id}
                                             className={selectedUsers.has(u.id) ? "bg-red-50/50 dark:bg-red-950/20" : ""}
                                         >
-                                            <TableCell>
-                                                <Checkbox
-                                                    checked={selectedUsers.has(u.id)}
-                                                    onCheckedChange={() => toggleUserSelection(u.id)}
-                                                    disabled={u.email === user?.email}
-                                                    aria-label={`Seleccionar ${u.nombre}`}
-                                                />
+                                            <TableCell className="text-center align-middle">
+                                                <div className="flex items-center justify-center w-6 h-6 mx-auto">
+                                                    <div className="flex items-center justify-center w-6 h-6 mx-auto">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="appearance-none w-5 h-5 rounded-full border-2 border-slate-300 checked:bg-[#ff8508] checked:border-[#ff8508] transition-colors cursor-pointer shrink-0"
+                                                            checked={selectedUsers.has(u.id)}
+                                                            onChange={() => toggleUserSelection(u.id)}
+                                                            disabled={u.email === user?.email}
+                                                            aria-label={`Seleccionar ${u.nombre}`}
+                                                        />
+                                                    </div>
+                                                </div>
                                             </TableCell>
-                                            <TableCell className="font-medium">{u.nombre}</TableCell>
-                                            <TableCell>{u.email}</TableCell>
                                             <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">{u.nombre}</span>
+                                                    <span className="text-xs text-muted-foreground md:hidden">{u.email}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="hidden md:table-cell">{u.email}</TableCell>
+                                            <TableCell className="hidden md:table-cell">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${u.rol === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
                                                     }`}>
                                                     {u.rol === 'admin' ? 'Administrador' : 'Nutricionista'}
@@ -422,7 +439,7 @@ export default function AdminPage() {
                                                     {(u as any).isActive !== false && (u as any).is_active !== false ? 'Activo' : 'Desactivado'}
                                                 </span>
                                             </TableCell>
-                                            <TableCell>{u.especialidad || "-"}</TableCell>
+                                            <TableCell className="hidden md:table-cell">{u.especialidad || "-"}</TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex items-center justify-end gap-1">
                                                     <Button

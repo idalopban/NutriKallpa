@@ -9,7 +9,7 @@ import { FullMeasurementData } from "./UnifiedMeasurementForm";
 
 // Model paths
 const MALE_MODEL_PATH = "/models/cuerpo_humano.glb";
-const FEMALE_MODEL_PATH = "/models/female_body.glb";
+const FEMALE_MODEL_PATH = "/models/cuerpo_humano.glb"; // TE: Debugging - Swap to verify code works
 
 // Configuración de transformaciones para cada modelo
 const MODEL_CONFIG = {

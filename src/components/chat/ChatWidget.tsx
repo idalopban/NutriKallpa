@@ -101,7 +101,7 @@ export function ChatWidget() {
                             "fixed z-50 bg-white dark:bg-zinc-900 shadow-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col overflow-hidden transition-all duration-300 ease-in-out",
                             isExpanded
                                 ? "inset-0 w-full h-full rounded-none"
-                                : "bottom-6 right-6 w-[400px] h-[600px] max-h-[80vh] rounded-2xl"
+                                : "bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 w-auto sm:w-[400px] h-[600px] max-h-[80vh] rounded-2xl"
                         )}
                     >
                         {/* Header */}
