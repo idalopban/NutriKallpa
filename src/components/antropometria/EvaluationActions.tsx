@@ -82,28 +82,32 @@ export function EvaluationActions({ data, paciente, medidas, onSave }: Evaluatio
     };
 
     return (
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex gap-2">
             <Button
                 variant="outline"
-                className="h-11 rounded-xl border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-semibold"
+                size="icon"
+                className="h-10 w-10 sm:h-11 sm:w-auto sm:px-4 rounded-xl border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-semibold"
                 onClick={handleExportPDF}
                 disabled={isExporting || data.bioData.peso === 0}
+                title="Exportar PDF"
             >
                 {isExporting ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                    <FileDown className="w-4 h-4 mr-2 text-indigo-500" />
+                    <FileDown className="w-4 h-4 text-indigo-500" />
                 )}
-                {isExporting ? "Generando..." : "Exportar PDF"}
+                <span className="hidden sm:inline sm:ml-2">{isExporting ? "Generando..." : "Exportar PDF"}</span>
             </Button>
 
             <Button
-                className="h-11 rounded-xl bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-all font-semibold shadow-lg shadow-slate-900/20"
+                size="icon"
+                className="h-10 w-10 sm:h-11 sm:w-auto sm:px-4 rounded-xl bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-all font-semibold shadow-lg shadow-slate-900/20"
                 onClick={() => onSave(data)}
                 disabled={data.bioData.peso === 0}
+                title="Guardar Evaluación"
             >
-                <Save className="w-4 h-4 mr-2 text-[#ff8508]" />
-                Guardar Evaluación
+                <Save className="w-4 h-4 text-[#ff8508]" />
+                <span className="hidden sm:inline sm:ml-2">Guardar Evaluación</span>
             </Button>
         </div>
     );
