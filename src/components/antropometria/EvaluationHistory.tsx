@@ -9,6 +9,13 @@ interface EvaluationHistoryProps {
     onView?: (medida: MedidasAntropometricas) => void;
 }
 
+// Helper to safely format values that might be objects
+const formatValue = (val: any): string | number => {
+    if (val === null || val === undefined) return '-';
+    if (typeof val === 'object' && 'value' in val) return val.value;
+    return val;
+};
+
 export function EvaluationHistory({ medidas, onDelete, onView }: EvaluationHistoryProps) {
     if (medidas.length === 0) {
         return (
@@ -48,21 +55,21 @@ export function EvaluationHistory({ medidas, onDelete, onView }: EvaluationHisto
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="bg-slate-50 dark:bg-slate-800/50 text-left">
-                            <th className="px-4 py-2 text-xs font-semibold text-slate-500">Fecha</th>
-                            <th className="px-4 py-2 text-xs font-semibold text-slate-500">Peso</th>
-                            <th className="px-4 py-2 text-xs font-semibold text-slate-500">Talla</th>
+                            <th className="px-2 sm:px-4 py-2 text-[10px] sm:text-xs font-semibold text-slate-500"><span className="sm:hidden">Fec</span><span className="hidden sm:inline">Fecha</span></th>
+                            <th className="px-2 sm:px-4 py-2 text-[10px] sm:text-xs font-semibold text-slate-500"><span className="sm:hidden">P</span><span className="hidden sm:inline">Peso</span></th>
+                            <th className="px-2 sm:px-4 py-2 text-[10px] sm:text-xs font-semibold text-slate-500"><span className="sm:hidden">T</span><span className="hidden sm:inline">Talla</span></th>
                             {isPediatric ? (
                                 <>
-                                    <th className="px-4 py-2 text-xs font-semibold text-slate-500">P. Cefálico</th>
-                                    <th className="px-4 py-2 text-xs font-semibold text-slate-500">IMC</th>
+                                    <th className="px-2 sm:px-4 py-2 text-[10px] sm:text-xs font-semibold text-slate-500"><span className="sm:hidden">PC</span><span className="hidden sm:inline">P. Cefálico</span></th>
+                                    <th className="px-2 sm:px-4 py-2 text-[10px] sm:text-xs font-semibold text-slate-500">IMC</th>
                                 </>
                             ) : (
                                 <>
-                                    <th className="px-4 py-2 text-xs font-semibold text-slate-500">Σ Pliegues</th>
-                                    <th className="px-4 py-2 text-xs font-semibold text-slate-500">% Grasa</th>
+                                    <th className="px-2 sm:px-4 py-2 text-[10px] sm:text-xs font-semibold text-slate-500 text-center"><span className="sm:hidden">ΣPl</span><span className="hidden sm:inline">Σ Pliegues</span></th>
+                                    <th className="px-2 sm:px-4 py-2 text-[10px] sm:text-xs font-semibold text-slate-500 text-center"><span className="sm:hidden">%G</span><span className="hidden sm:inline">% Grasa</span></th>
                                 </>
                             )}
-                            <th className="px-4 py-2 text-xs font-semibold text-slate-500 text-right">Acciones</th>
+                            <th className="px-2 sm:px-4 py-2 text-[10px] sm:text-xs font-semibold text-slate-500 text-right"></th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -82,77 +89,79 @@ export function EvaluationHistory({ medidas, onDelete, onView }: EvaluationHisto
                                 ? (medida.peso / Math.pow(medida.talla / 100, 2)).toFixed(1)
                                 : '-';
 
+                            // Extract values safely
+                            const headCirc = formatValue(medida.headCircumference || (medida.perimetros as any)?.headCircumference);
+
                             return (
                                 <tr
                                     key={medida.id}
                                     className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors ${idx === 0 ? 'bg-[#6cba00]/5' : ''}`}
                                 >
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center gap-2">
+                                    <td className="px-2 sm:px-4 py-2 sm:py-3">
+                                        <div className="flex items-center gap-1 sm:gap-2">
                                             {idx === 0 && (
-                                                <span className="w-2 h-2 rounded-full bg-[#6cba00]"></span>
+                                                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#6cba00]"></span>
                                             )}
-                                            <span className="font-medium text-slate-700 dark:text-slate-200">
-                                                {new Date(medida.fecha).toLocaleDateString('es-ES', {
-                                                    day: 'numeric',
-                                                    month: 'short',
-                                                    year: '2-digit'
-                                                })}
+                                            <span className="font-medium text-[10px] sm:text-sm text-slate-700 dark:text-slate-200">
+                                                <span className="sm:hidden">
+                                                    {new Date(medida.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                                </span>
+                                                <span className="hidden sm:inline">
+                                                    {new Date(medida.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: '2-digit' })}
+                                                </span>
                                             </span>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
-                                        {medida.peso || '-'} kg
+                                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-[10px] sm:text-sm text-slate-600 dark:text-slate-300">
+                                        {medida.peso || '-'}
                                     </td>
-                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
-                                        {medida.talla || '-'} cm
+                                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-[10px] sm:text-sm text-slate-600 dark:text-slate-300">
+                                        {medida.talla || '-'}
                                     </td>
                                     {isPediatric ? (
                                         <>
-                                            <td className="px-4 py-3">
-                                                <span className={`font-semibold ${(medida.headCircumference || medida.perimetros?.headCircumference) ? 'text-pink-600' : 'text-slate-400'}`}>
-                                                    {(medida.headCircumference || medida.perimetros?.headCircumference)
-                                                        ? `${medida.headCircumference || medida.perimetros?.headCircumference} cm`
-                                                        : '-'}
+                                            <td className="px-2 sm:px-4 py-2 sm:py-3">
+                                                <span className={`font-semibold text-[10px] sm:text-sm ${(headCirc !== '-') ? 'text-pink-600' : 'text-slate-400'}`}>
+                                                    {headCirc}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3">
-                                                <span className={`font-bold ${imc !== '-' ? 'text-[#6cba00]' : 'text-slate-400'}`}>
+                                            <td className="px-2 sm:px-4 py-2 sm:py-3">
+                                                <span className={`font-bold text-[10px] sm:text-sm ${imc !== '-' ? 'text-[#6cba00]' : 'text-slate-400'}`}>
                                                     {imc !== '-' ? imc : '-'}
                                                 </span>
                                             </td>
                                         </>
                                     ) : (
                                         <>
-                                            <td className="px-4 py-3">
-                                                <span className="font-semibold text-[#ff8508]">
-                                                    {sumPliegues > 0 ? `${sumPliegues.toFixed(1)} mm` : '-'}
+                                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
+                                                <span className="font-semibold text-[10px] sm:text-sm text-[#ff8508]">
+                                                    {sumPliegues > 0 ? sumPliegues.toFixed(1) : '-'}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3">
-                                                <span className={`font-bold ${pctGrasa !== '-' ? 'text-[#6cba00]' : 'text-slate-400'}`}>
+                                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
+                                                <span className={`font-bold text-[10px] sm:text-sm ${pctGrasa !== '-' ? 'text-[#6cba00]' : 'text-slate-400'}`}>
                                                     {pctGrasa !== '-' ? `${pctGrasa}%` : '-'}
                                                 </span>
                                             </td>
                                         </>
                                     )}
-                                    <td className="px-4 py-3">
+                                    <td className="px-2 sm:px-4 py-2 sm:py-3">
                                         <div className="flex items-center justify-end gap-1">
                                             {onView && (
                                                 <button
                                                     onClick={() => onView(medida)}
-                                                    className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                                                    title="Ver detalles"
+                                                    className="p-1 sm:p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                                    title="Ver"
                                                 >
-                                                    <Eye className="w-4 h-4" />
+                                                    <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                 </button>
                                             )}
                                             <button
                                                 onClick={() => onDelete(medida.id)}
-                                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                                className="p-1 sm:p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                                                 title="Eliminar"
                                             >
-                                                <Trash2 className="w-4 h-4" />
+                                                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                             </button>
                                         </div>
                                     </td>
