@@ -5,6 +5,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 import GlobalClientEffects from "@/components/GlobalClientEffects";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import "./globals.css";
 
@@ -59,6 +60,7 @@ export default function RootLayout({
       <Toaster />
       <SonnerToaster position="bottom-center" richColors />
       <GlobalClientEffects />
+      <SpeedInsights />
     </>
   );
 
