@@ -96,6 +96,12 @@ export default function DashboardPage() {
             <div className="lg:col-span-2 flex flex-col gap-4 md:gap-6 lg:gap-8">
                 <Banner userName={user?.nombre} />
 
+                {/* Profile + Calendar - Mobile Only (appears after banner) */}
+                <div className="lg:hidden flex flex-col gap-4">
+                    <ProfileWidget user={user} />
+                    <CalendarWidget citas={citas} pacientes={pacientes} />
+                </div>
+
                 {/* Stats Row - Draggable */}
                 <DraggableDashboard
                     defaultOrder={[WIDGET_IDS.STATS_PACIENTES, WIDGET_IDS.STATS_CITAS, WIDGET_IDS.STATS_DIETAS]}
@@ -163,18 +169,22 @@ export default function DashboardPage() {
                 </DraggableDashboard>
             </div>
 
-            {/* Right Column */}
-            <DraggableDashboard
-                defaultOrder={[WIDGET_IDS.PROFILE, WIDGET_IDS.CALENDAR]}
-                className="flex flex-col gap-4 md:gap-6 lg:gap-8"
-            >
-                <SortableWidget id={WIDGET_IDS.PROFILE}>
-                    <ProfileWidget user={user} />
-                </SortableWidget>
-                <SortableWidget id={WIDGET_IDS.CALENDAR}>
-                    <CalendarWidget citas={citas} pacientes={pacientes} />
-                </SortableWidget>
-            </DraggableDashboard>
+            {/* Right Column - Desktop Only */}
+            <div className="hidden lg:flex flex-col gap-4 md:gap-6 lg:gap-8">
+                <DraggableDashboard
+                    defaultOrder={[WIDGET_IDS.PROFILE, WIDGET_IDS.CALENDAR]}
+                    className="flex flex-col gap-4 md:gap-6 lg:gap-8"
+                >
+                    <SortableWidget id={WIDGET_IDS.PROFILE}>
+                        <ProfileWidget user={user} />
+                    </SortableWidget>
+                    <SortableWidget id={WIDGET_IDS.CALENDAR}>
+                        <CalendarWidget citas={citas} pacientes={pacientes} />
+                    </SortableWidget>
+                </DraggableDashboard>
+            </div>
+
+
         </div>
     );
 }

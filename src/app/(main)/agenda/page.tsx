@@ -309,7 +309,7 @@ export default function AgendaView() {
   const monthDays = eachDayOfInterval({ start: startOfWeek(monthStart, { weekStartsOn: 1 }), end: endOfWeek(monthEnd, { weekStartsOn: 1 }) });
 
   return (
-    <div className="flex h-full bg-background rounded-3xl overflow-hidden gap-4 p-4 md:p-0">
+    <div className="flex h-full bg-background rounded-3xl gap-4 p-4 md:p-0">
 
       {/* LEFT SIDEBAR (Inner) */}
       <div className="hidden xl:flex flex-col w-[220px] bg-background border border-slate-100 dark:border-slate-800 rounded-3xl p-4 gap-6 ml-8">
@@ -373,19 +373,20 @@ export default function AgendaView() {
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="flex-1 flex flex-col bg-white dark:bg-[#0f172a] rounded-3xl shadow-sm overflow-hidden border border-slate-100 dark:border-slate-800 mx-4">
+      <div className="flex-1 flex flex-col bg-white dark:bg-[#0f172a] rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 mx-2 md:mx-4 min-w-0">
 
-        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-4 p-4 md:p-6 border-b border-slate-100 dark:border-slate-800">
+          {/* Row 1: Title + Date Navigation */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-800 dark:text-white">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-800 dark:text-white">
                 Agenda <span className="text-[#ff8508]">de Citas</span>
               </h1>
               <p className="text-slate-500 dark:text-slate-400 text-sm capitalize">
                 {format(currentDate, "MMMM yyyy", { locale: es })}
               </p>
             </div>
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 self-start sm:self-auto">
               <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date())} className="text-xs font-semibold px-3 h-7">Hoy</Button>
               <div className="w-[1px] h-4 bg-slate-300 dark:bg-slate-600 mx-1" />
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCurrentDate(viewMode === 'week' ? subWeeks(currentDate, 1) : subWeeks(currentDate, 4))}> <ChevronLeft className="w-4 h-4" /> </Button>
@@ -393,22 +394,23 @@ export default function AgendaView() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Row 2: View Tabs + Create Button */}
+          <div className="flex items-center justify-between gap-3">
             <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
-              <Button variant="ghost" size="sm" onClick={() => setViewMode("week")} className={cn("shadow-sm h-8 rounded-lg text-xs font-semibold", viewMode === 'week' ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white" : "text-slate-500")}>Semana</Button>
-              <Button variant="ghost" size="sm" onClick={() => setViewMode("month")} className={cn("shadow-sm h-8 rounded-lg text-xs font-semibold", viewMode === 'month' ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white" : "text-slate-500")}>Mes</Button>
+              <Button variant="ghost" size="sm" onClick={() => setViewMode("week")} className={cn("shadow-sm h-8 rounded-lg text-xs font-semibold px-4", viewMode === 'week' ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white" : "text-slate-500")}>Semana</Button>
+              <Button variant="ghost" size="sm" onClick={() => setViewMode("month")} className={cn("shadow-sm h-8 rounded-lg text-xs font-semibold px-4", viewMode === 'month' ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white" : "text-slate-500")}>Mes</Button>
             </div>
-            <Button onClick={() => setIsNewDialogOpen(true)} className="bg-[#ff8508] hover:bg-[#ff7b00] text-white rounded-full px-6 shadow-lg shadow-orange-200 dark:shadow-none transition-all hover:scale-105 active:scale-95">
-              <Plus className="w-5 h-5 mr-2" />
-              Crear Cita
+            <Button onClick={() => setIsNewDialogOpen(true)} className="bg-[#ff8508] hover:bg-[#ff7b00] text-white rounded-full px-4 md:px-6 shadow-lg shadow-orange-200 dark:shadow-none transition-all hover:scale-105 active:scale-95 text-sm">
+              <Plus className="w-4 h-4 md:w-5 md:h-5 md:mr-2" />
+              <span className="hidden md:inline">Crear Cita</span>
             </Button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto relative">
+        <div className="flex-1 overflow-x-auto overflow-y-auto relative touch-pan-x touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* WEEK VIEW */}
           {viewMode === 'week' && (
-            <div className="min-w-[800px] h-full flex flex-col">
+            <div className="min-w-[700px] md:min-w-[800px] h-full flex flex-col">
               <div className="grid grid-cols-[50px_repeat(7,1fr)] bg-white dark:bg-[#0f172a] sticky top-0 z-20 border-b border-slate-100 dark:border-slate-800">
                 <div className="p-2 border-r border-slate-100 dark:border-slate-800 op-50 text-xs text-slate-400 font-medium pt-6">GMT-5</div>
                 {weekDays.map((day) => (

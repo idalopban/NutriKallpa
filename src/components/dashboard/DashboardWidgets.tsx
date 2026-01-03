@@ -323,7 +323,7 @@ export function CalendarWidget({ citas = [], pacientes = [] }: CalendarWidgetPro
     };
 
     return (
-        <div className="bg-[var(--brand-orange)] text-white rounded-2xl md:rounded-3xl shadow-lg overflow-hidden p-4 md:p-6">
+        <div className="bg-[var(--brand-orange)] text-white rounded-2xl md:rounded-3xl shadow-lg p-4 md:p-6">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-sm font-semibold uppercase tracking-wider">Calendario</h3>
                 <button

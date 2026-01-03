@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack -p 3002",
+    "dev": "next dev --turbopack -p 3000",
     "dev:debug": "NODE_OPTIONS='--inspect' next dev",
     "dev:debug:win": "cmd /C \"set NODE_OPTIONS=--inspect && npm run dev\"",
     "build": "next build",
