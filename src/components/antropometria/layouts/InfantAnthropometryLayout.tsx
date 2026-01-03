@@ -178,7 +178,7 @@ export function InfantAnthropometryLayout({
         <div className="space-y-6">
             <AnthropometryTabs
                 tabs={[
-                    { id: "crecimiento", label: "Crecimiento OMS (Lactante)", icon: Baby },
+                    { id: "crecimiento", label: <><span className="sm:hidden">Crecimiento</span><span className="hidden sm:inline">Crecimiento OMS (Lactante)</span></>, icon: Baby },
                     { id: "historial", label: "Historial", icon: Calendar },
                 ]}
                 activeTab={activeTab}

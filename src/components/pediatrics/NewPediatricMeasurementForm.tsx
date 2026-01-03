@@ -431,64 +431,71 @@ export const NewPediatricMeasurementForm = forwardRef<PediatricMeasurementFormRe
 
         return (
             <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className={cn('space-y-6', className)}>
-                {/* Patient Info Header */}
                 <Card className="border-none shadow-sm bg-gradient-to-r from-pink-50 to-blue-50 dark:from-pink-900/10 dark:to-blue-900/10">
                     <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg flex items-center gap-2">
-                                <Baby className="w-5 h-5 text-pink-500" />
-                                Evaluación Pediátrica OMS
-                            </CardTitle>
-                            <Badge className="bg-blue-100 text-blue-700">
-                                {patientSex === 'male' ? '👦 Niño' : '👧 Niña'}
-                            </Badge>
-                            <div className="flex gap-2">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between md:gap-0">
+                            <div className="flex items-center justify-between md:justify-start gap-2 w-full md:w-auto">
+                                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                                    <Baby className="w-5 h-5 text-pink-500 shrink-0" />
+                                    <span>Evaluación Pediátrica</span>
+                                </CardTitle>
+                                <Badge className="bg-blue-100 text-blue-700 shrink-0 whitespace-nowrap px-2 py-0.5">
+                                    {patientSex === 'male' ? '👦 Niño' : '👧 Niña'}
+                                </Badge>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 w-full md:w-auto md:flex">
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     type="button"
                                     onClick={() => setShowPrematurity(!showPrematurity)}
-                                    className={cn("text-xs h-8", showPrematurity && "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-900/20 dark:border-indigo-800 dark:text-indigo-300")}
+                                    className={cn("text-xs h-8 w-full md:w-auto justify-center", showPrematurity && "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-900/20 dark:border-indigo-800 dark:text-indigo-300")}
                                 >
                                     <Baby className="w-3.5 h-3.5 mr-1.5" />
-                                    {showPrematurity ? "Ocultar Prematuro" : "Edad Corregida"}
+                                    {showPrematurity ? "Ocultar" : "Edad Corregida"}
                                 </Button>
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     type="button"
                                     onClick={() => setShowCPEstimation(!showCPEstimation)}
-                                    className={cn("text-xs h-8", showCPEstimation && "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300")}
+                                    className={cn("text-xs h-8 w-full md:w-auto justify-center", showCPEstimation && "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300")}
                                 >
                                     <Ruler className="w-3.5 h-3.5 mr-1.5" />
-                                    {showCPEstimation ? "Ocultar Est. Talla" : "Est. Talla (PC)"}
+                                    {showCPEstimation ? "Ocultar" : "Est. Talla"}
                                 </Button>
                             </div>
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3 md:gap-4">
                             <div>
-                                <p className="text-xs text-slate-500">Paciente</p>
-                                <p className="font-semibold text-slate-800 dark:text-white">{patientName}</p>
+                                <p className="text-[10px] uppercase tracking-wider text-slate-500 font-medium mb-0">Paciente</p>
+                                <p className="text-sm sm:text-base font-semibold text-slate-800 dark:text-white truncate">{patientName}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">Edad</p>
-                                <p className="font-semibold text-slate-800 dark:text-white">
+                                <p className="text-[10px] uppercase tracking-wider text-slate-500 font-medium mb-0">Edad</p>
+                                <p className="text-sm sm:text-base font-semibold text-slate-800 dark:text-white">
                                     {formatClinicalAge(patientBirthDate)}
                                 </p>
                             </div>
-                            <div>
-                                <p className="text-xs text-slate-500">Tipo de Medición</p>
-                                <p className="font-semibold text-slate-800 dark:text-white">
-                                    {measurementType === 'recumbent' ? '📏 Longitud (acostado)' : '📐 Talla (de pie)'}
-                                </p>
+                            <div className="col-span-2 md:col-span-1 border-t md:border-none pt-2 md:pt-0 mt-1 md:mt-0">
+                                <p className="text-[10px] uppercase tracking-wider text-slate-500 font-medium mb-0">Tipo de Medición</p>
+                                <div className="flex items-center gap-1.5">
+                                    {measurementType === 'recumbent' ? <Ruler className="w-4 h-4 text-slate-400" /> : <Scale className="w-4 h-4 text-slate-400" />}
+                                    <p className="text-sm font-semibold text-slate-800 dark:text-white leading-tight">
+                                        {measurementType === 'recumbent' ? 'Longitud (acostado)' : 'Talla (de pie)'}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-xs text-slate-500">Fecha de Nacimiento</p>
-                                <p className="font-semibold text-slate-800 dark:text-white">
-                                    {birthDate.toLocaleDateString('es-PE')}
-                                </p>
+                            <div className="col-span-2 md:col-span-1 border-t md:border-none pt-2 md:pt-0 mt-1 md:mt-0">
+                                <p className="text-[10px] uppercase tracking-wider text-slate-500 font-medium mb-0">Nacimiento</p>
+                                <div className="flex items-center gap-1.5">
+                                    <Calendar className="w-4 h-4 text-slate-400" />
+                                    <p className="text-sm font-semibold text-slate-800 dark:text-white">
+                                        {birthDate.toLocaleDateString('es-PE')}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </CardContent>
