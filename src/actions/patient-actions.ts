@@ -4,6 +4,7 @@ import { createPostgrestClient } from "@/lib/postgrest";
 import { createSupabaseAdmin } from "@/lib/supabase-admin";
 import { getServerSession } from "@/lib/session-utils";
 import { logger } from "@/lib/logger";
+import { verifyOwnership } from "@/lib/security";
 import type { Paciente, MedidasAntropometricas } from "@/types";
 
 export interface AnthropometryHistoryRecord {
@@ -35,7 +36,14 @@ export async function createPatient(paciente: Paciente): Promise<{ success: bool
         const client = createSupabaseAdmin();
 
         // SECURITY FIX: Force usuario_id to be the authenticated user
-        // This prevents IDOR attacks where a user tries to create patients for other users
+        // SECURITY FIX: User Takeover Prevention
+        // Check if patient exists and belongs to another user
+        const { data: existingPatient } = await client.from("pacientes").select("usuario_id").eq("id", paciente.id).single();
+        if (existingPatient && existingPatient.usuario_id !== sessionUserId) {
+            logger.error(`SECURITY ALERT: Takeover attempt. User ${sessionUserId} tried to overwrite patient ${paciente.id} of user ${existingPatient.usuario_id}`);
+            return { success: false, error: "No autorizado - Este paciente pertenece a otro usuario" };
+        }
+
         const patientData = {
             id: paciente.id,
             usuario_id: sessionUserId, // ← ALWAYS from session, never from client
@@ -135,16 +143,8 @@ export async function deletePatient(id: string): Promise<{ success: boolean; err
 
         const client = createSupabaseAdmin();
 
-        // Security: Verify ownership before delete
-        const { data: patient } = await client
-            .from("pacientes")
-            .select("usuario_id")
-            .eq("id", id)
-            .single();
-
-        if (!patient || patient.usuario_id !== sessionUserId) {
-            return { success: false, error: "No autorizado o paciente no encontrado" };
-        }
+        // Security: Verify ownership before delete (Centralized Check)
+        await verifyOwnership("pacientes", id);
 
         const { error } = await client.from("pacientes").delete().eq("id", id);
         if (error) throw error;
@@ -175,26 +175,13 @@ export async function getPatientHistory(patientId: string): Promise<{ success: b
 
         const client = createPostgrestClient();
 
-        // SECURITY FIX: First verify the patient belongs to this user
-        const { data: patientCheck, error: patientError } = await client
-            .from("pacientes")
-            .select("id, usuario_id")
-            .eq("id", patientId)
-            .single();
 
-        if (patientError || !patientCheck) {
-            logger.warn('Patient not found', { action: 'getPatientHistory', patientId: patientId.slice(0, 8) + '...' });
-            return { success: false, error: "Paciente no encontrado" };
-        }
 
-        // SECURITY FIX: Verify ownership - user can only access their own patients
-        if (patientCheck.usuario_id !== sessionUserId) {
-            logger.warn('Unauthorized patient access attempt', {
-                action: 'getPatientHistory',
-                callerUserId: sessionUserId.slice(0, 8) + '...',
-                patientOwnerId: patientCheck.usuario_id?.slice(0, 8) + '...'
-            });
-            return { success: false, error: "No autorizado - paciente no pertenece a este usuario" };
+        // SECURITY FIX: Verify ownership using centralized utility
+        try {
+            await verifyOwnership("pacientes", patientId);
+        } catch (authErr) {
+            return { success: false, error: "No autorizado o paciente no encontrado" };
         }
 
         // Now fetch the history (ownership verified)
@@ -241,15 +228,7 @@ export async function deleteAnthropometryRecord(recordId: string, patientId: str
         const client = createSupabaseAdmin();
 
         // 1. Verify patient ownership
-        const { data: patient } = await client
-            .from("pacientes")
-            .select("usuario_id")
-            .eq("id", patientId)
-            .single();
-
-        if (!patient || patient.usuario_id !== sessionUserId) {
-            return { success: false, error: "No autorizado o paciente no encontrado" };
-        }
+        await verifyOwnership("pacientes", patientId);
 
         // 2. Delete the record
         // Ensure the record actually belongs to this patient to prevent IDOR on records
@@ -277,9 +256,16 @@ export async function getPatientServer(id: string): Promise<Paciente | null> {
         if (!sessionUserId) return null;
 
         const client = createSupabaseAdmin();
+        // SECURITY: Verify ownership
+        try {
+            await verifyOwnership("pacientes", id);
+        } catch {
+            return null;
+        }
+
         const { data, error } = await client.from("pacientes").select("*").eq("id", id).single();
 
-        if (error || !data || data.usuario_id !== sessionUserId) return null;
+        if (error || !data) return null;
 
         return {
             id: data.id,
@@ -315,20 +301,13 @@ export async function getMedidasServer(patientId: string): Promise<MedidasAntrop
         const client = createSupabaseAdmin();
 
         // SECURITY: Verify patient ownership before fetching its records
-        const { data: patient, error: patientError } = await client
-            .from("pacientes")
-            .select("usuario_id")
-            .eq("id", patientId)
-            .single();
-
-        if (patientError || !patient || patient.usuario_id !== sessionUserId) {
-            logger.warn('Unauthorized measurement access attempt', {
-                action: 'getMedidasServer',
-                callerUserId: sessionUserId.slice(0, 8) + '...',
-                patientId: patientId.slice(0, 8) + '...'
-            });
+        try {
+            await verifyOwnership("pacientes", patientId);
+        } catch {
             return [];
         }
+
+
 
         const { data, error } = await client
             .from("anthropometry_records")
