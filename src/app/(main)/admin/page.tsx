@@ -42,6 +42,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Copy, Plus, RefreshCw, Shield, Trash2, UserCog, Loader2, Download, FileText, Sparkles, Power } from "lucide-react";
 import { generateInvitationCodesPDF } from "@/lib/InvitationCodesPDFGenerator";
+import { generateSecureCode } from "@/lib/utils";
 
 export default function AdminPage() {
     const router = useRouter();
@@ -102,7 +103,7 @@ export default function AdminPage() {
     };
 
     const handleGenerateCode = async () => {
-        const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+        const code = generateSecureCode(12);
         const result = await createInvitationCode(code, "usuario", 30, user?.id);
         if (result.success) {
             toast.success("Código de invitación generado correctamente");
@@ -142,7 +143,7 @@ export default function AdminPage() {
         let errorCount = 0;
 
         for (let i = 0; i < bulkQuantity; i++) {
-            const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+            const code = generateSecureCode(12);
             const result = await createInvitationCode(code, bulkRole, subscriptionDays, user?.id);
             if (result.success) {
                 newCodes.push(code);
