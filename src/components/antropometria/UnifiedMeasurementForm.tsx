@@ -213,33 +213,35 @@ export function UnifiedMeasurementForm({
     return (
         <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-slate-200/50 dark:shadow-slate-950/50 border border-white dark:border-slate-800 overflow-hidden">
             {/* Header Modernizado (🎨 El Esteta) */}
-            <div className="px-6 py-5 bg-gradient-to-br from-slate-50 to-white dark:from-slate-800/50 dark:to-slate-900 border-b border-slate-100 dark:border-slate-800">
+            <div className="px-4 md:px-6 py-5 bg-gradient-to-br from-slate-50 to-white dark:from-slate-800/50 dark:to-slate-900 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#6cba00] to-[#80dd00] flex items-center justify-center shadow-lg shadow-[#6cba00]/20">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#6cba00] to-[#80dd00] flex items-center justify-center shadow-lg shadow-[#6cba00]/20 shrink-0">
                             <Ruler className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h3 className="font-extrabold text-slate-800 dark:text-white text-base">Evaluación Antropométrica</h3>
+                            <h3 className="font-extrabold text-slate-800 dark:text-white text-base leading-tight">Evaluación Antropométrica</h3>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Protocolo unificado ISAK / OMS</p>
                         </div>
                     </div>
                 </div>
 
                 {patientId && (
-                    <div className="flex items-center justify-between bg-white dark:bg-slate-800/50 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-700/50">
-                        <div className="flex items-center gap-2 pl-1">
-                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                    <div className="flex flex-col xs:flex-row items-center justify-between bg-white dark:bg-slate-800/50 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-700/50 gap-3 xs:gap-0">
+                        <div className="flex items-center gap-2 pl-1 w-full xs:w-auto">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate">
                                 {lastLoadedDate
                                     ? `HISTORIAL: ${format(lastLoadedDate, "dd MMM, yyyy", { locale: es })}`
                                     : "SIN REGISTROS PREVIOS"}
                             </span>
                         </div>
-                        <LoadLastMeasurementButton
-                            patientId={patientId}
-                            onMeasurementLoaded={handleMeasurementLoaded}
-                        />
+                        <div className="w-full xs:w-auto">
+                            <LoadLastMeasurementButton
+                                patientId={patientId}
+                                onMeasurementLoaded={handleMeasurementLoaded}
+                            />
+                        </div>
                     </div>
                 )}
             </div>

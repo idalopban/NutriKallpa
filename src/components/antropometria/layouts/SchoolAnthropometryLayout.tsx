@@ -139,8 +139,8 @@ export function SchoolAnthropometryLayout({
         <div className="space-y-6">
             <AnthropometryTabs
                 tabs={[
-                    { id: "crecimiento", label: "Crecimiento OMS (5-19 años)", icon: Baby },
-                    { id: "antropometria", label: "Antropometría ISSAK", icon: Scale },
+                    { id: "crecimiento", label: <><span className="sm:hidden">Crecimiento</span><span className="hidden sm:inline">Crecimiento OMS (5-19 años)</span></>, icon: Baby },
+                    { id: "antropometria", label: <><span className="sm:hidden">Antropometría</span><span className="hidden sm:inline">Antropometría ISSAK</span></>, icon: Scale },
                     { id: "historial", label: "Historial", icon: History },
                 ]}
                 activeTab={activeTab}

@@ -162,8 +162,8 @@ export function AntropometriaLayout({
             )}
 
             {/* TAB NAVIGATION & ACTIONS */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-stretch sm:items-center bg-white dark:bg-slate-900 rounded-2xl p-1.5 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-100 dark:border-slate-800">
-                <nav className="flex gap-1 overflow-x-auto">
+            <div className="flex flex-row items-center gap-2 sm:gap-4 justify-between bg-white dark:bg-slate-900 rounded-2xl p-1.5 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-100 dark:border-slate-800">
+                <nav className="flex-1 flex gap-1 overflow-x-auto no-scrollbar mask-linear-fade">
                     {TABS.map((tab) => {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.id;
@@ -171,7 +171,7 @@ export function AntropometriaLayout({
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 whitespace-nowrap ${isActive
+                                className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 whitespace-nowrap ${isActive
                                     ? 'bg-[#ff8508] text-white shadow-lg shadow-[#ff8508]/30'
                                     : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                                     }`}
@@ -183,7 +183,7 @@ export function AntropometriaLayout({
                     })}
                 </nav>
 
-                <div className="px-1.5 pb-1.5 sm:pb-0">
+                <div className="shrink-0">
                     <EvaluationActions
                         data={data}
                         paciente={patientId ? { id: patientId, datosPersonales: { nombre: patientName?.split(' ')[0] || '', apellido: patientName?.split(' ').slice(1).join(' ') || '', fechaNacimiento: patientBirthDate || '', sexo: patientGender } } as any : undefined}
