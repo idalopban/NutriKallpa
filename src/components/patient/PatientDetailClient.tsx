@@ -478,50 +478,58 @@ export function PatientDetailClient() {
                 </aside>
 
                 {/* MAIN CONTENT */}
-                <main className="flex-1 overflow-y-auto h-full p-8 lg:p-10 space-y-8">
+                <main className="flex-1 overflow-y-auto h-full p-4 sm:p-8 lg:p-10 space-y-6 sm:space-y-8">
                     {/* Mobile Patient Header - Only visible on mobile */}
-                    <div className="lg:hidden bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
-                        <button onClick={() => router.push('/pacientes')} className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-white mb-4 transition-colors">
+                    <div className="lg:hidden bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+                        {/* Back Button */}
+                        <button onClick={() => router.push('/pacientes')} className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-white mb-5 transition-colors">
                             <ArrowLeft className="w-4 h-4" /> Volver a pacientes
                         </button>
 
-                        <div className="flex items-center gap-4 mb-4">
-                            <PatientAvatar patient={paciente} className="w-16 h-16 text-2xl shadow-lg shrink-0" />
-                            <div className="flex-1 min-w-0">
-                                <h2 className="text-lg font-extrabold text-slate-900 dark:text-white truncate">{paciente.datosPersonales.nombre}</h2>
-                                <p className="text-sm font-medium text-slate-500">{ageDetailed.formatted}</p>
-                                <div className="mt-2">
-                                    <ConsentIndicator patientId={paciente.id} />
-                                </div>
-                            </div>
-                            <div className="flex flex-col gap-2 shrink-0">
-                                <Button size="sm" variant="outline" className="rounded-xl text-xs" onClick={() => router.push(`/pacientes/${paciente.id}/editar`)}>Editar</Button>
-                                <Button size="sm" variant="destructive" className="rounded-xl" onClick={handleBorrarPaciente}><Trash2 className="w-3 h-3" /></Button>
+                        {/* Patient Info - Centered Layout */}
+                        <div className="flex flex-col items-center text-center mb-5">
+                            <PatientAvatar patient={paciente} className="w-20 h-20 text-3xl shadow-lg mb-3" />
+                            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">{paciente.datosPersonales.nombre}</h2>
+                            <p className="text-sm font-medium text-slate-500 mb-3">{ageDetailed.formatted}</p>
+                            <ConsentIndicator patientId={paciente.id} />
+
+                            {/* Action Buttons - Horizontal below consent */}
+                            <div className="flex gap-2 mt-4">
+                                <Button size="sm" variant="outline" className="rounded-xl text-xs px-4" onClick={() => router.push(`/pacientes/${paciente.id}/editar`)}>
+                                    Editar
+                                </Button>
+                                <Button size="sm" variant="destructive" className="rounded-xl px-3" onClick={handleBorrarPaciente}>
+                                    <Trash2 className="w-3 h-3" />
+                                </Button>
                             </div>
                         </div>
 
                         {/* Mobile Quick Stats */}
-                        <div className="grid grid-cols-2 gap-2 mb-4">
+                        <div className="grid grid-cols-2 gap-3 mb-4">
                             {isInfant ? (
                                 <>
-                                    <div className="p-3 rounded-xl bg-emerald-500 text-white">
-                                        <p className="text-[9px] uppercase font-bold opacity-80">Peso</p>
-                                        <p className="text-xl font-bold">{ultimaMedida?.peso || '--'} <span className="text-xs font-normal">kg</span></p>
+                                    <div className="p-4 rounded-xl bg-emerald-500 text-white text-center">
+                                        <p className="text-[10px] uppercase font-bold opacity-80 mb-1">Peso</p>
+                                        <p className="text-2xl font-bold">{ultimaMedida?.peso || '--'}</p>
+                                        <p className="text-xs opacity-80">kg</p>
                                     </div>
-                                    <div className="p-3 rounded-xl bg-blue-500 text-white">
-                                        <p className="text-[9px] uppercase font-bold opacity-80">Talla</p>
-                                        <p className="text-xl font-bold">{ultimaMedida?.talla || '--'} <span className="text-xs font-normal">cm</span></p>
+                                    <div className="p-4 rounded-xl bg-blue-500 text-white text-center">
+                                        <p className="text-[10px] uppercase font-bold opacity-80 mb-1">Talla</p>
+                                        <p className="text-2xl font-bold">{ultimaMedida?.talla || '--'}</p>
+                                        <p className="text-xs opacity-80">cm</p>
                                     </div>
                                 </>
                             ) : (
                                 <>
-                                    <div className="p-3 rounded-xl bg-amber-500 text-white">
-                                        <p className="text-[9px] uppercase font-bold opacity-80">IMC</p>
-                                        <p className="text-xl font-bold">{imc.toFixed(1)}</p>
+                                    <div className="p-4 rounded-xl bg-amber-500 text-white text-center">
+                                        <p className="text-[10px] uppercase font-bold opacity-80 mb-1">IMC</p>
+                                        <p className="text-2xl font-bold">{imc.toFixed(1)}</p>
+                                        <p className="text-xs opacity-80">kg/m²</p>
                                     </div>
-                                    <div className="p-3 rounded-xl bg-orange-500 text-white">
-                                        <p className="text-[9px] uppercase font-bold opacity-80">% Grasa</p>
-                                        <p className="text-xl font-bold">{bodyFatPercent > 0 ? bodyFatPercent.toFixed(1) : '--'}</p>
+                                    <div className="p-4 rounded-xl bg-orange-500 text-white text-center">
+                                        <p className="text-[10px] uppercase font-bold opacity-80 mb-1">% Grasa</p>
+                                        <p className="text-2xl font-bold">{bodyFatPercent > 0 ? bodyFatPercent.toFixed(1) : '--'}</p>
+                                        <p className="text-xs opacity-80">%</p>
                                     </div>
                                 </>
                             )}

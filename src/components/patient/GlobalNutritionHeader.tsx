@@ -92,13 +92,13 @@ export function GlobalNutritionHeader({ className }: GlobalNutritionHeaderProps)
         )}>
             {isInfant ? (
                 <>
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
-                            <Zap className="w-5 h-5" />
+                    <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 shrink-0">
+                            <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
-                        <div>
-                            <p className="text-[10px] uppercase font-medium text-slate-400 tracking-wider">Plan Alimentación (0-2 años)</p>
-                            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-none capitalize max-w-[180px]">
+                        <div className="min-w-0">
+                            <p className="text-[9px] sm:text-[10px] uppercase font-medium text-slate-400 tracking-wider whitespace-nowrap">Plan Alimentación (0-2 años)</p>
+                            <p className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 leading-tight capitalize whitespace-nowrap">
                                 {edad < 0.5 ? 'Lactancia Exclusiva' :
                                     edad < 0.75 ? 'AC (Papillas)' :
                                         edad < 1 ? 'AC (Picado)' :
@@ -107,15 +107,15 @@ export function GlobalNutritionHeader({ className }: GlobalNutritionHeaderProps)
                         </div>
                     </div>
 
-                    <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden md:block" />
+                    <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
 
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600">
-                            <Scale className="w-5 h-5" />
+                    <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 shrink-0">
+                            <Scale className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
-                        <div>
-                            <p className="text-[10px] uppercase font-medium text-slate-400 tracking-wider">Peso/Edad (Diagnóstico)</p>
-                            <p className="text-base font-bold text-slate-800 dark:text-white leading-none">
+                        <div className="min-w-0">
+                            <p className="text-[9px] sm:text-[10px] uppercase font-medium text-slate-400 tracking-wider whitespace-nowrap">Peso/Edad (Diagnóstico)</p>
+                            <p className="text-xs sm:text-base font-bold text-slate-800 dark:text-white leading-tight whitespace-nowrap">
                                 {bmiDiagnostico || 'Evaluación Pendiente'}
                             </p>
                         </div>
@@ -228,10 +228,9 @@ export function GlobalNutritionHeader({ className }: GlobalNutritionHeaderProps)
                     className="h-9 sm:h-11 rounded-xl border-emerald-200 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 gap-1.5 sm:gap-2 font-bold px-3 sm:px-5 text-xs sm:text-sm transition-all hover:scale-[1.02]"
                 >
                     <FileText className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4", isExporting && "animate-pulse")} />
-                    <span className="hidden sm:inline">{isExporting ? "Generando..." : "Exportar Dossier"}</span>
-                    <span className="sm:hidden">{isExporting ? "..." : "PDF"}</span>
+                    <span>{isExporting ? "Generando..." : "Exportar Dossier"}</span>
                 </Button>
             </div>
-        </div>
+        </div >
     );
 }

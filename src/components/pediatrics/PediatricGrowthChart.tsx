@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, memo } from 'react';
+import { useMemo, memo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
     ComposedChart,
@@ -23,6 +23,8 @@ import { generatePercentileCurves, type Sex, type GrowthIndicator } from "@/lib/
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { formatClinicalAgeFromMonths } from '@/lib/clinical-calculations';
+import { Button } from '@/components/ui/button';
+import { Maximize2, Minimize2 } from 'lucide-react';
 
 // ============================================================================
 // TYPES
@@ -159,6 +161,8 @@ function PediatricGrowthChartComponent({
     endMonth = 60,
     className = '',
 }: PediatricGrowthChartProps) {
+    const [isZoomed, setIsZoomed] = useState(false);
+
     // Generate reference curves (memoized - static data)
     const referenceCurves = useMemo(() => {
         return generatePercentileCurves(indicator, sex, startMonth, endMonth);
@@ -206,247 +210,277 @@ function PediatricGrowthChartComponent({
 
     return (
         <div className={`bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 ${className}`}>
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-                <div>
-                    <h3 className="text-lg font-semibold text-slate-800 dark:text-white">
-                        {labels.title}
-                    </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                        {sexLabel} ({startMonth}-{endMonth} meses)
-                        {patientName && <span className="ml-2 text-blue-600">• {patientName}</span>}
-                    </p>
+            {/* Header - Improved Layout */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
+                <div className="flex-1">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-white leading-tight mb-1 break-words max-w-full">
+                                {labels.title}
+                            </h3>
+                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                                {sexLabel} <span className="opacity-60">•</span> {startMonth}-{endMonth} meses
+                            </p>
+                            {patientName && (
+                                <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 mt-0.5">
+                                    {patientName}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Mobile Zoom Toggle */}
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setIsZoomed(!isZoomed)}
+                            className={cn(
+                                "lg:hidden shrink-0 ml-2 rounded-full transition-colors",
+                                isZoomed ? "bg-blue-50 text-blue-600 border-blue-200" : "text-slate-500"
+                            )}
+                            title={isZoomed ? "Restaurar vista" : "Ampliar gráfico"}
+                        >
+                            {isZoomed ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                        </Button>
+                    </div>
                 </div>
 
-                {/* Legend */}
-                <div className="flex items-center gap-4 text-xs">
-                    <div className="flex items-center gap-1">
+                {/* Legend - Wrap on mobile */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+                    <div className="flex items-center gap-1.5">
                         <div className="w-3 h-3 rounded-full bg-red-500" />
-                        <span className="text-slate-500">±3 DE</span>
+                        <span className="text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">±3 DE</span>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                         <div className="w-3 h-3 rounded-full bg-amber-500" />
-                        <span className="text-slate-500">±2 DE</span>
+                        <span className="text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">±2 DE</span>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                         <div className="w-3 h-3 rounded-full bg-green-500" />
-                        <span className="text-slate-500">Mediana</span>
+                        <span className="text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">Mediana</span>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                         <div className="w-3 h-3 rounded-full bg-blue-500" />
-                        <span className="text-slate-500">Paciente</span>
+                        <span className="text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">Paciente</span>
                     </div>
                 </div>
             </div>
 
-            {/* Chart */}
-            <div className="w-full h-[400px]">
-                <ResponsiveContainer>
-                    <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            {/* Chart Area - Scrollable when zoomed */}
+            <div className={cn(
+                "w-full transition-all duration-300 ease-in-out bg-slate-50/50 dark:bg-slate-900/50 rounded-lg",
+                isZoomed ? "overflow-x-auto border border-blue-100 dark:border-blue-900 shadow-inner" : "overflow-hidden"
+            )}>
+                <div className={cn(
+                    "transition-all duration-300",
+                    isZoomed ? "w-[180%] min-w-[600px] h-[500px] p-2" : "w-full h-[350px] sm:h-[400px]"
+                )}>
+                    <ResponsiveContainer>
+                        <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
 
-                        <XAxis
-                            dataKey="month"
-                            type="number"
-                            domain={[startMonth, endMonth]}
-                            ticks={(() => {
-                                // School age ticks (every 3 months)
-                                if (endMonth > 60) {
-                                    const ticks = [];
-                                    for (let m = startMonth; m <= endMonth; m += 3) {
-                                        ticks.push(m);
-                                    }
-                                    return ticks;
-                                }
-                                // Infant ticks (weekly in first month + monthly)
-                                if (endMonth <= 24 && startMonth === 0) {
-                                    const ticks = [0.23, 0.46, 0.69]; // approx 7, 14, 21 days
-                                    for (let m = 0; m <= endMonth; m++) {
-                                        ticks.push(m);
-                                    }
-                                    return ticks.sort((a, b) => a - b);
-                                }
-                                return undefined;
-                            })()}
-                            tick={((props: any) => {
-                                const { x, y, payload } = props;
-                                const month = payload.value;
-
-                                // Special handling for Weight-for-Length (indicator is 'wflh' and uses cm not months)
-                                if (indicator === 'wflh') {
-                                    return (
-                                        <g transform={`translate(${x},${y})`}>
-                                            <text
-                                                x={0}
-                                                y={0}
-                                                dy={18}
-                                                textAnchor="middle"
-                                                fill="#64748b"
-                                                fontSize={10}
-                                            >
-                                                {Math.round(month)}
-                                            </text>
-                                        </g>
-                                    );
-                                }
-
-                                // Infant / Preschool formatting (<= 5 years)
-                                if (endMonth <= 60) {
-                                    let label = `${month}`;
-                                    let isSpecial = false;
-                                    let isWeekly = false;
-
-                                    if (endMonth <= 24 && startMonth === 0) {
-                                        if (month === 0.23) { label = "7d"; isWeekly = true; }
-                                        else if (month === 0.46) { label = "14d"; isWeekly = true; }
-                                        else if (month === 0.69) { label = "21d"; isWeekly = true; }
-                                        else if (month === 12) { label = "1 año"; isSpecial = true; }
-                                        else if (month === 24) { label = "2 años"; isSpecial = true; }
-                                        else {
-                                            label = `${Math.round(month)}`;
+                            <XAxis
+                                dataKey="month"
+                                type="number"
+                                domain={[startMonth, endMonth]}
+                                ticks={(() => {
+                                    // School age ticks (every 3 months)
+                                    if (endMonth > 60) {
+                                        const ticks = [];
+                                        for (let m = startMonth; m <= endMonth; m += 3) {
+                                            ticks.push(m);
                                         }
+                                        return ticks;
+                                    }
+                                    // Infant ticks (weekly in first month + monthly)
+                                    if (endMonth <= 24 && startMonth === 0) {
+                                        const ticks = [0.23, 0.46, 0.69]; // approx 7, 14, 21 days
+                                        for (let m = 0; m <= endMonth; m++) {
+                                            ticks.push(m);
+                                        }
+                                        return ticks.sort((a, b) => a - b);
+                                    }
+                                    return undefined;
+                                })()}
+                                tick={((props: any) => {
+                                    const { x, y, payload } = props;
+                                    const month = payload.value;
+
+                                    // Special handling for Weight-for-Length (indicator is 'wflh' and uses cm not months)
+                                    if (indicator === 'wflh') {
+                                        return (
+                                            <g transform={`translate(${x},${y})`}>
+                                                <text
+                                                    x={0}
+                                                    y={0}
+                                                    dy={18}
+                                                    textAnchor="middle"
+                                                    fill="#64748b"
+                                                    fontSize={10}
+                                                >
+                                                    {Math.round(month)}
+                                                </text>
+                                            </g>
+                                        );
                                     }
 
+                                    // Infant / Preschool formatting (<= 5 years)
+                                    if (endMonth <= 60) {
+                                        let label = `${month}`;
+                                        let isSpecial = false;
+                                        let isWeekly = false;
+
+                                        if (endMonth <= 24 && startMonth === 0) {
+                                            if (month === 0.23) { label = "7d"; isWeekly = true; }
+                                            else if (month === 0.46) { label = "14d"; isWeekly = true; }
+                                            else if (month === 0.69) { label = "21d"; isWeekly = true; }
+                                            else if (month === 12) { label = "1 año"; isSpecial = true; }
+                                            else if (month === 24) { label = "2 años"; isSpecial = true; }
+                                            else {
+                                                label = `${Math.round(month)}`;
+                                            }
+                                        }
+
+                                        return (
+                                            <g transform={`translate(${x},${y})`}>
+                                                <text
+                                                    x={0}
+                                                    y={0}
+                                                    dy={isWeekly ? 12 : 18}
+                                                    textAnchor="middle"
+                                                    fill={isSpecial ? "#475569" : isWeekly ? "#94a3b8" : "#64748b"}
+                                                    fontSize={isSpecial ? 11 : isWeekly ? 9 : 10}
+                                                    fontWeight={isSpecial ? "bold" : "normal"}
+                                                >
+                                                    {label}
+                                                </text>
+                                            </g>
+                                        );
+                                    }
+
+                                    // School age formatting ( > 5 years)
+                                    const isYear = month % 12 === 0;
                                     return (
                                         <g transform={`translate(${x},${y})`}>
                                             <text
                                                 x={0}
                                                 y={0}
-                                                dy={isWeekly ? 12 : 18}
+                                                dy={isYear ? 28 : 12}
                                                 textAnchor="middle"
-                                                fill={isSpecial ? "#475569" : isWeekly ? "#94a3b8" : "#64748b"}
-                                                fontSize={isSpecial ? 11 : isWeekly ? 9 : 10}
-                                                fontWeight={isSpecial ? "bold" : "normal"}
+                                                fill={isYear ? "#475569" : "#94a3b8"}
+                                                fontSize={isYear ? 12 : 9}
+                                                fontWeight={isYear ? "bold" : "normal"}
                                             >
-                                                {label}
+                                                {isYear ? `${month / 12}` : `${month % 12}`}
                                             </text>
                                         </g>
                                     );
-                                }
+                                }) as any}
+                                height={60}
+                                interval={0}
+                                label={{
+                                    value: indicator === 'wflh' ? 'Longitud (cm)' : (endMonth > 60 ? 'Edad (meses y años cumplidos)' : 'Edad (meses)'),
+                                    position: 'insideBottom',
+                                    offset: 0,
+                                    fill: '#64748b',
+                                    fontSize: 12
+                                }}
+                                stroke="#94a3b8"
+                            />
 
-                                // School age formatting ( > 5 years)
-                                const isYear = month % 12 === 0;
-                                return (
-                                    <g transform={`translate(${x},${y})`}>
-                                        <text
-                                            x={0}
-                                            y={0}
-                                            dy={isYear ? 28 : 12}
-                                            textAnchor="middle"
-                                            fill={isYear ? "#475569" : "#94a3b8"}
-                                            fontSize={isYear ? 12 : 9}
-                                            fontWeight={isYear ? "bold" : "normal"}
-                                        >
-                                            {isYear ? `${month / 12}` : `${month % 12}`}
-                                        </text>
-                                    </g>
-                                );
-                            }) as any}
-                            height={60}
-                            interval={0}
-                            label={{
-                                value: indicator === 'wflh' ? 'Longitud (cm)' : (endMonth > 60 ? 'Edad (meses y años cumplidos)' : 'Edad (meses)'),
-                                position: 'insideBottom',
-                                offset: 0,
-                                fill: '#64748b',
-                                fontSize: 12
-                            }}
-                            stroke="#94a3b8"
-                        />
+                            <YAxis
+                                label={{ value: labels.yAxisLabel, angle: -90, position: 'insideLeft' }}
+                                stroke="#94a3b8"
+                            />
 
-                        <YAxis
-                            label={{ value: labels.yAxisLabel, angle: -90, position: 'insideLeft' }}
-                            stroke="#94a3b8"
-                        />
+                            <Tooltip content={<CustomTooltip unit={labels.unit} />} />
 
-                        <Tooltip content={<CustomTooltip unit={labels.unit} />} />
+                            {/* Shaded area between -3 and +3 SD */}
+                            <Area
+                                type="monotone"
+                                dataKey="sd_pos3"
+                                stroke="none"
+                                fill={ZONE_COLORS.severe_positive}
+                                fillOpacity={0.3}
+                                connectNulls
+                            />
 
-                        {/* Shaded area between -3 and +3 SD */}
-                        <Area
-                            type="monotone"
-                            dataKey="sd_pos3"
-                            stroke="none"
-                            fill={ZONE_COLORS.severe_positive}
-                            fillOpacity={0.3}
-                            connectNulls
-                        />
+                            {/* Reference Lines (Static) */}
+                            <Line
+                                type="monotone"
+                                dataKey="sd_neg3"
+                                stroke={LINE_COLORS.sd_neg3}
+                                strokeWidth={1}
+                                strokeDasharray="4 4"
+                                dot={false}
+                                name="-3 DE"
+                                connectNulls
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="sd_neg2"
+                                stroke={LINE_COLORS.sd_neg2}
+                                strokeWidth={1.5}
+                                dot={false}
+                                name="-2 DE"
+                                connectNulls
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="median"
+                                stroke={LINE_COLORS.median}
+                                strokeWidth={2}
+                                dot={false}
+                                name="Mediana"
+                                connectNulls
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="sd_pos2"
+                                stroke={LINE_COLORS.sd_pos2}
+                                strokeWidth={1.5}
+                                dot={false}
+                                name="+2 DE"
+                                connectNulls
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="sd_pos3"
+                                stroke={LINE_COLORS.sd_pos3}
+                                strokeWidth={1}
+                                strokeDasharray="4 4"
+                                dot={false}
+                                name="+3 DE"
+                                connectNulls
+                            />
 
-                        {/* Reference Lines (Static) */}
-                        <Line
-                            type="monotone"
-                            dataKey="sd_neg3"
-                            stroke={LINE_COLORS.sd_neg3}
-                            strokeWidth={1}
-                            strokeDasharray="4 4"
-                            dot={false}
-                            name="-3 DE"
-                            connectNulls
-                        />
-                        <Line
-                            type="monotone"
-                            dataKey="sd_neg2"
-                            stroke={LINE_COLORS.sd_neg2}
-                            strokeWidth={1.5}
-                            dot={false}
-                            name="-2 DE"
-                            connectNulls
-                        />
-                        <Line
-                            type="monotone"
-                            dataKey="median"
-                            stroke={LINE_COLORS.median}
-                            strokeWidth={2}
-                            dot={false}
-                            name="Mediana"
-                            connectNulls
-                        />
-                        <Line
-                            type="monotone"
-                            dataKey="sd_pos2"
-                            stroke={LINE_COLORS.sd_pos2}
-                            strokeWidth={1.5}
-                            dot={false}
-                            name="+2 DE"
-                            connectNulls
-                        />
-                        <Line
-                            type="monotone"
-                            dataKey="sd_pos3"
-                            stroke={LINE_COLORS.sd_pos3}
-                            strokeWidth={1}
-                            strokeDasharray="4 4"
-                            dot={false}
-                            name="+3 DE"
-                            connectNulls
-                        />
+                            {/* Patient Line (Continuous Trend) */}
+                            <Line
+                                type="monotone"
+                                dataKey="patientValue"
+                                name={`Evolución: ${patientName || 'Paciente'}`}
+                                stroke={LINE_COLORS.patient}
+                                strokeWidth={3}
+                                dot={{ r: 5, fill: LINE_COLORS.patient, strokeWidth: 2, stroke: '#fff' }}
+                                activeDot={{ r: 8, strokeWidth: 0 }}
+                                connectNulls
+                            />
 
-                        {/* Patient Line (Continuous Trend) */}
-                        <Line
-                            type="monotone"
-                            dataKey="patientValue"
-                            name={`Evolución: ${patientName || 'Paciente'}`}
-                            stroke={LINE_COLORS.patient}
-                            strokeWidth={3}
-                            dot={{ r: 5, fill: LINE_COLORS.patient, strokeWidth: 2, stroke: '#fff' }}
-                            activeDot={{ r: 8, strokeWidth: 0 }}
-                            connectNulls
-                        />
+                            {/* 24 month transition line (Length to Height) */}
+                            {indicator === 'lhfa' && (
+                                <ReferenceLine x={24} stroke="#94a3b8" strokeDasharray="3 3" label={{ value: "Long → Talla", position: 'insideTopRight', fill: '#94a3b8', fontSize: 10 }} />
+                            )}
 
-                        {/* 24 month transition line (Length to Height) */}
-                        {indicator === 'lhfa' && (
-                            <ReferenceLine x={24} stroke="#94a3b8" strokeDasharray="3 3" label={{ value: "Long → Talla", position: 'insideTopRight', fill: '#94a3b8', fontSize: 10 }} />
-                        )}
-
-                        {/* First Month Weekly Markers (7, 14, 21 days) */}
-                        {startMonth === 0 && (
-                            <>
-                                <ReferenceLine x={0.23} stroke="#94a3b8" strokeDasharray="2 2" isFront={false} />
-                                <ReferenceLine x={0.46} stroke="#94a3b8" strokeDasharray="2 2" isFront={false} />
-                                <ReferenceLine x={0.69} stroke="#94a3b8" strokeDasharray="2 2" isFront={false} />
-                            </>
-                        )}
-                    </ComposedChart>
-                </ResponsiveContainer>
+                            {/* First Month Weekly Markers (7, 14, 21 days) */}
+                            {startMonth === 0 && (
+                                <>
+                                    <ReferenceLine x={0.23} stroke="#94a3b8" strokeDasharray="2 2" isFront={false} />
+                                    <ReferenceLine x={0.46} stroke="#94a3b8" strokeDasharray="2 2" isFront={false} />
+                                    <ReferenceLine x={0.69} stroke="#94a3b8" strokeDasharray="2 2" isFront={false} />
+                                </>
+                            )}
+                        </ComposedChart>
+                    </ResponsiveContainer>
+                </div>
             </div>
 
             {/* Diagnosis Legend */}
