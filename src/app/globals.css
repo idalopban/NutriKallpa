@@ -303,6 +303,23 @@
   .dynamic-width {
     width: var(--bar-width, 0%);
   }
+
+  /* Mobile text truncation */
+  .truncate-mobile {
+    @apply truncate max-w-[200px] sm:max-w-none sm:overflow-visible sm:text-clip;
+  }
+
+  /* Flex shrink protection for mobile buttons */
+  .no-shrink {
+    @apply flex-shrink-0;
+  }
+
+  /* Mobile safe padding for notched devices */
+  .safe-area-padding {
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
 }
 
 /* ============================================

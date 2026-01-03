@@ -51,7 +51,7 @@ export function Banner({ userName }: BannerProps) {
     }
 
     return (
-        <div className="relative w-full h-36 md:h-44 rounded-2xl md:rounded-3xl overflow-hidden bg-gradient-to-r from-[var(--brand-orange)] to-[#ff9f3c] text-white shadow-lg flex items-center">
+        <div className="relative w-full min-h-[140px] md:h-44 rounded-2xl md:rounded-3xl overflow-hidden bg-gradient-to-r from-[var(--brand-orange)] to-[#ff9f3c] text-white shadow-lg">
             {/* Wave Pattern Background */}
             <div className="absolute inset-0">
                 <svg
@@ -70,31 +70,41 @@ export function Banner({ userName }: BannerProps) {
                 </svg>
             </div>
 
-            {/* Content */}
-            <div className="relative z-10 flex-1 p-4 md:p-8 flex flex-col justify-between h-full">
-                <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 w-fit">
-                    <CalendarIcon className="w-4 h-4" />
-                    <span>{dateStr} {timeStr}</span>
+            {/* Content - Stacked on mobile, horizontal on desktop */}
+            <div className="relative z-10 p-4 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between h-full gap-3 md:gap-4">
+                {/* Left side: Date + Greeting */}
+                <div className="flex flex-col gap-2 md:gap-3">
+                    {/* Date Badge - Compact on mobile */}
+                    <div className="bg-white/20 backdrop-blur-md px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-xs md:text-sm font-medium inline-flex items-center gap-1.5 md:gap-2 w-fit">
+                        <CalendarIcon className="w-3 h-3 md:w-4 md:h-4" />
+                        <span className="whitespace-nowrap">{dateStr}</span>
+                        <span className="text-white/70">{timeStr}</span>
+                    </div>
+
+                    {/* Greeting */}
+                    <div>
+                        <h2 className="text-lg md:text-2xl lg:text-3xl font-bold leading-tight">
+                            {greeting},
+                        </h2>
+                        <h2 className="text-lg md:text-2xl lg:text-3xl font-bold leading-tight">
+                            {userName || "Doctor"}!
+                        </h2>
+                    </div>
                 </div>
 
-                <div>
-                    <h2 className="text-xl md:text-2xl lg:text-3xl font-bold mb-1">{greeting}, {userName || "Doctor"}!</h2>
-                    <p className="text-white/90 text-sm md:text-base">{subGreeting}</p>
+                {/* Nueva Consulta Button - Right side on desktop, bottom-right on mobile */}
+                <div className="self-end md:self-center">
+                    <a
+                        href="/pacientes/nuevo"
+                        className="inline-flex items-center gap-1.5 md:gap-2 px-4 md:px-5 py-2.5 md:py-3 
+                            bg-white text-[var(--brand-orange)] font-bold text-xs md:text-sm rounded-xl 
+                            shadow-lg hover:shadow-xl hover:scale-105
+                            transition-all duration-300"
+                    >
+                        <span className="text-base md:text-lg">+</span>
+                        <span>Nueva Consulta</span>
+                    </a>
                 </div>
-            </div>
-
-            {/* Nueva Consulta Button - Integrated */}
-            <div className="relative z-10 pr-4 md:pr-8">
-                <a
-                    href="/pacientes/nuevo"
-                    className="flex items-center gap-2 px-5 py-3 
-                        bg-white text-[var(--brand-orange)] font-bold text-sm rounded-xl 
-                        shadow-lg hover:shadow-xl hover:scale-105
-                        transition-all duration-300"
-                >
-                    <span className="text-lg">+</span>
-                    <span>Nueva Consulta</span>
-                </a>
             </div>
         </div>
     );

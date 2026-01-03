@@ -87,7 +87,7 @@ export function GlobalNutritionHeader({ className }: GlobalNutritionHeaderProps)
 
     return (
         <div className={cn(
-            "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-wrap items-center gap-6",
+            "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 sm:p-4 shadow-sm flex items-center gap-3 sm:gap-6 overflow-x-auto scrollbar-hide",
             className
         )}>
             {isInfant ? (
@@ -123,9 +123,9 @@ export function GlobalNutritionHeader({ className }: GlobalNutritionHeaderProps)
                 </>
             ) : (
                 <>
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
-                            <Zap className="w-5 h-5" />
+                    <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
+                            <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
                         <div>
                             <p className="text-[10px] uppercase font-medium text-slate-400 tracking-wider">Fórmula activa</p>
@@ -137,9 +137,9 @@ export function GlobalNutritionHeader({ className }: GlobalNutritionHeaderProps)
 
                     <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden md:block" />
 
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600">
-                            <Scale className="w-5 h-5" />
+                    <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600">
+                            <Scale className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
                         <div>
                             <p className="text-[10px] uppercase font-medium text-slate-400 tracking-wider">Estado Clínico (IMC)</p>
@@ -162,9 +162,9 @@ export function GlobalNutritionHeader({ className }: GlobalNutritionHeaderProps)
 
                     <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden md:block" />
 
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
-                            <Activity className="w-5 h-5" />
+                    <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                            <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
                         <div>
                             <p className="text-[10px] uppercase font-medium text-slate-400 tracking-wider">Proteína meta</p>
@@ -198,7 +198,7 @@ export function GlobalNutritionHeader({ className }: GlobalNutritionHeaderProps)
                 </>
             )}
 
-            <div className="ml-auto flex items-center gap-3">
+            <div className="ml-auto flex items-center gap-2 sm:gap-3 flex-shrink-0">
                 <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden lg:block" />
 
                 <div className="hidden xl:flex items-center gap-3 mr-4">
@@ -225,10 +225,11 @@ export function GlobalNutritionHeader({ className }: GlobalNutritionHeaderProps)
                     size="sm"
                     onClick={handleExport}
                     disabled={isExporting}
-                    className="h-11 rounded-xl border-emerald-200 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 gap-2 font-bold px-5 transition-all hover:scale-[1.02]"
+                    className="h-9 sm:h-11 rounded-xl border-emerald-200 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 gap-1.5 sm:gap-2 font-bold px-3 sm:px-5 text-xs sm:text-sm transition-all hover:scale-[1.02]"
                 >
-                    <FileText className={cn("w-4 h-4", isExporting && "animate-pulse")} />
-                    {isExporting ? "Generando..." : "Exportar Dossier"}
+                    <FileText className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4", isExporting && "animate-pulse")} />
+                    <span className="hidden sm:inline">{isExporting ? "Generando..." : "Exportar Dossier"}</span>
+                    <span className="sm:hidden">{isExporting ? "..." : "PDF"}</span>
                 </Button>
             </div>
         </div>

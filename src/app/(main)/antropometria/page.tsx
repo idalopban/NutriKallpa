@@ -310,13 +310,13 @@ function AntropometriaContent() {
                         <p className="text-sm text-slate-400">Evaluación paso a paso</p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 md:gap-3 w-full md:w-auto">
                         {!selectedPaciente ? (
                             <>
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm font-medium text-slate-500 whitespace-nowrap hidden lg:inline">Rango Etario:</span>
                                     <Select value={ageRangeFilter} onValueChange={setAgeRangeFilter}>
-                                        <SelectTrigger className="w-[160px] h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl shadow-sm focus:ring-[#ff8508] focus:border-[#ff8508]">
+                                        <SelectTrigger className="w-full sm:w-[160px] h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl shadow-sm focus:ring-[#ff8508] focus:border-[#ff8508]">
                                             <SelectValue placeholder="Todos los rangos" />
                                         </SelectTrigger>
                                         <SelectContent align="end" className="rounded-xl border-slate-200 dark:border-slate-700">
@@ -328,7 +328,7 @@ function AntropometriaContent() {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="w-full md:w-[300px] relative">
+                                <div className="w-full sm:w-[300px] relative">
                                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                     <input
                                         type="text"
@@ -345,21 +345,23 @@ function AntropometriaContent() {
                                     patient={selectedPaciente}
                                     className="h-8 w-8"
                                 />
-                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate max-w-[150px] sm:max-w-none">
                                     {selectedPaciente.datosPersonales.nombre} {selectedPaciente.datosPersonales.apellido}
                                 </span>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 ml-2 text-slate-400 hover:text-red-500" onClick={() => setSelectedPacienteId(null)}>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 ml-2 text-slate-400 hover:text-red-500 flex-shrink-0" onClick={() => setSelectedPacienteId(null)}>
                                     <RotateCcw className="w-3 h-3" />
                                 </Button>
                             </div>
                         )}
-                        <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-2" />
-                        <Button variant="outline" className="h-11 rounded-xl" onClick={() => router.push('/antropometria/formulas')}>
-                            <BookOpen className="w-4 h-4 mr-2" /> Formulas
-                        </Button>
-                        <Button variant="secondary" size="icon" className="h-11 w-11 rounded-xl" onClick={() => router.push('/pacientes/nuevo')}>
-                            <PlusCircle className="w-5 h-5" />
-                        </Button>
+                        <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-2 hidden sm:block" />
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" className="h-11 rounded-xl flex-1 sm:flex-none" onClick={() => router.push('/antropometria/formulas')}>
+                                <BookOpen className="w-4 h-4 mr-2" /> <span className="hidden sm:inline">Formulas</span>
+                            </Button>
+                            <Button variant="secondary" size="icon" className="h-11 w-11 rounded-xl flex-shrink-0" onClick={() => router.push('/pacientes/nuevo')}>
+                                <PlusCircle className="w-5 h-5" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>

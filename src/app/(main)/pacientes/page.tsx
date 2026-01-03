@@ -140,13 +140,13 @@ function PatientRow({
               paciente.datosPersonales.avatarUrl.startsWith('avatar-') ? (
                 <img
                   src={`/perfil/${paciente.datosPersonales.avatarUrl === 'avatar-1' ? 'bebe_nino' :
-                      paciente.datosPersonales.avatarUrl === 'avatar-2' ? 'bebe_nina' :
-                        paciente.datosPersonales.avatarUrl === 'avatar-3' ? 'nino' :
-                          paciente.datosPersonales.avatarUrl === 'avatar-4' ? 'nina' :
-                            paciente.datosPersonales.avatarUrl === 'avatar-5' ? 'adulto' :
-                              paciente.datosPersonales.avatarUrl === 'avatar-6' ? 'adulta' :
-                                paciente.datosPersonales.avatarUrl === 'avatar-7' ? 'adulto_mayor' :
-                                  paciente.datosPersonales.avatarUrl === 'avatar-8' ? 'adulta_mayor' : 'adulto'
+                    paciente.datosPersonales.avatarUrl === 'avatar-2' ? 'bebe_nina' :
+                      paciente.datosPersonales.avatarUrl === 'avatar-3' ? 'nino' :
+                        paciente.datosPersonales.avatarUrl === 'avatar-4' ? 'nina' :
+                          paciente.datosPersonales.avatarUrl === 'avatar-5' ? 'adulto' :
+                            paciente.datosPersonales.avatarUrl === 'avatar-6' ? 'adulta' :
+                              paciente.datosPersonales.avatarUrl === 'avatar-7' ? 'adulto_mayor' :
+                                paciente.datosPersonales.avatarUrl === 'avatar-8' ? 'adulta_mayor' : 'adulto'
                     }.png`}
                   alt={`${paciente.datosPersonales.nombre} ${paciente.datosPersonales.apellido}`}
                   className="w-full h-full object-cover"
@@ -452,13 +452,13 @@ function PacientesContent() {
           </div>
 
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700 overflow-x-auto scrollbar-hide w-full md:w-auto">
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700 overflow-x-auto scrollbar-hide w-full sm:w-auto">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setFilterStatus("todos")}
                 className={cn(
-                  "rounded-full px-4 md:px-5 h-9 font-medium transition-all flex-shrink-0",
+                  "rounded-full px-3 sm:px-5 h-9 font-medium transition-all flex-shrink-0 text-sm",
                   filterStatus === "todos"
                     ? "bg-[#6cba00] text-white shadow-sm hover:bg-[#5aa300] hover:text-white"
                     : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
@@ -471,7 +471,7 @@ function PacientesContent() {
                 size="sm"
                 onClick={() => setFilterStatus("activos")}
                 className={cn(
-                  "rounded-full px-4 md:px-5 h-9 font-medium transition-all flex-shrink-0",
+                  "rounded-full px-3 sm:px-5 h-9 font-medium transition-all flex-shrink-0 text-sm",
                   filterStatus === "activos"
                     ? "bg-[#6cba00] text-white shadow-sm hover:bg-[#5aa300] hover:text-white"
                     : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
@@ -484,7 +484,7 @@ function PacientesContent() {
                 size="sm"
                 onClick={() => setFilterStatus("pendientes")}
                 className={cn(
-                  "rounded-full px-4 md:px-5 h-9 font-medium transition-all flex-shrink-0",
+                  "rounded-full px-3 sm:px-5 h-9 font-medium transition-all flex-shrink-0 text-sm",
                   filterStatus === "pendientes"
                     ? "bg-amber-500 text-white shadow-sm hover:bg-amber-600 hover:text-white"
                     : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
@@ -497,7 +497,7 @@ function PacientesContent() {
                 size="sm"
                 onClick={() => setFilterStatus("inactivos")}
                 className={cn(
-                  "rounded-full px-4 md:px-5 h-9 font-medium transition-all flex-shrink-0",
+                  "rounded-full px-3 sm:px-5 h-9 font-medium transition-all flex-shrink-0 text-sm",
                   filterStatus === "inactivos"
                     ? "bg-slate-500 text-white shadow-sm hover:bg-slate-600 hover:text-white"
                     : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
@@ -508,11 +508,11 @@ function PacientesContent() {
             </div>
 
             {/* Age Range Filter Dropdown */}
-            <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="text-sm font-medium text-slate-500 dark:text-slate-400 ml-2 hidden lg:inline">Rango Etario:</span>
               {isMounted && (
                 <Select value={filterAgeRange} onValueChange={(val) => setFilterAgeRange(val)}>
-                  <SelectTrigger className="w-full md:w-[240px] h-10 rounded-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-[#ff8508]/20 focus:border-[#ff8508] transition-all">
+                  <SelectTrigger className="w-full sm:w-[200px] h-10 rounded-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-[#ff8508]/20 focus:border-[#ff8508] transition-all">
                     <SelectValue placeholder="Filtrar por edad" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200 dark:border-slate-700">

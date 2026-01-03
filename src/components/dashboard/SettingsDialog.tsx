@@ -62,7 +62,7 @@ export function SettingsDialog() {
                     <Settings className="w-5 h-5 transition-transform duration-500 group-hover:rotate-90 group-hover:scale-110" />
                 </button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="w-[calc(100%-2rem)] max-w-[425px] mx-auto rounded-2xl">
                 <DialogHeader>
                     <DialogTitle>Configuración</DialogTitle>
                     <DialogDescription>
@@ -70,17 +70,17 @@ export function SettingsDialog() {
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-6 py-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div className="flex flex-col space-y-1">
                             <Label>Tema</Label>
                             <span className="text-xs text-muted-foreground">Selecciona tu preferencia de tema</span>
                         </div>
-                        <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 w-full sm:w-auto overflow-x-auto">
                             {/* Botón Claro */}
                             <button
                                 type="button"
                                 onClick={() => setTheme("light")}
-                                className="flex items-center gap-1.5 h-8 px-3 rounded-md text-sm font-medium transition-colors"
+                                className="flex items-center justify-center gap-1 sm:gap-1.5 h-8 px-2 sm:px-3 rounded-md text-sm font-medium transition-colors flex-1 sm:flex-none"
                                 style={
                                     mounted && theme === "light"
                                         ? { backgroundColor: '#6cba00', color: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
@@ -94,7 +94,7 @@ export function SettingsDialog() {
                             <button
                                 type="button"
                                 onClick={() => setTheme("dark")}
-                                className="flex items-center gap-1.5 h-8 px-3 rounded-md text-sm font-medium transition-colors"
+                                className="flex items-center justify-center gap-1 sm:gap-1.5 h-8 px-2 sm:px-3 rounded-md text-sm font-medium transition-colors flex-1 sm:flex-none"
                                 style={
                                     mounted && theme === "dark"
                                         ? { backgroundColor: '#ff8508', color: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
@@ -108,7 +108,7 @@ export function SettingsDialog() {
                             <button
                                 type="button"
                                 onClick={() => setTheme("system")}
-                                className="flex items-center gap-1.5 h-8 px-3 rounded-md text-sm font-medium transition-colors"
+                                className="flex items-center justify-center gap-1 sm:gap-1.5 h-8 px-2 sm:px-3 rounded-md text-sm font-medium transition-colors flex-1 sm:flex-none"
                                 style={
                                     mounted && (theme === "system" || theme === undefined)
                                         ? { backgroundColor: '#6cba00', color: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }

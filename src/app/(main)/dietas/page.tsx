@@ -638,12 +638,12 @@ function DietasContent() {
                         </div>
 
                         {/* RIGHT: Controls */}
-                        <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+                        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 md:gap-3 w-full md:w-auto">
                             {/* Age Range Filter */}
                             <div className="flex items-center gap-2">
                                 <span className="text-sm font-medium text-slate-500 dark:text-slate-400 hidden lg:inline">Rango Etario:</span>
                                 <Select value={ageRangeFilter} onValueChange={setAgeRangeFilter}>
-                                    <SelectTrigger className="w-[160px] h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl shadow-sm focus:ring-[#ff8508] focus:border-[#ff8508]">
+                                    <SelectTrigger className="w-full sm:w-[160px] h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl shadow-sm focus:ring-[#ff8508] focus:border-[#ff8508]">
                                         <SelectValue placeholder="Todos los rangos" />
                                     </SelectTrigger>
                                     <SelectContent align="end" className="rounded-xl border-slate-200 dark:border-slate-700">
@@ -657,7 +657,7 @@ function DietasContent() {
                             </div>
 
                             {/* Patient Selector */}
-                            <div className="w-full md:w-[300px] relative">
+                            <div className="w-full sm:w-[300px] relative">
                                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                 <Input
                                     placeholder="Buscar paciente..."
@@ -667,24 +667,26 @@ function DietasContent() {
                                 />
                             </div>
 
-                            <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-2" />
+                            <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-2 hidden sm:block" />
 
-                            <Button
-                                variant="outline"
-                                className="h-11 rounded-xl border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 gap-2 font-medium"
-                                onClick={() => setIsHistoryOpen(true)}
-                            >
-                                <History className="w-4 h-4" /> Historial
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    className="h-11 rounded-xl border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 gap-2 font-medium flex-1 sm:flex-none"
+                                    onClick={() => setIsHistoryOpen(true)}
+                                >
+                                    <History className="w-4 h-4" /> <span className="hidden sm:inline">Historial</span>
+                                </Button>
 
-                            <Button
-                                variant="secondary"
-                                size="icon"
-                                className="h-11 w-11 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-                                onClick={() => router.push('/pacientes/nuevo')}
-                            >
-                                <Plus className="w-5 h-5" />
-                            </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    className="h-11 w-11 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex-shrink-0"
+                                    onClick={() => router.push('/pacientes/nuevo')}
+                                >
+                                    <Plus className="w-5 h-5" />
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
